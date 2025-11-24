@@ -210,6 +210,46 @@ services:
       timeout: 5s
       retries: 5
 
+  # ==================== DASHBOARD ====================
+  
+  dashboard:
+    build:
+      context: ./govconnect-dashboard
+      dockerfile: Dockerfile
+    container_name: govconnect-dashboard
+    environment:
+      NODE_ENV: production
+      
+      # Database
+      DATABASE_URL: postgresql://postgres:postgres_secret_2025@postgres:5432/govconnect?schema=dashboard
+      
+      # JWT Secret
+      JWT_SECRET: govconnect-jwt-secret-2025-change-in-production
+      
+      # Case Service API
+      CASE_SERVICE_URL: http://case-service:3003
+      INTERNAL_API_KEY: govconnect-internal-2025-secret
+      
+      # App Config
+      NEXT_PUBLIC_APP_NAME: "GovConnect Dashboard"
+      
+    ports:
+      - "3000:3000"
+    networks:
+      - govconnect-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      case-service:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
 # ==================== NETWORKS ====================
 networks:
   govconnect-network:
