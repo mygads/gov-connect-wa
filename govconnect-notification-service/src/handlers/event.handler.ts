@@ -1,0 +1,108 @@
+import { RABBITMQ_CONFIG } from '../config/rabbitmq';
+import logger from '../utils/logger';
+import { sendNotification } from '../services/notification.service';
+import {
+  buildAIReplyMessage,
+  buildComplaintCreatedMessage,
+  buildTicketCreatedMessage,
+  buildStatusUpdatedMessage
+} from '../services/template.service';
+import {
+  AIReplyEvent,
+  ComplaintCreatedEvent,
+  TicketCreatedEvent,
+  StatusUpdatedEvent
+} from '../types/event.types';
+
+export async function handleEvent(routingKey: string, data: any): Promise<void> {
+  switch (routingKey) {
+    case RABBITMQ_CONFIG.routingKeys.aiReply:
+      await handleAIReply(data as AIReplyEvent);
+      break;
+
+    case RABBITMQ_CONFIG.routingKeys.complaintCreated:
+      await handleComplaintCreated(data as ComplaintCreatedEvent);
+      break;
+
+    case RABBITMQ_CONFIG.routingKeys.ticketCreated:
+      await handleTicketCreated(data as TicketCreatedEvent);
+      break;
+
+    case RABBITMQ_CONFIG.routingKeys.statusUpdated:
+      await handleStatusUpdated(data as StatusUpdatedEvent);
+      break;
+
+    default:
+      logger.warn('Unknown routing key', { routingKey });
+  }
+}
+
+async function handleAIReply(event: AIReplyEvent): Promise<void> {
+  logger.info('Handling AI reply event', { wa_user_id: event.wa_user_id });
+
+  const message = buildAIReplyMessage(event.reply_text);
+
+  await sendNotification({
+    wa_user_id: event.wa_user_id,
+    message,
+    notificationType: 'ai_reply'
+  });
+}
+
+async function handleComplaintCreated(event: ComplaintCreatedEvent): Promise<void> {
+  logger.info('Handling complaint created event', {
+    wa_user_id: event.wa_user_id,
+    complaint_id: event.complaint_id
+  });
+
+  const message = buildComplaintCreatedMessage({
+    complaint_id: event.complaint_id,
+    kategori: event.kategori
+  });
+
+  await sendNotification({
+    wa_user_id: event.wa_user_id,
+    message,
+    notificationType: 'complaint_created'
+  });
+}
+
+async function handleTicketCreated(event: TicketCreatedEvent): Promise<void> {
+  logger.info('Handling ticket created event', {
+    wa_user_id: event.wa_user_id,
+    ticket_id: event.ticket_id
+  });
+
+  const message = buildTicketCreatedMessage({
+    ticket_id: event.ticket_id,
+    jenis: event.jenis
+  });
+
+  await sendNotification({
+    wa_user_id: event.wa_user_id,
+    message,
+    notificationType: 'ticket_created'
+  });
+}
+
+async function handleStatusUpdated(event: StatusUpdatedEvent): Promise<void> {
+  logger.info('Handling status updated event', {
+    wa_user_id: event.wa_user_id,
+    complaint_id: event.complaint_id,
+    ticket_id: event.ticket_id,
+    status: event.status
+  });
+
+  const message = buildStatusUpdatedMessage({
+    complaint_id: event.complaint_id,
+    ticket_id: event.ticket_id,
+    status: event.status,
+    admin_notes: event.admin_notes
+  });
+
+  await sendNotification({
+    wa_user_id: event.wa_user_id,
+    message,
+    notificationType: 'status_updated'
+  });
+}

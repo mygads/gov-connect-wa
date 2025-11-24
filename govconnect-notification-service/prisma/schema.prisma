@@ -1,0 +1,27 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["notification"]
+}
+
+model NotificationLog {
+  id                String   @id @default(cuid())
+  wa_user_id        String
+  message_text      String   @db.Text
+  notification_type String   // "ai_reply" | "complaint_created" | "ticket_created" | "status_updated"
+  status            String   // "sent" | "failed"
+  error_msg         String?  @db.Text
+  sent_at           DateTime @default(now())
+  
+  @@index([wa_user_id])
+  @@index([status])
+  @@index([notification_type])
+  @@index([sent_at])
+  @@map("notification_logs")
+  @@schema("notification")
+}
