@@ -1,0 +1,276 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { AlertCircle, ArrowLeft, CheckCircle, Loader2, MapPin, MessageSquare, Phone, Calendar } from "lucide-react"
+import { apiClient } from "@/lib/api-client"
+import { formatDate, formatStatus, getStatusColor } from "@/lib/utils"
+
+interface Complaint {
+  id: string
+  complaint_id: string
+  wa_user_id: string
+  kategori: string
+  deskripsi: string
+  alamat?: string
+  rt_rw?: string
+  foto_url?: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export default function LaporanDetailPage() {
+  const params = useParams()
+  const router = useRouter()
+  const [complaint, setComplaint] = useState<Complaint | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [updating, setUpdating] = useState(false)
+  const [newStatus, setNewStatus] = useState("")
+  const [adminNotes, setAdminNotes] = useState("")
+
+  useEffect(() => {
+    if (params.id) {
+      fetchComplaintDetail(params.id as string)
+    }
+  }, [params.id])
+
+  const fetchComplaintDetail = async (id: string) => {
+    try {
+      setLoading(true)
+      const data = await apiClient.getComplaintById(id)
+      setComplaint(data)
+      setNewStatus(data.status)
+      setError(null)
+    } catch (err: any) {
+      setError(err.message || "Failed to load complaint detail")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdateStatus = async () => {
+    if (!complaint || !newStatus) return
+
+    try {
+      setUpdating(true)
+      await apiClient.updateComplaintStatus(complaint.id, {
+        status: newStatus,
+        admin_notes: adminNotes || undefined,
+      })
+      
+      // Refresh data
+      await fetchComplaintDetail(complaint.id)
+      setAdminNotes("")
+      setError(null)
+    } catch (err: any) {
+      setError(err.message || "Failed to update status")
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-64 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (error || !complaint) {
+    return (
+      <div className="space-y-6">
+        <Button variant="outline" onClick={() => router.back()}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Kembali
+        </Button>
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Error Loading Data
+            </CardTitle>
+            <CardDescription>{error || "Complaint not found"}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => fetchComplaintDetail(params.id as string)} variant="outline">
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="outline" onClick={() => router.back()}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Kembali
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{complaint.complaint_id}</h1>
+          <p className="text-sm text-muted-foreground">Detail Laporan Warga</p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <div className="md:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Informasi Laporan</CardTitle>
+              <CardDescription>Detail lengkap laporan dari warga</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Nomor Laporan</Label>
+                  <p className="font-mono font-semibold text-foreground">{complaint.complaint_id}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    WhatsApp
+                  </Label>
+                  <p className="font-mono text-foreground">{complaint.wa_user_id}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-muted-foreground">Kategori</Label>
+                <Badge variant="outline" className="capitalize text-base px-3 py-1">
+                  {complaint.kategori.replace(/_/g, " ")}
+                </Badge>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-muted-foreground flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Deskripsi
+                </Label>
+                <p className="text-foreground bg-muted p-4 rounded-md">{complaint.deskripsi}</p>
+              </div>
+
+              {complaint.alamat && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Alamat
+                  </Label>
+                  <p className="text-foreground">{complaint.alamat}</p>
+                  {complaint.rt_rw && (
+                    <p className="text-sm text-muted-foreground">{complaint.rt_rw}</p>
+                  )}
+                </div>
+              )}
+
+              <div className="grid gap-4 md:grid-cols-2 pt-4 border-t">
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Dibuat
+                  </Label>
+                  <p className="text-sm text-foreground">{formatDate(complaint.created_at)}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Diupdate
+                  </Label>
+                  <p className="text-sm text-foreground">{formatDate(complaint.updated_at)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Status Laporan</CardTitle>
+              <CardDescription>Update status penanganan</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Status Saat Ini</Label>
+                <Badge className={`${getStatusColor(complaint.status)} text-base px-3 py-1 w-full justify-center`}>
+                  {formatStatus(complaint.status)}
+                </Badge>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">Ubah Status</Label>
+                <Select value={newStatus} onValueChange={setNewStatus}>
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Pilih status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="baru">Baru</SelectItem>
+                    <SelectItem value="proses">Proses</SelectItem>
+                    <SelectItem value="selesai">Selesai</SelectItem>
+                    <SelectItem value="ditolak">Ditolak</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Catatan Admin (Opsional)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Tambahkan catatan untuk warga..."
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  rows={4}
+                />
+              </div>
+
+              <Button
+                onClick={handleUpdateStatus}
+                disabled={updating || newStatus === complaint.status}
+                className="w-full"
+              >
+                {updating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Update Status
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
