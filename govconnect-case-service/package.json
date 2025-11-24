@@ -12,13 +12,19 @@
     "prisma:studio": "prisma studio",
     "type-check": "tsc --noEmit"
   },
-  "keywords": ["govconnect", "case", "complaints", "tickets"],
+  "keywords": [
+    "govconnect",
+    "case",
+    "complaints",
+    "tickets"
+  ],
   "author": "GovConnect Team",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "5.22.0",
     "amqplib": "^0.10.9",
     "axios": "^1.13.2",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-validator": "^7.3.1",
@@ -27,6 +33,7 @@
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.8",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
     "@types/node": "^24.10.1",
     "tsx": "^4.20.6",

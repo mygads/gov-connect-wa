@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Complaint {
+  id           String   @id @default(cuid())
+  complaint_id String   @unique
+  wa_user_id   String
+  kategori     String   // jalan_rusak, lampu_mati, sampah, drainase, pohon_tumbang, fasilitas_rusak
+  deskripsi    String   @db.Text
+  alamat       String?
+  rt_rw        String?
+  foto_url     String?
+  status       String   @default("baru") // baru, proses, selesai, ditolak
+  admin_notes  String?  @db.Text
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+  
+  @@index([wa_user_id])
+  @@index([status])
+  @@index([kategori])
+  @@index([created_at])
+  @@index([rt_rw])
+  @@map("complaints")
+}
+
+model Ticket {
+  id          String   @id @default(cuid())
+  ticket_id   String   @unique
+  wa_user_id  String
+  jenis       String   // surat_keterangan, surat_pengantar, izin_keramaian
+  data_json   Json     // Flexible storage for different ticket types
+  status      String   @default("pending") // pending, proses, selesai, ditolak
+  admin_notes String?  @db.Text
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  @@index([wa_user_id])
+  @@index([status])
+  @@index([jenis])
+  @@index([created_at])
+  @@map("tickets")
+}
