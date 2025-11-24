@@ -1,7 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient({
+  datasourceUrl: process.env.DATABASE_URL
+})
 
 async function main() {
   console.log('🌱 Seeding database...')
@@ -16,11 +18,15 @@ async function main() {
     return
   }
 
+  // Generate ID manually (simple cuid-like)
+  const id = `adm_${Date.now()}_${Math.random().toString(36).substring(7)}`
+
   // Create default admin user
   const hashedPassword = await bcrypt.hash('admin123', 10)
   
   const admin = await prisma.adminUser.create({
     data: {
+      id,
       username: 'admin',
       password_hash: hashedPassword,
       name: 'Administrator',
