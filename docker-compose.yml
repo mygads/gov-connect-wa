@@ -3,7 +3,7 @@ services:
   
   # Single PostgreSQL instance with multiple schemas
   postgres:
-    image: postgres:16
+    image: postgres:17
     container_name: govconnect-postgres
     environment:
       POSTGRES_DB: govconnect
