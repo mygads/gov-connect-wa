@@ -9,7 +9,6 @@ interface EnvConfig {
   RABBITMQ_URL: string;
   INTERNAL_API_KEY: string;
   WA_API_URL: string;
-  WA_PHONE_NUMBER_ID: string;
   WA_ACCESS_TOKEN: string;
   WA_WEBHOOK_VERIFY_TOKEN: string;
   LOG_LEVEL: string;
@@ -38,8 +37,9 @@ function validateEnv(): EnvConfig {
     DATABASE_URL: process.env.DATABASE_URL!,
     RABBITMQ_URL: process.env.RABBITMQ_URL!,
     INTERNAL_API_KEY: process.env.INTERNAL_API_KEY!,
-    WA_API_URL: process.env.WA_API_URL || 'https://graph.facebook.com/v21.0',
-    WA_PHONE_NUMBER_ID: process.env.WA_PHONE_NUMBER_ID || '',
+    // WA_API_URL: clivy-wa-support gateway URL (includes /wa prefix)
+    WA_API_URL: process.env.WA_API_URL || 'https://api-wa.genfity.com/wa',
+    // WA_ACCESS_TOKEN: Session token from genfity-wa
     WA_ACCESS_TOKEN: process.env.WA_ACCESS_TOKEN || '',
     WA_WEBHOOK_VERIFY_TOKEN: process.env.WA_WEBHOOK_VERIFY_TOKEN!,
     LOG_LEVEL: process.env.LOG_LEVEL || 'info',

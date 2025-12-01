@@ -59,12 +59,22 @@ export async function createComplaint(data: CreateComplaintData) {
 }
 
 /**
- * Get complaint by ID
+ * Get complaint by ID (supports both database id and complaint_id)
  */
-export async function getComplaintById(complaint_id: string) {
-  return await prisma.complaint.findUnique({
-    where: { complaint_id },
+export async function getComplaintById(id: string) {
+  // Try to find by complaint_id first (e.g., LAP-20251201-001)
+  let complaint = await prisma.complaint.findUnique({
+    where: { complaint_id: id },
   });
+  
+  // If not found, try by database id (CUID)
+  if (!complaint) {
+    complaint = await prisma.complaint.findUnique({
+      where: { id },
+    });
+  }
+  
+  return complaint;
 }
 
 /**
@@ -93,14 +103,20 @@ export async function getComplaintsList(filters: ComplaintFilters) {
 }
 
 /**
- * Update complaint status
+ * Update complaint status (supports both database id and complaint_id)
  */
 export async function updateComplaintStatus(
-  complaint_id: string,
+  id: string,
   updateData: UpdateComplaintStatusData
 ) {
+  // First find the complaint to get the correct identifier
+  const existingComplaint = await getComplaintById(id);
+  if (!existingComplaint) {
+    throw new Error('Complaint not found');
+  }
+  
   const complaint = await prisma.complaint.update({
-    where: { complaint_id },
+    where: { id: existingComplaint.id },
     data: {
       status: updateData.status,
       admin_notes: updateData.admin_notes,
@@ -116,7 +132,7 @@ export async function updateComplaintStatus(
   });
   
   logger.info('Complaint status updated', {
-    complaint_id,
+    complaint_id: complaint.complaint_id,
     status: updateData.status,
   });
   

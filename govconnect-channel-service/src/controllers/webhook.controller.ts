@@ -4,80 +4,122 @@ import {
   checkDuplicateMessage,
 } from '../services/message.service';
 import { publishEvent } from '../services/rabbitmq.service';
-import {
-  parseWebhookPayload,
-  shouldProcessMessage,
-} from '../services/wa.service';
 import { rabbitmqConfig } from '../config/rabbitmq';
 import logger from '../utils/logger';
-import { WhatsAppWebhookPayload } from '../types/webhook.types';
+import { 
+  GenfityWebhookPayload, 
+  GenfityEvent,
+  WhatsAppWebhookPayload 
+} from '../types/webhook.types';
 
 /**
- * Handle WhatsApp webhook
+ * Handle WhatsApp webhook from genfity-wa
  * POST /webhook/whatsapp
+ * 
+ * genfity-wa sends webhooks in two formats:
+ * 1. JSON mode: Content-Type: application/json
+ * 2. Form mode: Content-Type: application/x-www-form-urlencoded
  */
 export async function handleWebhook(req: Request, res: Response): Promise<void> {
   try {
-    const payload: WhatsAppWebhookPayload = req.body;
+    let payload: GenfityWebhookPayload;
+    
+    // Handle both JSON and form-urlencoded formats
+    if (req.body.jsonData) {
+      // Form mode: parse jsonData field
+      try {
+        payload = JSON.parse(req.body.jsonData);
+      } catch (e) {
+        logger.warn('Failed to parse jsonData field', { error: e });
+        res.json({ status: 'ok', message: 'Invalid jsonData' });
+        return;
+      }
+    } else {
+      // JSON mode: use body directly
+      payload = req.body;
+    }
 
-    // Parse webhook payload
-    const { message, from } = parseWebhookPayload(payload);
+    // Debug: Log full payload structure
+    logger.debug('Webhook received', { 
+      type: payload.type, 
+      hasEvent: !!payload.event,
+      eventKeys: payload.event ? Object.keys(payload.event) : [],
+      fullPayload: JSON.stringify(payload).substring(0, 2000) // First 2000 chars
+    });
+    
+    // Extra detailed debug
+    if (payload.event) {
+      logger.debug('Event details', {
+        hasInfo: !!payload.event.Info,
+        hasMessage: !!payload.event.Message,
+        infoKeys: payload.event.Info ? Object.keys(payload.event.Info) : [],
+        messageKeys: payload.event.Message ? Object.keys(payload.event.Message) : [],
+        messageContent: payload.event.Message ? JSON.stringify(payload.event.Message).substring(0, 500) : 'null'
+      });
+    }
 
-    if (!message || !from) {
-      logger.warn('No valid message in webhook payload');
+    // Only process "Message" type events (incoming messages)
+    if (payload.type !== 'Message') {
+      logger.info('Non-message webhook received', { type: payload.type });
+      res.json({ status: 'ok', message: `Event type: ${payload.type}` });
+      return;
+    }
+
+    // Parse genfity-wa webhook payload
+    const { message, from, messageId, timestamp } = parseGenfityPayload(payload);
+
+    logger.debug('Parsed payload result', { message, from, messageId, timestamp });
+
+    if (!message || !from || !messageId) {
+      logger.warn('No valid message in webhook payload', {
+        hasMessage: !!message,
+        hasFrom: !!from,
+        hasMessageId: !!messageId,
+      });
       res.json({ status: 'ok', message: 'No message to process' });
       return;
     }
 
-    // Check if message should be processed
-    const { shouldProcess, reason } = shouldProcessMessage(message);
-    if (!shouldProcess) {
-      logger.info('Message skipped', { reason, message_id: message.id });
-      res.json({ status: 'ok', message: `Skipped: ${reason}` });
+    // Check if message is from the bot itself (IsFromMe)
+    if (payload.event?.Info.IsFromMe) {
+      logger.info('Skipping own message', { message_id: messageId });
+      res.json({ status: 'ok', message: 'Own message skipped' });
       return;
     }
 
     // Check duplicate
-    const isDuplicate = await checkDuplicateMessage(message.id);
+    const isDuplicate = await checkDuplicateMessage(messageId);
     if (isDuplicate) {
-      logger.warn('Duplicate message', { message_id: message.id });
+      logger.warn('Duplicate message', { message_id: messageId });
       res.json({ status: 'ok', message: 'Duplicate message' });
       return;
     }
 
-    // Extract message text
-    const messageText = message.text?.body || '';
-
-    if (!messageText) {
-      logger.warn('Empty message text');
-      res.json({ status: 'ok', message: 'Empty message' });
-      return;
-    }
+    // Extract phone number from JID (remove @s.whatsapp.net)
+    const waUserId = extractPhoneFromJID(from);
 
     // Save message to database
-    const messageTimestamp = new Date(parseInt(message.timestamp) * 1000);
-    
     await saveIncomingMessage({
-      wa_user_id: from,
-      message_id: message.id,
-      message_text: messageText,
-      timestamp: messageTimestamp,
+      wa_user_id: waUserId,
+      message_id: messageId,
+      message_text: message,
+      timestamp: timestamp,
     });
 
     // Publish event to RabbitMQ
     await publishEvent(rabbitmqConfig.ROUTING_KEYS.MESSAGE_RECEIVED, {
-      wa_user_id: from,
-      message: messageText,
-      message_id: message.id,
-      received_at: messageTimestamp.toISOString(),
+      wa_user_id: waUserId,
+      message: message,
+      message_id: messageId,
+      received_at: timestamp.toISOString(),
     });
 
     logger.info('Webhook processed successfully', {
-      from,
-      message_id: message.id,
+      from: waUserId,
+      message_id: messageId,
     });
 
-    res.json({ status: 'ok', message_id: message.id });
+    res.json({ status: 'ok', message_id: messageId });
   } catch (error: any) {
     logger.error('Webhook handler error', { error: error.message });
     res.status(500).json({ error: 'Internal server error' });
@@ -85,7 +127,159 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
 }
 
 /**
- * Webhook verification (for WhatsApp Cloud API setup)
+ * Parse genfity-wa webhook payload to extract message details
+ * 
+ * Example payload from genfity-wa:
+ * {
+ *   "type": "Message",
+ *   "event": {
+ *     "Info": {
+ *       "Sender": "6281233784490:24@s.whatsapp.net",
+ *       "Chat": "6281233784490@s.whatsapp.net",
+ *       "Type": "text",
+ *       "ID": "3FF8AEEAF9BA3B25E4DE",
+ *       "PushName": "M. Yoga",
+ *       "Timestamp": "2025-11-12T13:07:43+07:00"
+ *     },
+ *     "Message": {
+ *       "extendedTextMessage": { "text": "Hello" },
+ *       "conversation": "Hello" // alternative
+ *     }
+ *   }
+ * }
+ */
+function parseGenfityPayload(payload: GenfityWebhookPayload): {
+  message: string | null;
+  from: string | null;
+  messageId: string | null;
+  timestamp: Date;
+} {
+  try {
+    const event = payload.event;
+    if (!event) {
+      logger.debug('No event in payload');
+      return { message: null, from: null, messageId: null, timestamp: new Date() };
+    }
+
+    // Handle both "Info" (from genfity-wa) formats
+    const info = event.Info;
+    if (!info) {
+      logger.debug('No Info in event');
+      return { message: null, from: null, messageId: null, timestamp: new Date() };
+    }
+
+    // Extract sender JID - Chat field contains the conversation JID
+    const from = info.Chat; // e.g., "628123456789@s.whatsapp.net"
+
+    // Extract message ID
+    const messageId = info.ID;
+
+    // Extract timestamp - genfity-wa uses ISO format
+    let timestamp: Date;
+    if (info.Timestamp) {
+      timestamp = new Date(info.Timestamp);
+    } else {
+      timestamp = new Date();
+    }
+
+    // Check if message is from bot itself
+    // In genfity-wa, Sender contains the actual sender JID
+    // If sender equals our JID (IsFromMe), skip it
+    // Note: This is handled by IsFromMe check in handleWebhook
+
+    // Extract message text from the Message object
+    const msg = event.Message;
+    let messageText: string | null = null;
+
+    if (msg) {
+      // genfity-wa uses camelCase for message fields
+      // Check various message types (camelCase from genfity-wa)
+      
+      // Text messages
+      if (typeof msg === 'object') {
+        const msgObj = msg as Record<string, any>;
+        
+        // Priority 1: conversation (simple text)
+        if (msgObj.conversation) {
+          messageText = msgObj.conversation;
+        }
+        // Priority 2: extendedTextMessage (text with formatting/reply)
+        else if (msgObj.extendedTextMessage?.text) {
+          messageText = msgObj.extendedTextMessage.text;
+        }
+        // Priority 3: PascalCase variants (backward compatibility)
+        else if (msgObj.Conversation) {
+          messageText = msgObj.Conversation;
+        }
+        else if (msgObj.ExtendedTextMessage?.Text) {
+          messageText = msgObj.ExtendedTextMessage.Text;
+        }
+        // Media with captions
+        else if (msgObj.imageMessage?.caption) {
+          messageText = msgObj.imageMessage.caption;
+        }
+        else if (msgObj.videoMessage?.caption) {
+          messageText = msgObj.videoMessage.caption;
+        }
+        else if (msgObj.documentMessage?.caption) {
+          messageText = msgObj.documentMessage.caption;
+        }
+        // PascalCase media captions
+        else if (msgObj.ImageMessage?.Caption) {
+          messageText = msgObj.ImageMessage.Caption;
+        }
+        else if (msgObj.VideoMessage?.Caption) {
+          messageText = msgObj.VideoMessage.Caption;
+        }
+        else if (msgObj.DocumentMessage?.Caption) {
+          messageText = msgObj.DocumentMessage.Caption;
+        }
+        // Location
+        else if (msgObj.locationMessage) {
+          messageText = `📍 Location: ${msgObj.locationMessage.name || 'Shared location'}`;
+        }
+        else if (msgObj.LocationMessage) {
+          messageText = `📍 Location: ${msgObj.LocationMessage.Name || 'Shared location'}`;
+        }
+        // Contact
+        else if (msgObj.contactMessage) {
+          messageText = `👤 Contact: ${msgObj.contactMessage.displayName}`;
+        }
+        else if (msgObj.ContactMessage) {
+          messageText = `👤 Contact: ${msgObj.ContactMessage.DisplayName}`;
+        }
+      }
+    }
+
+    logger.debug('Parsed message details', {
+      from,
+      messageId,
+      messageText: messageText?.substring(0, 50),
+      timestamp: timestamp.toISOString(),
+    });
+
+    return {
+      message: messageText,
+      from,
+      messageId,
+      timestamp,
+    };
+  } catch (error: any) {
+    logger.error('Error parsing webhook payload', { error: error.message });
+    return { message: null, from: null, messageId: null, timestamp: new Date() };
+  }
+}
+
+/**
+ * Extract phone number from WhatsApp JID
+ * e.g., "628123456789@s.whatsapp.net" -> "628123456789"
+ */
+function extractPhoneFromJID(jid: string): string {
+  return jid.replace(/@s\.whatsapp\.net$/i, '').replace(/@c\.us$/i, '');
+}
+
+/**
+ * Webhook verification (for WhatsApp Cloud API setup - kept for compatibility)
  * GET /webhook/whatsapp
  */
 export function verifyWebhook(req: Request, res: Response): void {

@@ -1,3 +1,115 @@
+/**
+ * Webhook types for genfity-wa / clivy-wa-support
+ * 
+ * genfity-wa sends webhooks in JSON format with the following structure:
+ * {
+ *   "type": "Message",
+ *   "event": { Info: {...}, Message: {...} },
+ *   "base64": "...", // optional, for media
+ *   "mimeType": "...",
+ *   "fileName": "..."
+ * }
+ */
+
+// =====================================================
+// GENFITY-WA WEBHOOK TYPES (Primary)
+// =====================================================
+
+export interface GenfityWebhookPayload {
+  type: string; // "Message", "MessageSent", "Receipt", "Connected", etc.
+  event?: GenfityEvent;
+  base64?: string;
+  mimeType?: string;
+  fileName?: string;
+  s3?: S3Data;
+  // Additional fields sent by genfity-wa
+  jsonData?: string; // Raw JSON data (form mode)
+  userID?: string;
+  instanceName?: string;
+}
+
+export interface GenfityEvent {
+  Info: GenfityMessageInfo;
+  Message?: GenfityMessage;
+}
+
+export interface GenfityMessageInfo {
+  ID: string;
+  Timestamp: string;
+  Chat: string; // JID format: "628xxx@s.whatsapp.net"
+  Sender?: {
+    User: string;
+    Server: string;
+    AD?: boolean;
+  };
+  IsFromMe: boolean;
+  IsGroup: boolean;
+  PushName?: string;
+  Type?: string;
+  Category?: string;
+  MessageType?: string; // For MessageSent events
+}
+
+export interface GenfityMessage {
+  Conversation?: string;
+  ExtendedTextMessage?: {
+    Text: string;
+    ContextInfo?: {
+      StanzaId?: string;
+      Participant?: string;
+    };
+  };
+  ImageMessage?: GenfityMediaMessage;
+  VideoMessage?: GenfityMediaMessage;
+  AudioMessage?: GenfityMediaMessage;
+  DocumentMessage?: GenfityMediaMessage & {
+    FileName?: string;
+  };
+  StickerMessage?: GenfityMediaMessage;
+  LocationMessage?: {
+    DegreesLatitude: number;
+    DegreesLongitude: number;
+    Name?: string;
+  };
+  ContactMessage?: {
+    DisplayName: string;
+    Vcard?: string;
+  };
+  ReactionMessage?: {
+    Text: string;
+    Key?: {
+      ID: string;
+    };
+  };
+  ProtocolMessage?: {
+    Type: number;
+    Key?: {
+      ID: string;
+    };
+  };
+}
+
+export interface GenfityMediaMessage {
+  URL?: string;
+  Caption?: string;
+  Mimetype?: string;
+  FileSHA256?: string;
+  FileLength?: number;
+}
+
+export interface S3Data {
+  url: string;
+  key: string;
+  bucket: string;
+  size: number;
+  mimeType: string;
+  fileName: string;
+}
+
+// =====================================================
+// WHATSAPP CLOUD API TYPES (Compatibility/Reference)
+// =====================================================
+
 export interface WhatsAppWebhookPayload {
   object: string;
   entry: WhatsAppEntry[];
@@ -59,3 +171,4 @@ export interface WhatsAppStatus {
   timestamp: string;
   recipient_id: string;
 }
+

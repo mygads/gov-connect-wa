@@ -4,46 +4,68 @@ import { config } from '../config/env';
 import { WhatsAppWebhookPayload, WhatsAppMessage } from '../types/webhook.types';
 
 /**
- * Send text message via WhatsApp Cloud API
+ * Send text message via clivy-wa-support/genfity-wa API
+ * 
+ * API Endpoint: POST {WA_API_URL}/chat/send/text
+ * Headers: token: <session_token>
+ * Body: { "Phone": "628xxx", "Body": "message text" }
  */
 export async function sendTextMessage(
   to: string,
   message: string
 ): Promise<{ success: boolean; message_id?: string; error?: string }> {
   try {
-    if (!config.WA_PHONE_NUMBER_ID || !config.WA_ACCESS_TOKEN) {
-      logger.warn('WhatsApp credentials not configured, message not sent');
+    if (!config.WA_ACCESS_TOKEN) {
+      logger.warn('WhatsApp token not configured, message not sent');
       return {
         success: false,
         error: 'WhatsApp not configured',
       };
     }
 
-    const url = `${config.WA_API_URL}/${config.WA_PHONE_NUMBER_ID}/messages`;
+    // Normalize phone number - remove any non-digit characters and ensure starts with country code
+    const normalizedPhone = normalizePhoneNumber(to);
+
+    const url = `${config.WA_API_URL}/chat/send/text`;
+
+    logger.debug('Sending WhatsApp message', { url, to: normalizedPhone });
 
     const response = await axios.post(
       url,
       {
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: to,
-        type: 'text',
-        text: {
-          preview_url: false,
-          body: message,
-        },
+        Phone: normalizedPhone,
+        Body: message,
       },
       {
         headers: {
-          Authorization: `Bearer ${config.WA_ACCESS_TOKEN}`,
+          token: config.WA_ACCESS_TOKEN,
           'Content-Type': 'application/json',
         },
+        timeout: 30000, // 30 seconds timeout
       }
     );
 
-    const messageId = response.data.messages?.[0]?.id;
+    // genfity-wa returns { code: 200, data: { Details: "Sent", Id: "msgid", Timestamp: "..." }, success: true }
+    const responseData = response.data.data || response.data;
+    const messageId = responseData.Id || responseData.id;
+    const isSuccess = response.data.success === true || response.data.code === 200 || responseData.Details === 'Sent';
 
-    logger.info('WhatsApp message sent', { to, message_id: messageId });
+    if (!isSuccess) {
+      logger.warn('WhatsApp API returned non-success response', { 
+        to: normalizedPhone,
+        response: response.data
+      });
+      return {
+        success: false,
+        error: responseData.Message || responseData.message || 'Unknown error from WhatsApp API',
+      };
+    }
+
+    logger.info('WhatsApp message sent', { 
+      to: normalizedPhone, 
+      message_id: messageId,
+      details: responseData.Details 
+    });
 
     return {
       success: true,
@@ -54,17 +76,49 @@ export async function sendTextMessage(
       to,
       error: error.message,
       response: error.response?.data,
+      status: error.response?.status,
     });
 
     return {
       success: false,
-      error: error.message,
+      error: error.response?.data?.message || error.response?.data?.Message || error.message,
     };
   }
 }
 
 /**
+ * Normalize phone number to standard format
+ * - Remove non-digit characters
+ * - Ensure starts with country code (62 for Indonesia)
+ * - Remove @s.whatsapp.net suffix if present
+ */
+function normalizePhoneNumber(phone: string): string {
+  // Remove @s.whatsapp.net suffix
+  let normalized = phone.replace(/@s\.whatsapp\.net$/i, '');
+  
+  // Remove all non-digit characters
+  normalized = normalized.replace(/\D/g, '');
+  
+  // If starts with 0, replace with 62 (Indonesia country code)
+  if (normalized.startsWith('0')) {
+    normalized = '62' + normalized.substring(1);
+  }
+  
+  // If doesn't start with country code, add 62
+  if (!normalized.startsWith('62') && !normalized.startsWith('+')) {
+    normalized = '62' + normalized;
+  }
+  
+  return normalized;
+}
+
+// =====================================================
+// LEGACY FUNCTIONS (Kept for backward compatibility)
+// =====================================================
+
+/**
  * Parse webhook payload and extract message
+ * @deprecated Use parseGenfityPayload in webhook.controller.ts instead
  */
 export function parseWebhookPayload(payload: WhatsAppWebhookPayload): {
   message: WhatsAppMessage | null;
@@ -94,9 +148,9 @@ export function parseWebhookPayload(payload: WhatsAppWebhookPayload): {
  * Validate webhook signature (optional, for production)
  */
 export function validateWebhookSignature(
-  signature: string,
-  body: string,
-  secret: string
+  _signature: string,
+  _body: string,
+  _secret: string
 ): boolean {
   // TODO: Implement HMAC signature verification
   // For now, return true (skip verification in development)
@@ -105,6 +159,7 @@ export function validateWebhookSignature(
 
 /**
  * Check if message should be processed
+ * @deprecated Now handled directly in webhook.controller.ts
  */
 export function shouldProcessMessage(message: WhatsAppMessage): {
   shouldProcess: boolean;

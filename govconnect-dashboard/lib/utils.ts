@@ -6,19 +6,25 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Date formatting helper
-export function formatDate(date: string | Date): string {
-  const d = typeof date === 'string' ? new Date(date) : date
-  return new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d)
+export function formatDate(date: string | Date | null | undefined): string {
+  if (!date) return '-'
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date
+    return new Intl.DateTimeFormat('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(d)
+  } catch {
+    return '-'
+  }
 }
 
 // Status formatting helper
-export function formatStatus(status: string): string {
+export function formatStatus(status: string | null | undefined): string {
+  if (!status) return '-'
   const statusMap: Record<string, string> = {
     'baru': 'Baru',
     'proses': 'Proses',
@@ -30,7 +36,8 @@ export function formatStatus(status: string): string {
 }
 
 // Status color helper
-export function getStatusColor(status: string): string {
+export function getStatusColor(status: string | null | undefined): string {
+  if (!status) return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
   const colorMap: Record<string, string> = {
     'baru': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',

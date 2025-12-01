@@ -42,9 +42,9 @@ services:
       RABBITMQ_URL: amqp://admin:rabbitmq_secret_2025@rabbitmq:5672/govconnect
       INTERNAL_API_KEY: govconnect-internal-2025-secret
       WA_WEBHOOK_VERIFY_TOKEN: govconnect_verify_token_2025
-      WA_API_URL: https://graph.facebook.com/v21.0
-      WA_PHONE_NUMBER_ID: ""
-      WA_ACCESS_TOKEN: ""
+      # WhatsApp API via clivy-wa-support
+      WA_API_URL: https://api-wa.genfity.com/wa
+      WA_ACCESS_TOKEN: "govconnect"
       LOG_LEVEL: debug
       LOG_DIR: logs
       CASE_SERVICE_URL: http://case-service:3003
@@ -80,7 +80,7 @@ services:
       
       # Google Gemini Configuration
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      LLM_MODEL: gemini-2.0-flash-exp
+      LLM_MODEL: gemini-2.5-flash
       LLM_TEMPERATURE: 0.3
       LLM_MAX_TOKENS: 2000
       

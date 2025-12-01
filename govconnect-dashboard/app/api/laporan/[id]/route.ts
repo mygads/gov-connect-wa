@@ -35,8 +35,9 @@ export async function GET(
       return NextResponse.json(error, { status: response.status })
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    const result = await response.json()
+    // Extract data from case-service response format { data: {...} }
+    return NextResponse.json(result.data || result)
   } catch (error) {
     console.error('Error fetching complaint:', error)
     return NextResponse.json(

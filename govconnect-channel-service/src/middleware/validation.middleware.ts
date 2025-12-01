@@ -29,11 +29,36 @@ export function handleValidationErrors(
 }
 
 /**
- * Validate webhook payload
+ * Validate webhook payload from genfity-wa
+ * 
+ * genfity-wa sends webhooks in two formats:
+ * 1. JSON mode: { type: "Message", event: {...} }
+ * 2. Form mode: { jsonData: "{...}", userID: "...", instanceName: "..." }
+ * 
+ * We accept both formats - validation is minimal to allow webhook through
  */
 export const validateWebhookPayload = [
-  body('entry').isArray().withMessage('entry must be an array'),
-  body('entry.*.changes').isArray().withMessage('changes must be an array'),
+  // Custom validator that accepts both genfity-wa formats
+  body().custom((_value, { req }) => {
+    const body = req.body;
+    
+    // Check for genfity-wa JSON mode (has 'type' field)
+    if (body.type && typeof body.type === 'string') {
+      return true;
+    }
+    
+    // Check for genfity-wa form mode (has 'jsonData' field)
+    if (body.jsonData && typeof body.jsonData === 'string') {
+      return true;
+    }
+    
+    // Check for WhatsApp Cloud API format (has 'entry' array) - backward compatibility
+    if (body.entry && Array.isArray(body.entry)) {
+      return true;
+    }
+    
+    throw new Error('Invalid webhook payload format. Expected genfity-wa or WhatsApp Cloud API format.');
+  }),
   handleValidationErrors,
 ];
 
