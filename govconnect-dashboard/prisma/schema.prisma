@@ -58,3 +58,36 @@ model activity_logs {
   @@index([timestamp])
   @@schema("dashboard")
 }
+
+// ==================== SYSTEM SETTINGS ====================
+
+model system_settings {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   @db.Text
+  description String?
+  updated_at  DateTime @updatedAt
+  created_at  DateTime @default(now())
+  
+  @@schema("dashboard")
+}
+
+// ==================== KNOWLEDGE BASE ====================
+
+model knowledge_base {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  category    String   // "informasi_umum" | "layanan" | "prosedur" | "jadwal" | "kontak" | "faq"
+  keywords    String[] // Array of keywords for better search
+  is_active   Boolean  @default(true)
+  priority    Int      @default(0) // Higher priority = shown first
+  admin_id    String?  // Who created/updated this
+  updated_at  DateTime @updatedAt
+  created_at  DateTime @default(now())
+  
+  @@index([category])
+  @@index([is_active])
+  @@index([keywords])
+  @@schema("dashboard")
+}

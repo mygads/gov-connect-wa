@@ -1,9 +1,11 @@
 import logger from '../utils/logger';
 import { MessageReceivedEvent } from '../types/event.types';
-import { buildContext } from './context-builder.service';
+import { buildContext, buildKnowledgeQueryContext } from './context-builder.service';
 import { callGemini } from './llm.service';
 import { createComplaint, createTicket } from './case-client.service';
 import { publishAIReply } from './rabbitmq.service';
+import { isAIChatbotEnabled } from './settings.service';
+import { searchKnowledge, buildKnowledgeContext } from './knowledge.service';
 
 /**
  * Main orchestration logic - processes incoming WhatsApp messages
@@ -18,6 +20,17 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
   });
   
   try {
+    // Step 0: Check if AI chatbot is enabled
+    const aiEnabled = await isAIChatbotEnabled();
+    
+    if (!aiEnabled) {
+      logger.info('⏸️ AI chatbot is disabled, skipping message processing', {
+        wa_user_id,
+        message_id,
+      });
+      return; // Exit without processing or replying
+    }
+    
     // Step 1: Build context (fetch history + format prompt)
     const { systemPrompt, messageCount } = await buildContext(wa_user_id, message);
     
@@ -26,12 +39,13 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
       historyMessages: messageCount,
     });
     
-    // Step 2: Call LLM
+    // Step 2: Call LLM for initial intent detection
     const { response: llmResponse, metrics } = await callGemini(systemPrompt);
     
     logger.info('LLM response received', {
       wa_user_id,
       intent: llmResponse.intent,
+      needsKnowledge: llmResponse.needs_knowledge,
       durationMs: metrics.durationMs,
     });
     
@@ -45,6 +59,11 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
       
       case 'CREATE_TICKET':
         finalReplyText = await handleTicketCreation(wa_user_id, llmResponse);
+        break;
+      
+      case 'KNOWLEDGE_QUERY':
+        // Need to fetch knowledge and do second LLM call
+        finalReplyText = await handleKnowledgeQuery(wa_user_id, message, llmResponse);
         break;
       
       case 'QUESTION':
@@ -147,5 +166,59 @@ async function handleTicketCreation(wa_user_id: string, llmResponse: any): Promi
     return `🎫 Tiket Anda telah dibuat dengan nomor ${ticketId}.\\n\\n${llmResponse.reply_text}`;
   } else {
     return `⚠️ Maaf, terjadi kendala saat membuat tiket Anda. Mohon coba lagi atau hubungi kantor kelurahan langsung.`;
+  }
+}
+
+/**
+ * Handle knowledge query - fetch relevant knowledge and do second LLM call
+ */
+async function handleKnowledgeQuery(wa_user_id: string, message: string, llmResponse: any): Promise<string> {
+  logger.info('Handling knowledge query', {
+    wa_user_id,
+    knowledgeCategory: llmResponse.fields.knowledge_category,
+  });
+  
+  try {
+    // Determine categories to search
+    const categories = llmResponse.fields.knowledge_category 
+      ? [llmResponse.fields.knowledge_category]
+      : undefined;
+    
+    // Search knowledge base
+    const knowledgeResult = await searchKnowledge(message, categories);
+    
+    if (knowledgeResult.total === 0) {
+      logger.info('No knowledge found for query', {
+        wa_user_id,
+        query: message.substring(0, 100),
+      });
+      
+      return 'Maaf, saya belum memiliki informasi tentang hal tersebut. Untuk informasi lebih lanjut, silakan hubungi kantor kelurahan langsung atau datang pada jam kerja.';
+    }
+    
+    // Build context with knowledge
+    const { systemPrompt } = await buildKnowledgeQueryContext(
+      wa_user_id,
+      message,
+      knowledgeResult.context
+    );
+    
+    // Second LLM call with knowledge context
+    const { response: knowledgeResponse, metrics } = await callGemini(systemPrompt);
+    
+    logger.info('Knowledge query answered', {
+      wa_user_id,
+      knowledgeItemsUsed: knowledgeResult.total,
+      durationMs: metrics.durationMs,
+    });
+    
+    return knowledgeResponse.reply_text;
+  } catch (error: any) {
+    logger.error('Failed to handle knowledge query', {
+      wa_user_id,
+      error: error.message,
+    });
+    
+    return 'Maaf, terjadi kesalahan saat mencari informasi. Mohon coba lagi dalam beberapa saat.';
   }
 }

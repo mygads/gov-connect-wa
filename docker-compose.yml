@@ -74,13 +74,15 @@ services:
       # Internal Service URLs
       CHANNEL_SERVICE_URL: http://channel-service:3001
       CASE_SERVICE_URL: http://case-service:3003
+      DASHBOARD_SERVICE_URL: http://dashboard:3000
       
       # Security
       INTERNAL_API_KEY: govconnect-internal-2025-secret
       
       # Google Gemini Configuration
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      LLM_MODEL: gemini-2.5-flash
+      LLM_MODEL: gemini-2.5-flash-preview-05-20
+      LLM_FALLBACK_MODEL: gemini-2.0-flash
       LLM_TEMPERATURE: 0.3
       LLM_MAX_TOKENS: 2000
       
@@ -95,6 +97,8 @@ services:
       rabbitmq:
         condition: service_healthy
       channel-service:
+        condition: service_started
+      dashboard:
         condition: service_started
     restart: unless-stopped
     healthcheck:

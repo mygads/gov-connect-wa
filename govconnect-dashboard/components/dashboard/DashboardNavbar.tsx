@@ -1,6 +1,6 @@
 "use client"
 
-import { LogOut, User, Moon, Sun, ChevronDown } from "lucide-react"
+import { LogOut, Settings, Moon, Sun, ChevronDown } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 
@@ -68,6 +68,14 @@ export function DashboardNavbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => router.push('/dashboard/settings')} 
+              className="cursor-pointer"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive">
               <LogOut className="mr-2 h-4 w-4" />

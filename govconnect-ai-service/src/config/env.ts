@@ -7,8 +7,10 @@ interface Config {
   rabbitmqUrl: string;
   channelServiceUrl: string;
   caseServiceUrl: string;
+  dashboardServiceUrl: string;
   internalApiKey: string;
   llmModel: string;
+  llmFallbackModel: string;
   llmTemperature: number;
   llmMaxTokens: number;
   llmTimeoutMs: number;
@@ -38,8 +40,10 @@ function validateEnv(): Config {
     rabbitmqUrl: process.env.RABBITMQ_URL!,
     channelServiceUrl: process.env.CHANNEL_SERVICE_URL!,
     caseServiceUrl: process.env.CASE_SERVICE_URL!,
+    dashboardServiceUrl: process.env.DASHBOARD_SERVICE_URL || 'http://dashboard:3000',
     internalApiKey: process.env.INTERNAL_API_KEY!,
-    llmModel: process.env.LLM_MODEL || 'gemini-1.5-flash',
+    llmModel: process.env.LLM_MODEL || 'gemini-2.5-flash-preview-05-20',
+    llmFallbackModel: process.env.LLM_FALLBACK_MODEL || 'gemini-2.0-flash',
     llmTemperature: parseFloat(process.env.LLM_TEMPERATURE || '0.3'),
     llmMaxTokens: parseInt(process.env.LLM_MAX_TOKENS || '1000', 10),
     llmTimeoutMs: parseInt(process.env.LLM_TIMEOUT_MS || '30000', 10),

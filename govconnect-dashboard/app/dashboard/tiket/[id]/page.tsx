@@ -49,9 +49,11 @@ export default function TiketDetailPage() {
   const fetchTicketDetail = async (id: string) => {
     try {
       setLoading(true)
-      const data = await apiClient.getTicketById(id)
-      setTicket(data)
-      setNewStatus(data.status)
+      const response = await apiClient.getTicketById(id)
+      // API returns { data: ticket }
+      const ticketData = response.data || response
+      setTicket(ticketData)
+      setNewStatus(ticketData.status)
       setError(null)
     } catch (err: any) {
       setError(err.message || "Failed to load ticket detail")
@@ -161,7 +163,7 @@ export default function TiketDetailPage() {
               <div className="space-y-2">
                 <Label className="text-muted-foreground">Jenis Layanan</Label>
                 <Badge variant="outline" className="capitalize text-base px-3 py-1">
-                  {ticket.jenis.replace(/_/g, " ")}
+                  {ticket.jenis?.replace(/_/g, " ") || ticket.jenis}
                 </Badge>
               </div>
 

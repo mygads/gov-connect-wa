@@ -52,12 +52,22 @@ export async function createTicket(data: CreateTicketData) {
 }
 
 /**
- * Get ticket by ID
+ * Get ticket by ID (supports both database id and ticket_id)
  */
-export async function getTicketById(ticket_id: string) {
-  return await prisma.ticket.findUnique({
-    where: { ticket_id },
+export async function getTicketById(id: string) {
+  // First try to find by ticket_id (e.g., TKT-...)
+  let ticket = await prisma.ticket.findUnique({
+    where: { ticket_id: id },
   });
+  
+  // If not found, try to find by database id (cuid)
+  if (!ticket) {
+    ticket = await prisma.ticket.findUnique({
+      where: { id },
+    });
+  }
+  
+  return ticket;
 }
 
 /**
@@ -85,14 +95,20 @@ export async function getTicketsList(filters: TicketFilters) {
 }
 
 /**
- * Update ticket status
+ * Update ticket status (supports both database id and ticket_id)
  */
 export async function updateTicketStatus(
-  ticket_id: string,
+  id: string,
   updateData: UpdateTicketStatusData
 ) {
+  // First try to find the ticket to determine which field to use
+  const existingTicket = await getTicketById(id);
+  if (!existingTicket) {
+    throw new Error('Ticket not found');
+  }
+  
   const ticket = await prisma.ticket.update({
-    where: { ticket_id },
+    where: { id: existingTicket.id },
     data: {
       status: updateData.status,
       admin_notes: updateData.admin_notes,
@@ -108,7 +124,7 @@ export async function updateTicketStatus(
   });
   
   logger.info('Ticket status updated', {
-    ticket_id,
+    ticket_id: ticket.ticket_id,
     status: updateData.status,
   });
   

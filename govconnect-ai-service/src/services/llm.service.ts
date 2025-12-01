@@ -8,18 +8,75 @@ const genAI = new GoogleGenerativeAI(config.geminiApiKey);
 
 /**
  * Call Gemini with structured JSON output
+ * Uses primary model (gemini-2.5-flash) and falls back to gemini-2.0-flash on error
  */
 export async function callGemini(systemPrompt: string): Promise<{ response: LLMResponse; metrics: LLMMetrics }> {
   const startTime = Date.now();
   
+  // Try primary model first
+  const result = await callGeminiWithModel(systemPrompt, config.llmModel, startTime);
+  
+  if (result.success) {
+    return result.data!;
+  }
+  
+  // If primary model fails, try fallback model
+  logger.warn('⚠️ Primary model failed, trying fallback model', {
+    primaryModel: config.llmModel,
+    fallbackModel: config.llmFallbackModel,
+  });
+  
+  const fallbackResult = await callGeminiWithModel(systemPrompt, config.llmFallbackModel, startTime);
+  
+  if (fallbackResult.success) {
+    return fallbackResult.data!;
+  }
+  
+  // Both models failed, return error response
+  const endTime = Date.now();
+  const durationMs = endTime - startTime;
+  
+  logger.error('❌ Both primary and fallback models failed', {
+    primaryModel: config.llmModel,
+    fallbackModel: config.llmFallbackModel,
+    durationMs,
+  });
+  
+  const fallbackResponse: LLMResponse = {
+    intent: 'UNKNOWN',
+    fields: {},
+    reply_text: 'Maaf, saya sedang mengalami gangguan. Mohon coba lagi dalam beberapa saat atau hubungi staf kelurahan langsung.',
+  };
+  
+  const metrics: LLMMetrics = {
+    startTime,
+    endTime,
+    durationMs,
+    model: `${config.llmModel} (failed) -> ${config.llmFallbackModel} (failed)`,
+  };
+  
+  return {
+    response: fallbackResponse,
+    metrics,
+  };
+}
+
+/**
+ * Internal function to call Gemini with a specific model
+ */
+async function callGeminiWithModel(
+  systemPrompt: string, 
+  modelName: string, 
+  startTime: number
+): Promise<{ success: boolean; data?: { response: LLMResponse; metrics: LLMMetrics }; error?: string }> {
   logger.info('Calling Gemini API', {
-    model: config.llmModel,
+    model: modelName,
     temperature: config.llmTemperature,
   });
   
   try {
     const model = genAI.getGenerativeModel({
-      model: config.llmModel,
+      model: modelName,
       generationConfig: {
         temperature: config.llmTemperature,
         maxOutputTokens: config.llmMaxTokens,
@@ -35,6 +92,7 @@ export async function callGemini(systemPrompt: string): Promise<{ response: LLMR
     const durationMs = endTime - startTime;
     
     logger.debug('Gemini raw response', {
+      model: modelName,
       responseLength: responseText.length,
       durationMs,
     });
@@ -49,45 +107,36 @@ export async function callGemini(systemPrompt: string): Promise<{ response: LLMR
       startTime,
       endTime,
       durationMs,
-      model: config.llmModel,
+      model: modelName,
     };
     
     logger.info('✅ Gemini response parsed successfully', {
+      model: modelName,
       intent: validatedResponse.intent,
       hasFields: Object.keys(validatedResponse.fields).length > 0,
       durationMs,
     });
     
     return {
-      response: validatedResponse,
-      metrics,
+      success: true,
+      data: {
+        response: validatedResponse,
+        metrics,
+      },
     };
   } catch (error: any) {
     const endTime = Date.now();
     const durationMs = endTime - startTime;
     
     logger.error('❌ Gemini API call failed', {
+      model: modelName,
       error: error.message,
       durationMs,
     });
     
-    // Return fallback response
-    const fallbackResponse: LLMResponse = {
-      intent: 'UNKNOWN',
-      fields: {},
-      reply_text: 'Maaf, saya sedang mengalami gangguan. Mohon coba lagi dalam beberapa saat atau hubungi staf kelurahan langsung.',
-    };
-    
-    const metrics: LLMMetrics = {
-      startTime,
-      endTime,
-      durationMs,
-      model: config.llmModel,
-    };
-    
     return {
-      response: fallbackResponse,
-      metrics,
+      success: false,
+      error: error.message,
     };
   }
 }

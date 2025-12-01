@@ -128,11 +128,11 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground mt-2">Manage your account settings</p>
+        <h1 className="text-3xl font-bold text-foreground">Account Settings</h1>
+        <p className="text-muted-foreground mt-2">Manage your profile and security settings</p>
       </div>
 
-      <div className="grid gap-6 max-w-2xl">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Profile Settings */}
         <Card>
           <CardHeader>
@@ -174,11 +174,11 @@ export default function SettingsPage() {
                   type="text"
                   value={user?.role || 'admin'}
                   disabled
-                  className="bg-muted"
+                  className="bg-muted capitalize"
                 />
               </div>
 
-              <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+              <Button type="submit" disabled={loading} className="w-full">
                 <Save className="h-4 w-4 mr-2" />
                 {loading ? 'Saving...' : 'Save Changes'}
               </Button>
@@ -235,7 +235,7 @@ export default function SettingsPage() {
                 />
               </div>
 
-              <Button type="submit" disabled={passwordLoading} className="w-full sm:w-auto">
+              <Button type="submit" disabled={passwordLoading} className="w-full">
                 <Lock className="h-4 w-4 mr-2" />
                 {passwordLoading ? 'Changing...' : 'Change Password'}
               </Button>

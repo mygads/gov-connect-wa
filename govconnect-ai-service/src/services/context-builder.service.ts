@@ -1,7 +1,7 @@
 import axios from 'axios';
 import logger from '../utils/logger';
 import { config } from '../config/env';
-import { SYSTEM_PROMPT_TEMPLATE } from '../prompts/system-prompt';
+import { SYSTEM_PROMPT_TEMPLATE, SYSTEM_PROMPT_WITH_KNOWLEDGE } from '../prompts/system-prompt';
 
 interface Message {
   id: string;
@@ -19,7 +19,7 @@ interface MessageHistoryResponse {
 /**
  * Build context for LLM including system prompt and conversation history
  */
-export async function buildContext(wa_user_id: string, currentMessage: string) {
+export async function buildContext(wa_user_id: string, currentMessage: string, knowledgeContext?: string) {
   logger.info('Building context for LLM', { wa_user_id });
 
   try {
@@ -29,8 +29,14 @@ export async function buildContext(wa_user_id: string, currentMessage: string) {
     // Format conversation history
     const conversationHistory = formatConversationHistory(messages);
     
+    // Build knowledge section
+    const knowledgeSection = knowledgeContext 
+      ? `\n\nKNOWLEDGE BASE YANG TERSEDIA:\n${knowledgeContext}`
+      : '';
+    
     // Build full prompt
     const systemPrompt = SYSTEM_PROMPT_TEMPLATE
+      .replace('{knowledge_context}', knowledgeSection)
       .replace('{history}', conversationHistory)
       .replace('{user_message}', currentMessage);
     
@@ -38,6 +44,7 @@ export async function buildContext(wa_user_id: string, currentMessage: string) {
       wa_user_id,
       messageCount: messages.length,
       promptLength: systemPrompt.length,
+      hasKnowledge: !!knowledgeContext,
     });
     
     return {
@@ -52,6 +59,59 @@ export async function buildContext(wa_user_id: string, currentMessage: string) {
     
     // Fallback: return prompt without history
     const fallbackPrompt = SYSTEM_PROMPT_TEMPLATE
+      .replace('{knowledge_context}', '')
+      .replace('{history}', '(No conversation history available)')
+      .replace('{user_message}', currentMessage);
+    
+    return {
+      systemPrompt: fallbackPrompt,
+      messageCount: 0,
+    };
+  }
+}
+
+/**
+ * Build context specifically for knowledge query (second LLM call)
+ */
+export async function buildKnowledgeQueryContext(
+  wa_user_id: string, 
+  currentMessage: string, 
+  knowledgeContext: string
+) {
+  logger.info('Building knowledge query context', { wa_user_id });
+
+  try {
+    // Fetch message history from Channel Service
+    const messages = await fetchMessageHistory(wa_user_id, config.maxHistoryMessages);
+    
+    // Format conversation history
+    const conversationHistory = formatConversationHistory(messages);
+    
+    // Build full prompt using knowledge-specific template
+    const systemPrompt = SYSTEM_PROMPT_WITH_KNOWLEDGE
+      .replace('{knowledge_context}', knowledgeContext)
+      .replace('{history}', conversationHistory)
+      .replace('{user_message}', currentMessage);
+    
+    logger.debug('Knowledge query context built', {
+      wa_user_id,
+      messageCount: messages.length,
+      knowledgeLength: knowledgeContext.length,
+    });
+    
+    return {
+      systemPrompt,
+      messageCount: messages.length,
+    };
+  } catch (error: any) {
+    logger.error('Failed to build knowledge query context', {
+      wa_user_id,
+      error: error.message,
+    });
+    
+    // Fallback
+    const fallbackPrompt = SYSTEM_PROMPT_WITH_KNOWLEDGE
+      .replace('{knowledge_context}', knowledgeContext)
       .replace('{history}', '(No conversation history available)')
       .replace('{user_message}', currentMessage);
     

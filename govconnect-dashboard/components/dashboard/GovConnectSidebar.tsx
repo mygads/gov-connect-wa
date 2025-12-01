@@ -10,8 +10,10 @@ import {
   FileText,
   Ticket,
   BarChart3,
-  Settings,
   ChevronRight,
+  BookOpen,
+  Settings,
+  Bot,
 } from "lucide-react"
 
 import {
@@ -28,11 +30,13 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useAuth } from "@/components/auth/AuthContext"
 
 export function GovConnectSidebar() {
   const pathname = usePathname()
   const { theme, resolvedTheme } = useTheme()
   const { state } = useSidebar()
+  const { user } = useAuth()
 
   const isActivePath = (path: string) => {
     if (path === "/dashboard") {
@@ -77,24 +81,30 @@ export function GovConnectSidebar() {
         },
       ],
     },
-    {
-      title: "Account",
+    // AI Chatbot section - only for superadmin
+    ...(user?.role === 'superadmin' ? [{
+      title: "AI Chatbot",
       items: [
         {
-          title: "Settings",
-          url: "/dashboard/settings",
-          icon: Settings,
+          title: "AI Settings",
+          url: "/dashboard/ai-settings",
+          icon: Bot,
+        },
+        {
+          title: "Knowledge Base",
+          url: "/dashboard/knowledge",
+          icon: BookOpen,
         },
       ],
-    },
+    }] : []),
   ]
 
   const currentTheme = resolvedTheme || theme || "light"
   const logoSrc = currentTheme === "dark" ? "/images/logo-dark.svg" : "/images/logo-light.svg"
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border">
-      <SidebarHeader className="border-b border-border p-4">
+    <Sidebar collapsible="icon" className="border-r border-border bg-white dark:bg-gray-950">
+      <SidebarHeader className="border-b border-border p-4 bg-white dark:bg-gray-950">
         <Link href="/dashboard" className="flex items-center gap-2">
           {state === "expanded" ? (
             <>
@@ -134,7 +144,7 @@ export function GovConnectSidebar() {
         </Link>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="bg-white dark:bg-gray-950">
         {menuItems.map((group, index) => (
           <SidebarGroup key={index}>
             <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
