@@ -380,3 +380,61 @@ export async function cancelTicket(
     };
   }
 }
+
+export interface HistoryItem {
+  type: 'complaint' | 'ticket';
+  id: string;
+  display_id: string;
+  description: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserHistoryResponse {
+  status: string;
+  data: {
+    complaints: any[];
+    tickets: any[];
+    combined: HistoryItem[];
+    total: number;
+  };
+}
+
+/**
+ * Get user's complaint and ticket history
+ */
+export async function getUserHistory(wa_user_id: string): Promise<UserHistoryResponse['data'] | null> {
+  logger.info('Fetching user history from Case Service', {
+    wa_user_id,
+  });
+  
+  try {
+    const url = `${config.caseServiceUrl}/user/${wa_user_id}/history`;
+    const response = await axios.get<UserHistoryResponse>(
+      url,
+      {
+        headers: {
+          'x-internal-api-key': config.internalApiKey,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      }
+    );
+    
+    logger.info('✅ User history fetched successfully', {
+      wa_user_id,
+      total: response.data.data.total,
+    });
+    
+    return response.data.data;
+  } catch (error: any) {
+    logger.error('❌ Failed to fetch user history', {
+      wa_user_id,
+      error: error.message,
+      status: error.response?.status,
+    });
+    
+    return null;
+  }
+}

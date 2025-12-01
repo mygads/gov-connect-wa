@@ -2,7 +2,7 @@ import logger from '../utils/logger';
 import { MessageReceivedEvent } from '../types/event.types';
 import { buildContext, buildKnowledgeQueryContext } from './context-builder.service';
 import { callGemini } from './llm.service';
-import { createComplaint, createTicket, getComplaintStatus, getTicketStatus, cancelComplaint, cancelTicket } from './case-client.service';
+import { createComplaint, createTicket, getComplaintStatus, getTicketStatus, cancelComplaint, cancelTicket, getUserHistory, HistoryItem } from './case-client.service';
 import { publishAIReply } from './rabbitmq.service';
 import { isAIChatbotEnabled } from './settings.service';
 import { searchKnowledge, buildKnowledgeContext } from './knowledge.service';
@@ -299,6 +299,10 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
       
       case 'CANCEL_COMPLAINT':
         finalReplyText = await handleCancellation(wa_user_id, llmResponse);
+        break;
+      
+      case 'HISTORY':
+        finalReplyText = await handleHistory(wa_user_id);
         break;
       
       case 'KNOWLEDGE_QUERY':
@@ -871,4 +875,107 @@ function buildCancelErrorResponse(
     default:
       return `Maaf Kak, ada kendala saat membatalkan ${type}. ${message || 'Coba lagi ya!'} 🙏`;
   }
+}
+
+/**
+ * Handle user history request
+ */
+async function handleHistory(wa_user_id: string): Promise<string> {
+  logger.info('Handling history request', { wa_user_id });
+  
+  const history = await getUserHistory(wa_user_id);
+  
+  if (!history || history.total === 0) {
+    return `Halo Kak! 👋\n\nKakak belum memiliki riwayat laporan atau tiket nih.\n\nMau melaporkan masalah atau mengajukan layanan? Langsung chat aja ya Kak! 😊`;
+  }
+  
+  return buildHistoryResponse(history.combined, history.total);
+}
+
+/**
+ * Build natural response for user history
+ */
+function buildHistoryResponse(items: HistoryItem[], total: number): string {
+  let message = `Halo Kak! 👋\n\n`;
+  message += `Berikut riwayat laporan dan tiket Kakak (${total} total):\n\n`;
+  
+  // Group by type for better presentation
+  const complaints = items.filter(i => i.type === 'complaint');
+  const tickets = items.filter(i => i.type === 'ticket');
+  
+  let index = 1;
+  
+  // Show complaints first
+  if (complaints.length > 0) {
+    message += `📋 *LAPORAN:*\n`;
+    for (const item of complaints.slice(0, 10)) { // Limit to 10 per type
+      const statusEmoji = getStatusEmoji(item.status);
+      const shortDesc = truncateDescription(item.description, 25);
+      message += `${index}. ${item.display_id}\n`;
+      message += `   📍 ${shortDesc}\n`;
+      message += `   ${statusEmoji} ${formatStatusLabel(item.status)}\n\n`;
+      index++;
+    }
+    if (complaints.length > 10) {
+      message += `   ... dan ${complaints.length - 10} laporan lainnya\n\n`;
+    }
+  }
+  
+  // Show tickets
+  if (tickets.length > 0) {
+    message += `🎫 *TIKET LAYANAN:*\n`;
+    for (const item of tickets.slice(0, 10)) { // Limit to 10 per type
+      const statusEmoji = getStatusEmoji(item.status);
+      const shortDesc = truncateDescription(item.description, 25);
+      message += `${index}. ${item.display_id}\n`;
+      message += `   📍 ${shortDesc}\n`;
+      message += `   ${statusEmoji} ${formatStatusLabel(item.status)}\n\n`;
+      index++;
+    }
+    if (tickets.length > 10) {
+      message += `   ... dan ${tickets.length - 10} tiket lainnya\n\n`;
+    }
+  }
+  
+  message += `💡 *Tips:* Ketik "cek status [nomor]" untuk melihat detail, contoh: _cek status LAP-20251201-001_`;
+  
+  return message;
+}
+
+/**
+ * Get status emoji
+ */
+function getStatusEmoji(status: string): string {
+  const emojiMap: Record<string, string> = {
+    'baru': '🆕',
+    'pending': '⏳',
+    'proses': '🔄',
+    'selesai': '✅',
+    'ditolak': '❌',
+    'dibatalkan': '🔴',
+  };
+  return emojiMap[status] || '📌';
+}
+
+/**
+ * Format status label
+ */
+function formatStatusLabel(status: string): string {
+  const labelMap: Record<string, string> = {
+    'baru': 'Baru',
+    'pending': 'Pending',
+    'proses': 'Sedang Diproses',
+    'selesai': 'Selesai',
+    'ditolak': 'Ditolak',
+    'dibatalkan': 'Dibatalkan',
+  };
+  return labelMap[status] || status;
+}
+
+/**
+ * Truncate description to specified length
+ */
+function truncateDescription(desc: string, maxLength: number): string {
+  if (desc.length <= maxLength) return desc;
+  return desc.substring(0, maxLength) + '...';
 }

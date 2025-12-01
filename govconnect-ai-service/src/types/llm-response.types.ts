@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const LLMResponseSchema = z.object({
-  intent: z.enum(['CREATE_COMPLAINT', 'CREATE_TICKET', 'CHECK_STATUS', 'CANCEL_COMPLAINT', 'KNOWLEDGE_QUERY', 'QUESTION', 'UNKNOWN']),
+  intent: z.enum(['CREATE_COMPLAINT', 'CREATE_TICKET', 'CHECK_STATUS', 'CANCEL_COMPLAINT', 'HISTORY', 'KNOWLEDGE_QUERY', 'QUESTION', 'UNKNOWN']),
   fields: z.object({
     kategori: z.string().optional(),
     alamat: z.string().optional(),

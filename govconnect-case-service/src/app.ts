@@ -4,6 +4,7 @@ import complaintRoutes from './routes/complaint.routes';
 import ticketRoutes from './routes/ticket.routes';
 import statisticsRoutes from './routes/statistics.routes';
 import healthRoutes from './routes/health.routes';
+import userRoutes from './routes/user.routes';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.middleware';
 import logger from './utils/logger';
 
@@ -28,6 +29,7 @@ app.use('/health', healthRoutes);
 app.use('/laporan', complaintRoutes);
 app.use('/tiket', ticketRoutes);
 app.use('/statistics', statisticsRoutes);
+app.use('/user', userRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -39,7 +41,8 @@ app.get('/', (req, res) => {
       health: '/health',
       complaints: '/laporan',
       tickets: '/tiket',
-      statistics: '/statistics'
+      statistics: '/statistics',
+      user: '/user/:wa_user_id/history'
     }
   });
 });

@@ -14,7 +14,7 @@ ATURAN PENTING - FOKUS PADA LAYANAN PEMERINTAH:
 
 SCHEMA OUTPUT:
 {
-  "intent": "CREATE_COMPLAINT | CREATE_TICKET | CHECK_STATUS | CANCEL_COMPLAINT | KNOWLEDGE_QUERY | QUESTION | UNKNOWN",
+  "intent": "CREATE_COMPLAINT | CREATE_TICKET | CHECK_STATUS | CANCEL_COMPLAINT | HISTORY | KNOWLEDGE_QUERY | QUESTION | UNKNOWN",
   "fields": {
     "kategori": "jalan_rusak | lampu_mati | sampah | drainase | pohon_tumbang | fasilitas_rusak",
     "alamat": "alamat lengkap",
@@ -83,16 +83,21 @@ PRIORITAS PENENTUAN INTENT (URUTAN PENTING):
    - EKSTRAK nomor laporan/tiket dari pesan (format: LAP-XXXXXXXX-XXX atau TIK-XXXXXXXX-XXX)
    - Jika ada alasan pembatalan, masukkan ke field "cancel_reason"
    - needs_knowledge: false
+
+3. HISTORY: User ingin melihat RIWAYAT/DAFTAR laporan dan tiket miliknya
+   - Kata kunci: "riwayat", "history", "daftar laporan", "laporan saya", "tiket saya", "lihat laporan", "cek semua laporan"
+   - TIDAK perlu nomor laporan/tiket
+   - needs_knowledge: false
    
-3. CREATE_COMPLAINT: User MELAPORKAN masalah infrastruktur
+4. CREATE_COMPLAINT: User MELAPORKAN masalah infrastruktur
    - Kata kunci: "lapor", "rusak", "mati", "bermasalah", "tolong perbaiki", "ada masalah"
    - needs_knowledge: false
    
-4. CREATE_TICKET: User MENGAJUKAN layanan administrasi
+5. CREATE_TICKET: User MENGAJUKAN layanan administrasi
    - Kata kunci: "buat surat", "perlu surat", "mau izin", "ajukan"
    - needs_knowledge: false
 
-5. KNOWLEDGE_QUERY: User BERTANYA tentang informasi KELURAHAN (PALING SERING DIGUNAKAN!)
+6. KNOWLEDGE_QUERY: User BERTANYA tentang informasi KELURAHAN (PALING SERING DIGUNAKAN!)
    - GUNAKAN INTENT INI untuk pertanyaan tentang:
      * Alamat/lokasi kantor kelurahan ("dimana", "alamat", "lokasi")
      * Jam buka/operasional ("jam buka", "kapan buka", "jam kerja")
@@ -102,12 +107,12 @@ PRIORITAS PENENTUAN INTENT (URUTAN PENTING):
    - needs_knowledge: true
    - reply_text: KOSONGKAN ("") karena akan dijawab setelah lookup knowledge
 
-4. QUESTION: HANYA untuk greeting dan ucapan terima kasih
+7. QUESTION: HANYA untuk greeting dan ucapan terima kasih
    - Contoh: "halo", "terima kasih", "ok", "siap"
    - needs_knowledge: false
    - JANGAN gunakan QUESTION jika user bertanya tentang informasi apapun!
 
-5. UNKNOWN: Pertanyaan tidak jelas atau tidak relevan dengan layanan kelurahan
+8. UNKNOWN: Pertanyaan tidak jelas atau tidak relevan dengan layanan kelurahan
    - Contoh: pertanyaan random, spam, tidak masuk akal
    - needs_knowledge: false
 
@@ -232,6 +237,26 @@ Output: {"intent": "CANCEL_COMPLAINT", "fields": {"complaint_id": "LAP-20251201-
 Input: "batalkan laporan"
 Output: {"intent": "CANCEL_COMPLAINT", "fields": {}, "reply_text": "Untuk membatalkan laporan/tiket, mohon sertakan nomor laporan (contoh: LAP-20251201-001) atau nomor tiket (contoh: TIK-20251201-001).", "needs_knowledge": false}
 
+CONTOH HISTORY (RIWAYAT LAPORAN/TIKET):
+
+Input: "riwayat laporan saya"
+Output: {"intent": "HISTORY", "fields": {}, "reply_text": "", "needs_knowledge": false}
+
+Input: "daftar laporan saya"
+Output: {"intent": "HISTORY", "fields": {}, "reply_text": "", "needs_knowledge": false}
+
+Input: "lihat semua laporan"
+Output: {"intent": "HISTORY", "fields": {}, "reply_text": "", "needs_knowledge": false}
+
+Input: "cek tiket saya"
+Output: {"intent": "HISTORY", "fields": {}, "reply_text": "", "needs_knowledge": false}
+
+Input: "laporan apa saja yang sudah saya buat"
+Output: {"intent": "HISTORY", "fields": {}, "reply_text": "", "needs_knowledge": false}
+
+Input: "history laporan"
+Output: {"intent": "HISTORY", "fields": {}, "reply_text": "", "needs_knowledge": false}
+
 Input: "terima kasih"
 Output: {"intent": "QUESTION", "fields": {}, "reply_text": "Sama-sama! Jika ada yang perlu dibantu lagi, silakan hubungi kami kembali. Terima kasih telah menggunakan GovConnect! 🙏", "needs_knowledge": false}
 
@@ -281,7 +306,7 @@ export const JSON_SCHEMA_FOR_GEMINI = {
   properties: {
     intent: {
       type: 'string',
-      enum: ['CREATE_COMPLAINT', 'CREATE_TICKET', 'CHECK_STATUS', 'CANCEL_COMPLAINT', 'KNOWLEDGE_QUERY', 'QUESTION', 'UNKNOWN'],
+      enum: ['CREATE_COMPLAINT', 'CREATE_TICKET', 'CHECK_STATUS', 'CANCEL_COMPLAINT', 'HISTORY', 'KNOWLEDGE_QUERY', 'QUESTION', 'UNKNOWN'],
     },
     fields: {
       type: 'object',
