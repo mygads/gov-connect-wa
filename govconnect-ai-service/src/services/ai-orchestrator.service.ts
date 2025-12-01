@@ -638,20 +638,6 @@ function formatJenisTiket(jenis: string): string {
 }
 
 /**
- * Format status to readable label with emoji
- */
-function formatStatus(status: string): string {
-  const statusMap: Record<string, string> = {
-    'baru': '🆕 BARU',
-    'pending': '⏳ PENDING',
-    'proses': '🔄 PROSES',
-    'selesai': '✅ SELESAI',
-    'ditolak': '❌ DITOLAK',
-  };
-  return statusMap[status] || status.toUpperCase();
-}
-
-/**
  * Handle status check for complaints and tickets
  */
 async function handleStatusCheck(wa_user_id: string, llmResponse: any): Promise<string> {
@@ -668,7 +654,7 @@ async function handleStatusCheck(wa_user_id: string, llmResponse: any): Promise<
     if (llmResponse.reply_text) {
       return llmResponse.reply_text;
     }
-    return 'Untuk cek status, mohon sertakan nomor laporan Anda (contoh: LAP-20251201-001) atau nomor tiket (contoh: TIK-20251201-001).';
+    return 'Halo Kak! Untuk cek status, boleh sebutkan nomor laporannya ya (contoh: LAP-20251201-001) 📋';
   }
   
   // Check complaint status
@@ -676,28 +662,10 @@ async function handleStatusCheck(wa_user_id: string, llmResponse: any): Promise<
     const complaint = await getComplaintStatus(complaint_id);
     
     if (!complaint) {
-      return `⚠️ Maaf, laporan dengan nomor *${complaint_id}* tidak ditemukan.\n\nPastikan nomor laporan sudah benar. Contoh format: LAP-20251201-001`;
+      return `Hmm, kami tidak menemukan laporan dengan nomor *${complaint_id}* nih Kak 🤔\n\nCoba cek lagi ya, format nomor laporan biasanya seperti ini: LAP-20251201-001`;
     }
     
-    const updatedAt = new Date(complaint.updated_at);
-    const relativeTime = formatRelativeTime(updatedAt);
-    
-    let statusMessage = `📋 *Status Laporan ${complaint.complaint_id}*\n\n`;
-    statusMessage += `📌 Kategori: ${formatKategori(complaint.kategori)}\n`;
-    
-    if (complaint.alamat) {
-      statusMessage += `📍 Lokasi: ${complaint.alamat}\n`;
-    }
-    
-    statusMessage += `⏳ Status: ${formatStatus(complaint.status)}\n`;
-    
-    if (complaint.admin_notes) {
-      statusMessage += `📝 Catatan Admin: ${complaint.admin_notes}\n`;
-    }
-    
-    statusMessage += `🕐 Update terakhir: ${relativeTime}`;
-    
-    return statusMessage;
+    return buildNaturalStatusResponse(complaint);
   }
   
   // Check ticket status
@@ -705,33 +673,114 @@ async function handleStatusCheck(wa_user_id: string, llmResponse: any): Promise<
     const ticket = await getTicketStatus(ticket_id);
     
     if (!ticket) {
-      return `⚠️ Maaf, tiket dengan nomor *${ticket_id}* tidak ditemukan.\n\nPastikan nomor tiket sudah benar. Contoh format: TIK-20251201-001`;
+      return `Hmm, kami tidak menemukan tiket dengan nomor *${ticket_id}* nih Kak 🤔\n\nCoba cek lagi ya, format nomor tiket biasanya seperti ini: TIK-20251201-001`;
     }
     
-    const updatedAt = new Date(ticket.updated_at);
-    const relativeTime = formatRelativeTime(updatedAt);
-    
-    let statusMessage = `🎫 *Status Tiket ${ticket.ticket_id}*\n\n`;
-    statusMessage += `📌 Jenis: ${formatJenisTiket(ticket.jenis)}\n`;
-    
-    // Extract deskripsi from data_json if available
-    if (ticket.data_json && typeof ticket.data_json === 'object') {
-      const dataJson = ticket.data_json as Record<string, any>;
-      if (dataJson.deskripsi) {
-        statusMessage += `📄 Keterangan: ${dataJson.deskripsi}\n`;
-      }
-    }
-    
-    statusMessage += `⏳ Status: ${formatStatus(ticket.status)}\n`;
-    
-    if (ticket.admin_notes) {
-      statusMessage += `📝 Catatan Admin: ${ticket.admin_notes}\n`;
-    }
-    
-    statusMessage += `🕐 Update terakhir: ${relativeTime}`;
-    
-    return statusMessage;
+    return buildNaturalTicketStatusResponse(ticket);
   }
   
-  return 'Maaf, terjadi kesalahan. Mohon coba lagi.';
+  return 'Maaf Kak, ada kendala saat mengecek status. Coba lagi ya! 🙏';
+}
+
+/**
+ * Build natural response for complaint status check
+ */
+function buildNaturalStatusResponse(complaint: any): string {
+  const updatedAt = new Date(complaint.updated_at);
+  const relativeTime = formatRelativeTime(updatedAt);
+  const kategoriText = formatKategori(complaint.kategori);
+  const statusInfo = getStatusInfo(complaint.status);
+  
+  let message = `Halo Kak! 👋\n\n`;
+  message += `Berikut info laporan *${complaint.complaint_id}*:\n\n`;
+  message += `📌 *Jenis Laporan:* ${kategoriText}\n`;
+  
+  if (complaint.alamat) {
+    message += `📍 *Lokasi:* ${complaint.alamat}\n`;
+  }
+  
+  message += `\n${statusInfo.emoji} *Status:* ${statusInfo.text}\n`;
+  
+  // Add natural status description
+  message += `\n${statusInfo.description}`;
+  
+  if (complaint.admin_notes) {
+    message += `\n\n💬 _Catatan petugas: "${complaint.admin_notes}"_`;
+  }
+  
+  message += `\n\n🕐 _Terakhir diupdate ${relativeTime}_`;
+  
+  return message;
+}
+
+/**
+ * Build natural response for ticket status check
+ */
+function buildNaturalTicketStatusResponse(ticket: any): string {
+  const updatedAt = new Date(ticket.updated_at);
+  const relativeTime = formatRelativeTime(updatedAt);
+  const jenisText = formatJenisTiket(ticket.jenis);
+  const statusInfo = getStatusInfo(ticket.status);
+  
+  let message = `Halo Kak! 👋\n\n`;
+  message += `Berikut info tiket *${ticket.ticket_id}*:\n\n`;
+  message += `📌 *Jenis:* ${jenisText}\n`;
+  
+  // Extract deskripsi from data_json if available
+  if (ticket.data_json && typeof ticket.data_json === 'object') {
+    const dataJson = ticket.data_json as Record<string, any>;
+    if (dataJson.deskripsi) {
+      message += `📄 *Keterangan:* ${dataJson.deskripsi}\n`;
+    }
+  }
+  
+  message += `\n${statusInfo.emoji} *Status:* ${statusInfo.text}\n`;
+  message += `\n${statusInfo.description}`;
+  
+  if (ticket.admin_notes) {
+    message += `\n\n💬 _Catatan petugas: "${ticket.admin_notes}"_`;
+  }
+  
+  message += `\n\n🕐 _Terakhir diupdate ${relativeTime}_`;
+  
+  return message;
+}
+
+/**
+ * Get status info with emoji and natural description
+ */
+function getStatusInfo(status: string): { emoji: string; text: string; description: string } {
+  const statusMap: Record<string, { emoji: string; text: string; description: string }> = {
+    'baru': {
+      emoji: '🆕',
+      text: 'Baru Diterima',
+      description: 'Laporan Kakak baru kami terima dan akan segera kami tindak lanjuti ya!'
+    },
+    'pending': {
+      emoji: '⏳',
+      text: 'Menunggu Verifikasi',
+      description: 'Saat ini sedang dalam tahap verifikasi oleh tim kami. Mohon ditunggu ya!'
+    },
+    'proses': {
+      emoji: '🔄',
+      text: 'Sedang Diproses',
+      description: 'Kabar baik! Petugas kami sudah menangani laporan ini. Kami akan kabari lagi kalau sudah selesai!'
+    },
+    'selesai': {
+      emoji: '✅',
+      text: 'Selesai',
+      description: 'Yeay! Laporan sudah selesai ditangani. Terima kasih sudah melapor! 🙏'
+    },
+    'ditolak': {
+      emoji: '❌',
+      text: 'Tidak Dapat Diproses',
+      description: 'Mohon maaf, laporan ini tidak dapat kami proses. Silakan hubungi kantor kelurahan untuk info lebih lanjut.'
+    }
+  };
+  
+  return statusMap[status] || {
+    emoji: '📋',
+    text: status,
+    description: 'Silakan tunggu update selanjutnya ya!'
+  };
 }
