@@ -29,9 +29,7 @@ interface SystemSettings {
 const AI_MODELS = [
   { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', description: 'Most capable model' },
   { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', description: 'Fast & efficient' },
-  { value: 'gemini-2.5-flash-preview-05-20', label: 'Gemini 2.5 Flash Preview (05-20)', description: 'Latest preview' },
   { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite', description: 'Lightweight' },
-  { value: 'gemini-2.5-flash-lite-preview-06-17', label: 'Gemini 2.5 Flash Lite Preview (06-17)', description: 'Preview lite' },
   { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', description: 'Stable & reliable' },
   { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite', description: 'Fastest' },
 ]

@@ -15,6 +15,7 @@ import {
   Settings,
   Bot,
   Smartphone,
+  Activity,
 } from "lucide-react"
 
 import {
@@ -101,6 +102,11 @@ export function GovConnectSidebar() {
           title: "AI Settings",
           url: "/dashboard/ai-settings",
           icon: Bot,
+        },
+        {
+          title: "AI Usage Log",
+          url: "/dashboard/ai-usage",
+          icon: Activity,
         },
         {
           title: "Knowledge Base",

@@ -243,6 +243,9 @@ services:
       # Channel Service API (for WhatsApp management)
       CHANNEL_SERVICE_URL: http://channel-service:3001
       
+      # AI Service API (for AI usage statistics)
+      AI_SERVICE_URL: http://ai-service:3002
+      
       # Internal API Key
       INTERNAL_API_KEY: govconnect-internal-2025-secret
       
