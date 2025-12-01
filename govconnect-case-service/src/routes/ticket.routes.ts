@@ -6,6 +6,7 @@ import {
   handleGetTicketById,
   handleUpdateTicketStatus,
   handleGetTicketStatistics,
+  handleCancelTicket,
 } from '../controllers/ticket.controller';
 import { internalAuth } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validation.middleware';
@@ -62,6 +63,21 @@ router.patch(
   ],
   validate,
   handleUpdateTicketStatus
+);
+
+/**
+ * POST /tiket/:id/cancel
+ * Cancel ticket by user (internal - from AI Service)
+ */
+router.post(
+  '/:id/cancel',
+  internalAuth,
+  [
+    body('wa_user_id').matches(/^628\d{8,12}$/).withMessage('Invalid phone number'),
+    body('cancel_reason').optional().isString(),
+  ],
+  validate,
+  handleCancelTicket
 );
 
 export default router;

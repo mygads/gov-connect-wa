@@ -6,6 +6,7 @@ import {
   handleGetComplaintById,
   handleUpdateComplaintStatus,
   handleGetComplaintStatistics,
+  handleCancelComplaint,
 } from '../controllers/complaint.controller';
 import { internalAuth } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validation.middleware';
@@ -74,6 +75,21 @@ router.patch(
   ],
   validate,
   handleUpdateComplaintStatus
+);
+
+/**
+ * POST /laporan/:id/cancel
+ * Cancel complaint by user (internal - from AI Service)
+ */
+router.post(
+  '/:id/cancel',
+  internalAuth,
+  [
+    body('wa_user_id').matches(/^628\d{8,12}$/).withMessage('Invalid phone number'),
+    body('cancel_reason').optional().isString(),
+  ],
+  validate,
+  handleCancelComplaint
 );
 
 export default router;

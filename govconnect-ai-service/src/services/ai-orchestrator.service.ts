@@ -2,7 +2,7 @@ import logger from '../utils/logger';
 import { MessageReceivedEvent } from '../types/event.types';
 import { buildContext, buildKnowledgeQueryContext } from './context-builder.service';
 import { callGemini } from './llm.service';
-import { createComplaint, createTicket, getComplaintStatus, getTicketStatus } from './case-client.service';
+import { createComplaint, createTicket, getComplaintStatus, getTicketStatus, cancelComplaint, cancelTicket } from './case-client.service';
 import { publishAIReply } from './rabbitmq.service';
 import { isAIChatbotEnabled } from './settings.service';
 import { searchKnowledge, buildKnowledgeContext } from './knowledge.service';
@@ -295,6 +295,10 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
       
       case 'CHECK_STATUS':
         finalReplyText = await handleStatusCheck(wa_user_id, llmResponse);
+        break;
+      
+      case 'CANCEL_COMPLAINT':
+        finalReplyText = await handleCancellation(wa_user_id, llmResponse);
         break;
       
       case 'KNOWLEDGE_QUERY':
@@ -783,4 +787,88 @@ function getStatusInfo(status: string): { emoji: string; text: string; descripti
     text: status,
     description: 'Silakan tunggu update selanjutnya ya!'
   };
+}
+
+/**
+ * Handle cancellation of complaints and tickets
+ */
+async function handleCancellation(wa_user_id: string, llmResponse: any): Promise<string> {
+  const { complaint_id, ticket_id, cancel_reason } = llmResponse.fields;
+  
+  logger.info('Handling cancellation request', {
+    wa_user_id,
+    complaint_id,
+    ticket_id,
+    cancel_reason,
+  });
+  
+  // If no ID provided, return LLM's reply (which should ask for the ID)
+  if (!complaint_id && !ticket_id) {
+    if (llmResponse.reply_text) {
+      return llmResponse.reply_text;
+    }
+    return 'Halo Kak! Untuk membatalkan laporan/tiket, mohon sertakan nomornya ya (contoh: LAP-20251201-001 atau TIK-20251201-001) 📋';
+  }
+  
+  // Cancel complaint
+  if (complaint_id) {
+    const result = await cancelComplaint(complaint_id, wa_user_id, cancel_reason);
+    
+    if (!result.success) {
+      return buildCancelErrorResponse('laporan', complaint_id, result.error, result.message);
+    }
+    
+    return buildCancelSuccessResponse('laporan', complaint_id, result.message);
+  }
+  
+  // Cancel ticket
+  if (ticket_id) {
+    const result = await cancelTicket(ticket_id, wa_user_id, cancel_reason);
+    
+    if (!result.success) {
+      return buildCancelErrorResponse('tiket', ticket_id, result.error, result.message);
+    }
+    
+    return buildCancelSuccessResponse('tiket', ticket_id, result.message);
+  }
+  
+  return 'Maaf Kak, ada kendala saat memproses pembatalan. Coba lagi ya! 🙏';
+}
+
+/**
+ * Build natural response for successful cancellation
+ */
+function buildCancelSuccessResponse(type: 'laporan' | 'tiket', id: string, reason: string): string {
+  let message = `Halo Kak! 👋\n\n`;
+  message += `✅ ${type === 'laporan' ? 'Laporan' : 'Tiket'} *${id}* sudah berhasil dibatalkan ya.\n\n`;
+  message += `📝 *Alasan:* ${reason}\n\n`;
+  message += `Kalau ada yang mau dilaporkan atau diajukan lagi, langsung chat aja ya Kak! 😊`;
+  
+  return message;
+}
+
+/**
+ * Build natural response for cancellation error
+ */
+function buildCancelErrorResponse(
+  type: 'laporan' | 'tiket',
+  id: string,
+  error?: string,
+  message?: string
+): string {
+  const typeText = type === 'laporan' ? 'Laporan' : 'Tiket';
+  
+  switch (error) {
+    case 'NOT_FOUND':
+      return `Hmm, kami tidak menemukan ${type} dengan nomor *${id}* nih Kak 🤔\n\nCoba cek lagi ya, format nomornya biasanya seperti ini: ${type === 'laporan' ? 'LAP-20251201-001' : 'TIK-20251201-001'}`;
+    
+    case 'NOT_OWNER':
+      return `Maaf Kak, ${type} *${id}* ini bukan milik Kakak, jadi tidak bisa dibatalkan ya 🙏\n\nPembatalan hanya bisa dilakukan oleh orang yang membuat ${type} tersebut.`;
+    
+    case 'ALREADY_COMPLETED':
+      return `Maaf Kak, ${type} *${id}* sudah tidak bisa dibatalkan karena statusnya sudah final (selesai/dibatalkan) 📋\n\n${message || ''}`;
+    
+    default:
+      return `Maaf Kak, ada kendala saat membatalkan ${type}. ${message || 'Coba lagi ya!'} 🙏`;
+  }
 }

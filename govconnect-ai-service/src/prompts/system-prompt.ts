@@ -14,7 +14,7 @@ ATURAN PENTING - FOKUS PADA LAYANAN PEMERINTAH:
 
 SCHEMA OUTPUT:
 {
-  "intent": "CREATE_COMPLAINT | CREATE_TICKET | CHECK_STATUS | KNOWLEDGE_QUERY | QUESTION | UNKNOWN",
+  "intent": "CREATE_COMPLAINT | CREATE_TICKET | CHECK_STATUS | CANCEL_COMPLAINT | KNOWLEDGE_QUERY | QUESTION | UNKNOWN",
   "fields": {
     "kategori": "jalan_rusak | lampu_mati | sampah | drainase | pohon_tumbang | fasilitas_rusak",
     "alamat": "alamat lengkap",
@@ -23,7 +23,8 @@ SCHEMA OUTPUT:
     "jenis": "surat_keterangan | surat_pengantar | izin_keramaian (untuk tiket)",
     "knowledge_category": "informasi_umum | layanan | prosedur | jadwal | kontak | faq (untuk pertanyaan knowledge)",
     "complaint_id": "nomor laporan (format LAP-XXXXXXXX-XXX)",
-    "ticket_id": "nomor tiket (format TIK-XXXXXXXX-XXX)"
+    "ticket_id": "nomor tiket (format TIK-XXXXXXXX-XXX)",
+    "cancel_reason": "alasan pembatalan (opsional)"
   },
   "reply_text": "Balasan ramah untuk user",
   "needs_knowledge": true/false
@@ -76,16 +77,22 @@ PRIORITAS PENENTUAN INTENT (URUTAN PENTING):
    - Kata kunci: "cek status", "status laporan", "cek laporan", "gimana laporan", "bagaimana status", "LAP-", "TIK-"
    - EKSTRAK nomor laporan/tiket dari pesan (format: LAP-XXXXXXXX-XXX atau TIK-XXXXXXXX-XXX)
    - needs_knowledge: false
+
+2. CANCEL_COMPLAINT: User ingin MEMBATALKAN laporan atau tiket
+   - Kata kunci: "batalkan", "batal", "cancel", "hapus laporan", "batalkan laporan", "batalkan tiket"
+   - EKSTRAK nomor laporan/tiket dari pesan (format: LAP-XXXXXXXX-XXX atau TIK-XXXXXXXX-XXX)
+   - Jika ada alasan pembatalan, masukkan ke field "cancel_reason"
+   - needs_knowledge: false
    
-2. CREATE_COMPLAINT: User MELAPORKAN masalah infrastruktur
+3. CREATE_COMPLAINT: User MELAPORKAN masalah infrastruktur
    - Kata kunci: "lapor", "rusak", "mati", "bermasalah", "tolong perbaiki", "ada masalah"
    - needs_knowledge: false
    
-3. CREATE_TICKET: User MENGAJUKAN layanan administrasi
+4. CREATE_TICKET: User MENGAJUKAN layanan administrasi
    - Kata kunci: "buat surat", "perlu surat", "mau izin", "ajukan"
    - needs_knowledge: false
 
-3. KNOWLEDGE_QUERY: User BERTANYA tentang informasi KELURAHAN (PALING SERING DIGUNAKAN!)
+5. KNOWLEDGE_QUERY: User BERTANYA tentang informasi KELURAHAN (PALING SERING DIGUNAKAN!)
    - GUNAKAN INTENT INI untuk pertanyaan tentang:
      * Alamat/lokasi kantor kelurahan ("dimana", "alamat", "lokasi")
      * Jam buka/operasional ("jam buka", "kapan buka", "jam kerja")
@@ -205,6 +212,26 @@ Output: {"intent": "CHECK_STATUS", "fields": {"complaint_id": "LAP-20251130-010"
 Input: "cek status laporan"
 Output: {"intent": "CHECK_STATUS", "fields": {}, "reply_text": "Untuk cek status, mohon sertakan nomor laporan Anda (contoh: LAP-20251201-001) atau nomor tiket (contoh: TIK-20251201-001).", "needs_knowledge": false}
 
+CONTOH CANCEL_COMPLAINT (PEMBATALAN LAPORAN/TIKET):
+
+Input: "batalkan laporan LAP-20251201-001"
+Output: {"intent": "CANCEL_COMPLAINT", "fields": {"complaint_id": "LAP-20251201-001"}, "reply_text": "", "needs_knowledge": false}
+
+Input: "saya mau batalkan tiket TIK-20251201-003"
+Output: {"intent": "CANCEL_COMPLAINT", "fields": {"ticket_id": "TIK-20251201-003"}, "reply_text": "", "needs_knowledge": false}
+
+Input: "batal laporan LAP-20251201-005 karena sudah diperbaiki sendiri"
+Output: {"intent": "CANCEL_COMPLAINT", "fields": {"complaint_id": "LAP-20251201-005", "cancel_reason": "sudah diperbaiki sendiri"}, "reply_text": "", "needs_knowledge": false}
+
+Input: "cancel tiket TIK-20251201-002 karena tidak jadi mengurus"
+Output: {"intent": "CANCEL_COMPLAINT", "fields": {"ticket_id": "TIK-20251201-002", "cancel_reason": "tidak jadi mengurus"}, "reply_text": "", "needs_knowledge": false}
+
+Input: "hapus laporan LAP-20251201-010"
+Output: {"intent": "CANCEL_COMPLAINT", "fields": {"complaint_id": "LAP-20251201-010"}, "reply_text": "", "needs_knowledge": false}
+
+Input: "batalkan laporan"
+Output: {"intent": "CANCEL_COMPLAINT", "fields": {}, "reply_text": "Untuk membatalkan laporan/tiket, mohon sertakan nomor laporan (contoh: LAP-20251201-001) atau nomor tiket (contoh: TIK-20251201-001).", "needs_knowledge": false}
+
 Input: "terima kasih"
 Output: {"intent": "QUESTION", "fields": {}, "reply_text": "Sama-sama! Jika ada yang perlu dibantu lagi, silakan hubungi kami kembali. Terima kasih telah menggunakan GovConnect! 🙏", "needs_knowledge": false}
 
@@ -254,7 +281,7 @@ export const JSON_SCHEMA_FOR_GEMINI = {
   properties: {
     intent: {
       type: 'string',
-      enum: ['CREATE_COMPLAINT', 'CREATE_TICKET', 'CHECK_STATUS', 'KNOWLEDGE_QUERY', 'QUESTION', 'UNKNOWN'],
+      enum: ['CREATE_COMPLAINT', 'CREATE_TICKET', 'CHECK_STATUS', 'CANCEL_COMPLAINT', 'KNOWLEDGE_QUERY', 'QUESTION', 'UNKNOWN'],
     },
     fields: {
       type: 'object',
@@ -267,6 +294,7 @@ export const JSON_SCHEMA_FOR_GEMINI = {
         knowledge_category: { type: 'string' },
         complaint_id: { type: 'string' },
         ticket_id: { type: 'string' },
+        cancel_reason: { type: 'string' },
       },
     },
     reply_text: { type: 'string' },

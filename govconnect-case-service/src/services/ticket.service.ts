@@ -15,6 +15,18 @@ export interface UpdateTicketStatusData {
   admin_notes?: string;
 }
 
+export interface CancelTicketData {
+  wa_user_id: string;
+  cancel_reason?: string;
+}
+
+export interface CancelTicketResult {
+  success: boolean;
+  error?: 'NOT_FOUND' | 'NOT_OWNER' | 'ALREADY_COMPLETED' | 'INTERNAL_ERROR';
+  message?: string;
+  ticket_id?: string;
+}
+
 export interface TicketFilters {
   status?: string;
   jenis?: string;
@@ -164,4 +176,98 @@ export async function getTicketStatistics() {
     })),
     recent_7_days: recentTickets,
   };
+}
+
+/**
+ * Cancel ticket by user (owner validation)
+ * Only the user who created the ticket can cancel it
+ */
+export async function cancelTicket(
+  id: string,
+  data: CancelTicketData
+): Promise<CancelTicketResult> {
+  try {
+    // Find the ticket
+    const ticket = await getTicketById(id);
+    
+    if (!ticket) {
+      return {
+        success: false,
+        error: 'NOT_FOUND',
+        message: 'Tiket tidak ditemukan',
+      };
+    }
+    
+    // Validate ownership - only the creator can cancel
+    if (ticket.wa_user_id !== data.wa_user_id) {
+      logger.warn('Cancel ticket rejected: not owner', {
+        ticket_id: id,
+        owner: ticket.wa_user_id,
+        requester: data.wa_user_id,
+      });
+      return {
+        success: false,
+        error: 'NOT_OWNER',
+        message: 'Anda tidak memiliki akses untuk membatalkan tiket ini',
+      };
+    }
+    
+    // Check if ticket is already completed or cancelled
+    if (ticket.status === 'selesai') {
+      return {
+        success: false,
+        error: 'ALREADY_COMPLETED',
+        message: 'Tiket sudah selesai dan tidak dapat dibatalkan',
+      };
+    }
+    
+    if (ticket.status === 'dibatalkan') {
+      return {
+        success: false,
+        error: 'ALREADY_COMPLETED',
+        message: 'Tiket sudah dibatalkan sebelumnya',
+      };
+    }
+    
+    // Update ticket status to cancelled
+    const cancelReason = data.cancel_reason || 'Dibatalkan oleh pemohon';
+    
+    const updatedTicket = await prisma.ticket.update({
+      where: { id: ticket.id },
+      data: {
+        status: 'dibatalkan',
+        admin_notes: `[DIBATALKAN] ${cancelReason}`,
+      },
+    });
+    
+    // Publish event for notification service
+    await publishEvent(RABBITMQ_CONFIG.ROUTING_KEYS.STATUS_UPDATED, {
+      wa_user_id: updatedTicket.wa_user_id,
+      ticket_id: updatedTicket.ticket_id,
+      status: 'dibatalkan',
+      admin_notes: cancelReason,
+    });
+    
+    logger.info('Ticket cancelled by user', {
+      ticket_id: updatedTicket.ticket_id,
+      wa_user_id: data.wa_user_id,
+      cancel_reason: cancelReason,
+    });
+    
+    return {
+      success: true,
+      ticket_id: updatedTicket.ticket_id,
+      message: cancelReason,
+    };
+  } catch (error: any) {
+    logger.error('Failed to cancel ticket', {
+      id,
+      error: error.message,
+    });
+    return {
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: 'Terjadi kesalahan saat membatalkan tiket',
+    };
+  }
 }

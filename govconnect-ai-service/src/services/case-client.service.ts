@@ -158,6 +158,25 @@ export interface TicketStatusResponse {
   } | null;
 }
 
+export interface CancelResponse {
+  status: string;
+  data?: {
+    complaint_id?: string;
+    ticket_id?: string;
+    message: string;
+  };
+  error?: string;
+  message?: string;
+}
+
+export interface CancelResult {
+  success: boolean;
+  error?: 'NOT_FOUND' | 'NOT_OWNER' | 'ALREADY_COMPLETED' | 'INTERNAL_ERROR';
+  message: string;
+  complaint_id?: string;
+  ticket_id?: string;
+}
+
 /**
  * Get complaint status by complaint_id (e.g., LAP-20251201-001)
  */
@@ -241,5 +260,123 @@ export async function getTicketStatus(ticketId: string): Promise<TicketStatusRes
     });
     
     return null;
+  }
+}
+
+/**
+ * Cancel complaint by user (with owner validation)
+ */
+export async function cancelComplaint(
+  complaintId: string,
+  wa_user_id: string,
+  cancel_reason?: string
+): Promise<CancelResult> {
+  logger.info('Cancelling complaint in Case Service', {
+    complaint_id: complaintId,
+    wa_user_id,
+  });
+  
+  try {
+    const url = `${config.caseServiceUrl}/laporan/${complaintId}/cancel`;
+    const response = await axios.post<CancelResponse>(
+      url,
+      {
+        wa_user_id,
+        cancel_reason,
+      },
+      {
+        headers: {
+          'x-internal-api-key': config.internalApiKey,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      }
+    );
+    
+    logger.info('✅ Complaint cancelled successfully', {
+      complaint_id: complaintId,
+      message: response.data.data?.message,
+    });
+    
+    return {
+      success: true,
+      complaint_id: response.data.data?.complaint_id,
+      message: response.data.data?.message || 'Dibatalkan oleh pelapor',
+    };
+  } catch (error: any) {
+    const errorCode = error.response?.data?.error as CancelResult['error'];
+    const errorMessage = error.response?.data?.message || 'Gagal membatalkan laporan';
+    
+    logger.error('❌ Failed to cancel complaint', {
+      complaint_id: complaintId,
+      error: error.message,
+      status: error.response?.status,
+      errorCode,
+    });
+    
+    return {
+      success: false,
+      error: errorCode || 'INTERNAL_ERROR',
+      message: errorMessage,
+    };
+  }
+}
+
+/**
+ * Cancel ticket by user (with owner validation)
+ */
+export async function cancelTicket(
+  ticketId: string,
+  wa_user_id: string,
+  cancel_reason?: string
+): Promise<CancelResult> {
+  logger.info('Cancelling ticket in Case Service', {
+    ticket_id: ticketId,
+    wa_user_id,
+  });
+  
+  try {
+    const url = `${config.caseServiceUrl}/tiket/${ticketId}/cancel`;
+    const response = await axios.post<CancelResponse>(
+      url,
+      {
+        wa_user_id,
+        cancel_reason,
+      },
+      {
+        headers: {
+          'x-internal-api-key': config.internalApiKey,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      }
+    );
+    
+    logger.info('✅ Ticket cancelled successfully', {
+      ticket_id: ticketId,
+      message: response.data.data?.message,
+    });
+    
+    return {
+      success: true,
+      ticket_id: response.data.data?.ticket_id,
+      message: response.data.data?.message || 'Dibatalkan oleh pemohon',
+    };
+  } catch (error: any) {
+    const errorCode = error.response?.data?.error as CancelResult['error'];
+    const errorMessage = error.response?.data?.message || 'Gagal membatalkan tiket';
+    
+    logger.error('❌ Failed to cancel ticket', {
+      ticket_id: ticketId,
+      error: error.message,
+      status: error.response?.status,
+      errorCode,
+    });
+    
+    return {
+      success: false,
+      error: errorCode || 'INTERNAL_ERROR',
+      message: errorMessage,
+    };
   }
 }

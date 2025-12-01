@@ -5,6 +5,7 @@ import {
   getComplaintsList,
   updateComplaintStatus,
   getComplaintStatistics,
+  cancelComplaint,
 } from '../services/complaint.service';
 import logger from '../utils/logger';
 
@@ -111,6 +112,47 @@ export async function handleGetComplaintStatistics(req: Request, res: Response) 
     return res.json({ data: stats });
   } catch (error: any) {
     logger.error('Get statistics error', { error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+/**
+ * POST /laporan/:id/cancel
+ * Cancel complaint by user (owner validation)
+ */
+export async function handleCancelComplaint(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const { wa_user_id, cancel_reason } = req.body;
+    
+    if (!wa_user_id) {
+      return res.status(400).json({ error: 'wa_user_id is required' });
+    }
+    
+    const result = await cancelComplaint(id, { wa_user_id, cancel_reason });
+    
+    if (!result.success) {
+      const statusCode = result.error === 'NOT_FOUND' ? 404 
+        : result.error === 'NOT_OWNER' ? 403 
+        : result.error === 'ALREADY_COMPLETED' ? 400 
+        : 500;
+      
+      return res.status(statusCode).json({
+        status: 'error',
+        error: result.error,
+        message: result.message,
+      });
+    }
+    
+    return res.json({
+      status: 'success',
+      data: {
+        complaint_id: result.complaint_id,
+        message: result.message,
+      },
+    });
+  } catch (error: any) {
+    logger.error('Cancel complaint error', { error: error.message });
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

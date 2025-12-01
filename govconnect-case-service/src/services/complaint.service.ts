@@ -18,6 +18,18 @@ export interface UpdateComplaintStatusData {
   admin_notes?: string;
 }
 
+export interface CancelComplaintData {
+  wa_user_id: string;
+  cancel_reason?: string;
+}
+
+export interface CancelComplaintResult {
+  success: boolean;
+  error?: 'NOT_FOUND' | 'NOT_OWNER' | 'ALREADY_COMPLETED' | 'INTERNAL_ERROR';
+  message?: string;
+  complaint_id?: string;
+}
+
 export interface ComplaintFilters {
   status?: string;
   kategori?: string;
@@ -186,4 +198,98 @@ export async function getComplaintStatistics() {
     })),
     recent_7_days: recentComplaints,
   };
+}
+
+/**
+ * Cancel complaint by user (owner validation)
+ * Only the user who created the complaint can cancel it
+ */
+export async function cancelComplaint(
+  id: string,
+  data: CancelComplaintData
+): Promise<CancelComplaintResult> {
+  try {
+    // Find the complaint
+    const complaint = await getComplaintById(id);
+    
+    if (!complaint) {
+      return {
+        success: false,
+        error: 'NOT_FOUND',
+        message: 'Laporan tidak ditemukan',
+      };
+    }
+    
+    // Validate ownership - only the creator can cancel
+    if (complaint.wa_user_id !== data.wa_user_id) {
+      logger.warn('Cancel complaint rejected: not owner', {
+        complaint_id: id,
+        owner: complaint.wa_user_id,
+        requester: data.wa_user_id,
+      });
+      return {
+        success: false,
+        error: 'NOT_OWNER',
+        message: 'Anda tidak memiliki akses untuk membatalkan laporan ini',
+      };
+    }
+    
+    // Check if complaint is already completed or cancelled
+    if (complaint.status === 'selesai') {
+      return {
+        success: false,
+        error: 'ALREADY_COMPLETED',
+        message: 'Laporan sudah selesai dan tidak dapat dibatalkan',
+      };
+    }
+    
+    if (complaint.status === 'dibatalkan') {
+      return {
+        success: false,
+        error: 'ALREADY_COMPLETED',
+        message: 'Laporan sudah dibatalkan sebelumnya',
+      };
+    }
+    
+    // Update complaint status to cancelled
+    const cancelReason = data.cancel_reason || 'Dibatalkan oleh pelapor';
+    
+    const updatedComplaint = await prisma.complaint.update({
+      where: { id: complaint.id },
+      data: {
+        status: 'dibatalkan',
+        admin_notes: `[DIBATALKAN] ${cancelReason}`,
+      },
+    });
+    
+    // Publish event for notification service
+    await publishEvent(RABBITMQ_CONFIG.ROUTING_KEYS.STATUS_UPDATED, {
+      wa_user_id: updatedComplaint.wa_user_id,
+      complaint_id: updatedComplaint.complaint_id,
+      status: 'dibatalkan',
+      admin_notes: cancelReason,
+    });
+    
+    logger.info('Complaint cancelled by user', {
+      complaint_id: updatedComplaint.complaint_id,
+      wa_user_id: data.wa_user_id,
+      cancel_reason: cancelReason,
+    });
+    
+    return {
+      success: true,
+      complaint_id: updatedComplaint.complaint_id,
+      message: cancelReason,
+    };
+  } catch (error: any) {
+    logger.error('Failed to cancel complaint', {
+      id,
+      error: error.message,
+    });
+    return {
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: 'Terjadi kesalahan saat membatalkan laporan',
+    };
+  }
 }
