@@ -22,3 +22,14 @@ export interface StatusUpdatedEvent {
   status: string;
   admin_notes?: string;
 }
+
+export interface UrgentAlertEvent {
+  type: string;
+  complaint_id: string;
+  kategori: string;
+  deskripsi: string;
+  alamat?: string;
+  rt_rw?: string;
+  wa_user_id: string;
+  created_at: string;
+}

@@ -2,12 +2,16 @@ import axios from 'axios';
 import prisma from '../config/database';
 import config from '../config/env';
 import logger from '../utils/logger';
+import { UrgentAlertEvent } from '../types/event.types';
 
 interface SendNotificationParams {
   wa_user_id: string;
   message: string;
   notificationType: string;
 }
+
+// Admin WhatsApp number from environment or config
+const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP || '';
 
 export async function sendNotification(params: SendNotificationParams): Promise<void> {
   const { wa_user_id, message, notificationType } = params;
@@ -100,5 +104,44 @@ export async function sendNotification(params: SendNotificationParams): Promise<
       attempts: maxRetries,
       lastError: errorMsg
     });
+  }
+}
+
+/**
+ * Send urgent alert to admin WhatsApp
+ */
+export async function sendAdminUrgentAlert(message: string, event: UrgentAlertEvent): Promise<void> {
+  // Check if admin WhatsApp is configured
+  if (!ADMIN_WHATSAPP) {
+    logger.warn('Admin WhatsApp not configured, skipping urgent alert');
+    return;
+  }
+
+  logger.warn('🚨 Sending URGENT ALERT to admin', {
+    admin_whatsapp: ADMIN_WHATSAPP,
+    complaint_id: event.complaint_id,
+    kategori: event.kategori
+  });
+
+  // Send to admin
+  await sendNotification({
+    wa_user_id: ADMIN_WHATSAPP,
+    message,
+    notificationType: 'urgent_alert'
+  });
+
+  // Log the urgent alert
+  try {
+    await prisma.notificationLog.create({
+      data: {
+        wa_user_id: ADMIN_WHATSAPP,
+        message_text: `[URGENT ALERT] ${event.complaint_id} - ${event.kategori}`,
+        notification_type: 'urgent_alert_admin',
+        status: 'sent',
+        error_msg: null
+      }
+    });
+  } catch (dbError: any) {
+    logger.error('Failed to log urgent alert to database', { error: dbError.message });
   }
 }

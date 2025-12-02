@@ -137,7 +137,7 @@ export function GovConnectSidebar() {
         <Link href="/dashboard" className="flex items-center gap-2">
           {state === "expanded" ? (
             <>
-              <div className="relative h-8 w-8 flex-shrink-0">
+              <div className="relative h-8 w-8 shrink-0">
                 <Image
                   src={logoSrc}
                   alt="GovConnect Logo"

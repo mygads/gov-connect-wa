@@ -1,17 +1,19 @@
 import { RABBITMQ_CONFIG } from '../config/rabbitmq';
 import logger from '../utils/logger';
-import { sendNotification } from '../services/notification.service';
+import { sendNotification, sendAdminUrgentAlert } from '../services/notification.service';
 import {
   buildAIReplyMessage,
   buildComplaintCreatedMessage,
   buildTicketCreatedMessage,
-  buildStatusUpdatedMessage
+  buildStatusUpdatedMessage,
+  buildUrgentAlertMessage
 } from '../services/template.service';
 import {
   AIReplyEvent,
   ComplaintCreatedEvent,
   TicketCreatedEvent,
-  StatusUpdatedEvent
+  StatusUpdatedEvent,
+  UrgentAlertEvent
 } from '../types/event.types';
 
 export async function handleEvent(routingKey: string, data: any): Promise<void> {
@@ -30,6 +32,10 @@ export async function handleEvent(routingKey: string, data: any): Promise<void> 
 
     case RABBITMQ_CONFIG.routingKeys.statusUpdated:
       await handleStatusUpdated(data as StatusUpdatedEvent);
+      break;
+
+    case RABBITMQ_CONFIG.routingKeys.urgentAlert:
+      await handleUrgentAlert(data as UrgentAlertEvent);
       break;
 
     default:
@@ -105,4 +111,23 @@ async function handleStatusUpdated(event: StatusUpdatedEvent): Promise<void> {
     message,
     notificationType: 'status_updated'
   });
+}
+
+async function handleUrgentAlert(event: UrgentAlertEvent): Promise<void> {
+  logger.warn('🚨 HANDLING URGENT ALERT', {
+    complaint_id: event.complaint_id,
+    kategori: event.kategori
+  });
+
+  const message = buildUrgentAlertMessage({
+    complaint_id: event.complaint_id,
+    kategori: event.kategori,
+    deskripsi: event.deskripsi,
+    alamat: event.alamat,
+    rt_rw: event.rt_rw,
+    created_at: event.created_at
+  });
+
+  // Send to admin WhatsApp
+  await sendAdminUrgentAlert(message, event);
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { LogOut, Settings, Moon, Sun, ChevronDown } from "lucide-react"
+import { LogOut, Settings, Moon, Sun, ChevronDown, Bell } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 
@@ -16,6 +16,7 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAuth } from "@/components/auth/AuthContext"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { NotificationCenter } from "@/components/dashboard/NotificationCenter"
 
 export function DashboardNavbar() {
   const { theme, setTheme } = useTheme()
@@ -32,10 +33,13 @@ export function DashboardNavbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-white dark:bg-gray-950 px-4 shadow-sm">
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-white dark:bg-gray-950 px-4 shadow-sm">
       <SidebarTrigger className="-ml-1 h-8 w-8 hover:bg-accent rounded-md transition-colors" />
 
       <div className="ml-auto flex items-center gap-2">
+        {/* Notification Center */}
+        <NotificationCenter />
+
         {/* Theme Toggle */}
         <Button
           variant="ghost"
@@ -75,6 +79,13 @@ export function DashboardNavbar() {
             >
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => router.push('/dashboard/settings/notifications')} 
+              className="cursor-pointer"
+            >
+              <Bell className="mr-2 h-4 w-4" />
+              <span>Pengaturan Notifikasi</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive">

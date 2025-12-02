@@ -121,3 +121,42 @@ function formatJenis(jenis: string): string {
   };
   return map[jenis] || jenis;
 }
+
+export function buildUrgentAlertMessage(data: {
+  complaint_id: string;
+  kategori: string;
+  deskripsi: string;
+  alamat?: string;
+  rt_rw?: string;
+  created_at: string;
+}): string {
+  const kategoriText = formatKategori(data.kategori);
+  const waktu = new Date(data.created_at).toLocaleString('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  let message = `🚨 *LAPORAN DARURAT* 🚨
+
+*ID:* ${data.complaint_id}
+*Kategori:* ${kategoriText}
+*Waktu:* ${waktu}`;
+
+  if (data.alamat) {
+    message += `\n*Alamat:* ${data.alamat}`;
+  }
+  
+  if (data.rt_rw) {
+    message += `\n*RT/RW:* ${data.rt_rw}`;
+  }
+
+  message += `\n\n*Deskripsi:*\n${data.deskripsi}`;
+  
+  message += `\n\n⚠️ *Mohon segera ditindaklanjuti!*`;
+  message += `\n\nBuka dashboard: ${process.env.DASHBOARD_URL || 'http://localhost:3000'}/dashboard/laporan`;
+  
+  return message;
+}

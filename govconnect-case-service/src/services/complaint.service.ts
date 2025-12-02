@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import { generateComplaintId } from '../utils/id-generator';
 import { publishEvent } from './rabbitmq.service';
-import { RABBITMQ_CONFIG } from '../config/rabbitmq';
+import { RABBITMQ_CONFIG, isUrgentCategory } from '../config/rabbitmq';
 import logger from '../utils/logger';
 
 export interface CreateComplaintData {
@@ -64,6 +64,25 @@ export async function createComplaint(data: CreateComplaintData) {
     complaint_id: complaint.complaint_id,
     kategori: complaint.kategori,
   });
+  
+  // Check if this is an urgent category and publish urgent alert
+  if (isUrgentCategory(data.kategori)) {
+    await publishEvent(RABBITMQ_CONFIG.ROUTING_KEYS.URGENT_ALERT, {
+      type: 'urgent_complaint',
+      complaint_id: complaint.complaint_id,
+      kategori: complaint.kategori,
+      deskripsi: complaint.deskripsi,
+      alamat: complaint.alamat,
+      rt_rw: complaint.rt_rw,
+      wa_user_id: data.wa_user_id,
+      created_at: complaint.created_at,
+    });
+    
+    logger.warn('URGENT COMPLAINT CREATED', {
+      complaint_id: complaint.complaint_id,
+      kategori: complaint.kategori,
+    });
+  }
   
   logger.info('Complaint created', { complaint_id });
   

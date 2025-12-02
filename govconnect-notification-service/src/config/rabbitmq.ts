@@ -9,6 +9,7 @@ export const RABBITMQ_CONFIG = {
     aiReply: 'govconnect.ai.reply',
     complaintCreated: 'govconnect.complaint.created',
     ticketCreated: 'govconnect.ticket.created',
-    statusUpdated: 'govconnect.status.updated'
+    statusUpdated: 'govconnect.status.updated',
+    urgentAlert: 'govconnect.urgent.alert'
   }
 };
