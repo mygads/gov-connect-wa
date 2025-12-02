@@ -16,6 +16,7 @@ import {
   Smartphone,
   Activity,
   MessageCircle,
+  Download,
 } from "lucide-react"
 
 import {
@@ -70,6 +71,11 @@ export function GovConnectSidebar() {
           title: "List Laporan",
           url: "/dashboard/laporan",
           icon: FileText,
+        },
+        {
+          title: "Export & Laporan",
+          url: "/dashboard/export",
+          icon: Download,
         },
       ],
     },

@@ -16,9 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { AlertCircle, ArrowLeft, CheckCircle, Loader2, MapPin, MessageSquare, Phone, Calendar, Image } from "lucide-react"
+import { AlertCircle, ArrowLeft, CheckCircle, Loader2, MapPin, MessageSquare, Phone, Calendar, Image, Printer } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { formatDate, formatStatus, getStatusColor } from "@/lib/utils"
+import { printTicket } from "@/lib/export-utils"
 
 interface Complaint {
   id: string
@@ -129,15 +130,21 @@ export default function LaporanDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Kembali
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{complaint.complaint_id}</h1>
-          <p className="text-sm text-muted-foreground">Detail Laporan Warga</p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={() => router.back()}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Kembali
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{complaint.complaint_id}</h1>
+            <p className="text-sm text-muted-foreground">Detail Laporan Warga</p>
+          </div>
         </div>
+        <Button variant="outline" onClick={() => printTicket(complaint)}>
+          <Printer className="mr-2 h-4 w-4" />
+          Cetak Tiket
+        </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
