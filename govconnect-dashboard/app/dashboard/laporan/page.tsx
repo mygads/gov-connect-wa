@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, Eye, Search } from "lucide-react"
+import { AlertCircle, Eye, Search, ImageIcon } from "lucide-react"
 import { apiClient } from "@/lib/api-client"
 import { formatDate, formatStatus, getStatusColor } from "@/lib/utils"
 
@@ -27,6 +27,7 @@ interface Complaint {
   deskripsi: string
   alamat?: string
   status: string
+  foto_url?: string
   created_at: string
 }
 
@@ -192,7 +193,14 @@ export default function LaporanListPage() {
                   {filteredComplaints.map((complaint) => (
                     <TableRow key={complaint.id}>
                       <TableCell className="font-medium">
-                        {complaint.complaint_id}
+                        <div className="flex items-center gap-2">
+                          {complaint.foto_url && (
+                            <span title="Laporan dengan foto">
+                              <ImageIcon className="h-4 w-4 text-blue-500" />
+                            </span>
+                          )}
+                          {complaint.complaint_id}
+                        </div>
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {complaint.wa_user_id}

@@ -10,6 +10,29 @@ let sessionSettings = {
   typingIndicator: false,
 };
 
+/**
+ * Load settings from database at startup
+ */
+export async function loadSettingsFromDatabase(): Promise<void> {
+  try {
+    const settings = await prisma.wa_settings.findFirst({
+      where: { id: 'default' },
+    });
+    
+    if (settings) {
+      sessionSettings = {
+        autoReadMessages: settings.auto_read_messages,
+        typingIndicator: settings.typing_indicator,
+      };
+      logger.info('Settings loaded from database', { sessionSettings });
+    } else {
+      logger.info('No settings in database, using defaults', { sessionSettings });
+    }
+  } catch (error: any) {
+    logger.warn('Failed to load settings from database', { error: error.message });
+  }
+}
+
 // =====================================================
 // SESSION MANAGEMENT FUNCTIONS
 // =====================================================

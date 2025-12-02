@@ -2,6 +2,8 @@ import amqp from 'amqplib';
 import logger from '../utils/logger';
 import { config } from '../config/env';
 import { rabbitmqConfig } from '../config/rabbitmq';
+import { sendTextMessage } from './wa.service';
+import { saveOutgoingMessage } from './message.service';
 
 let connection: any = null;
 let channel: any = null;
@@ -86,4 +88,96 @@ export async function disconnectRabbitMQ(): Promise<void> {
  */
 export function isConnected(): boolean {
   return connection !== null && channel !== null;
+}
+
+/**
+ * AI Reply Event payload interface
+ */
+interface AIReplyEvent {
+  wa_user_id: string;
+  reply_text: string;
+  intent?: string;
+  complaint_id?: string;
+}
+
+/**
+ * Start consuming AI reply events
+ */
+export async function startConsumingAIReply(): Promise<void> {
+  if (!channel) {
+    logger.error('RabbitMQ channel not initialized');
+    throw new Error('RabbitMQ channel not available');
+  }
+
+  try {
+    const queueName = rabbitmqConfig.QUEUES.CHANNEL_AI_REPLY;
+    const routingKey = rabbitmqConfig.ROUTING_KEYS.AI_REPLY;
+
+    // Declare queue
+    await channel.assertQueue(queueName, { durable: true });
+
+    // Bind queue to exchange with routing key
+    await channel.bindQueue(
+      queueName,
+      rabbitmqConfig.EXCHANGE_NAME,
+      routingKey
+    );
+
+    logger.info('🎧 Started consuming AI reply events', {
+      queue: queueName,
+      routingKey,
+    });
+
+    // Consume messages
+    channel.consume(queueName, async (msg: any) => {
+      if (!msg) return;
+
+      try {
+        const payload: AIReplyEvent = JSON.parse(msg.content.toString());
+        
+        logger.info('📨 AI reply event received', {
+          wa_user_id: payload.wa_user_id,
+          intent: payload.intent,
+          messageLength: payload.reply_text?.length,
+        });
+
+        // Send message via WhatsApp
+        const result = await sendTextMessage(payload.wa_user_id, payload.reply_text);
+
+        if (result.success) {
+          // Save outgoing message to database
+          await saveOutgoingMessage({
+            wa_user_id: payload.wa_user_id,
+            message_id: result.message_id || `ai_reply_${Date.now()}`,
+            message_text: payload.reply_text,
+            source: 'AI_REPLY',
+          });
+
+          logger.info('✅ AI reply sent successfully', {
+            wa_user_id: payload.wa_user_id,
+            message_id: result.message_id,
+          });
+        } else {
+          logger.error('❌ Failed to send AI reply', {
+            wa_user_id: payload.wa_user_id,
+            error: result.error,
+          });
+        }
+
+        // Acknowledge message
+        channel.ack(msg);
+      } catch (error: any) {
+        logger.error('Error processing AI reply event', {
+          error: error.message,
+        });
+        // Nack and don't requeue to avoid infinite loop
+        channel.nack(msg, false, false);
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to start consuming AI reply events', {
+      error: error.message,
+    });
+    throw error;
+  }
 }

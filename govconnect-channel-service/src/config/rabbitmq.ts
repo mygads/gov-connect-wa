@@ -4,9 +4,11 @@ export const rabbitmqConfig = {
   ROUTING_KEYS: {
     MESSAGE_RECEIVED: 'whatsapp.message.received',
     MESSAGE_SENT: 'whatsapp.message.sent',
+    AI_REPLY: 'govconnect.ai.reply',
   },
   QUEUES: {
     AI_SERVICE: 'ai-service.whatsapp.message.#',
+    CHANNEL_AI_REPLY: 'channel-service.ai.reply',
   },
   OPTIONS: {
     durable: true,

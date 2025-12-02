@@ -8,6 +8,7 @@ import {
   markMessageAsRead,
   isAutoReadEnabled,
 } from '../services/wa.service';
+import { processMediaFromWebhook, MediaInfo } from '../services/media.service';
 import { rabbitmqConfig } from '../config/rabbitmq';
 import logger from '../utils/logger';
 import { 
@@ -107,6 +108,25 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
       });
     }
 
+    // Process media if present
+    let mediaInfo: MediaInfo = { hasMedia: false };
+    try {
+      mediaInfo = await processMediaFromWebhook(payload, waUserId, messageId);
+      if (mediaInfo.hasMedia) {
+        logger.info('Media processed', {
+          wa_user_id: waUserId,
+          message_id: messageId,
+          mediaType: mediaInfo.mediaType,
+          hasUrl: !!mediaInfo.mediaUrl,
+        });
+      }
+    } catch (mediaError: any) {
+      logger.warn('Failed to process media, continuing without it', {
+        error: mediaError.message,
+        message_id: messageId,
+      });
+    }
+
     // Save message to database
     await saveIncomingMessage({
       wa_user_id: waUserId,
@@ -115,17 +135,26 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
       timestamp: timestamp,
     });
 
-    // Publish event to RabbitMQ
+    // Publish event to RabbitMQ with media info
     await publishEvent(rabbitmqConfig.ROUTING_KEYS.MESSAGE_RECEIVED, {
       wa_user_id: waUserId,
       message: message,
       message_id: messageId,
       received_at: timestamp.toISOString(),
+      // Media information
+      has_media: mediaInfo.hasMedia,
+      media_type: mediaInfo.mediaType,
+      media_url: mediaInfo.mediaUrl,              // Internal URL for Case Service
+      media_public_url: mediaInfo.mediaPublicUrl, // Public URL for Dashboard
+      media_caption: mediaInfo.caption,
+      media_mime_type: mediaInfo.mimeType,
+      media_file_name: mediaInfo.fileName,
     });
 
     logger.info('Webhook processed successfully', {
       from: waUserId,
       message_id: messageId,
+      has_media: mediaInfo.hasMedia,
     });
 
     res.json({ status: 'ok', message_id: messageId });

@@ -1,6 +1,7 @@
 import { createApp } from './app';
 import { config } from './config/env';
-import { connectRabbitMQ, disconnectRabbitMQ } from './services/rabbitmq.service';
+import { connectRabbitMQ, disconnectRabbitMQ, startConsumingAIReply } from './services/rabbitmq.service';
+import { loadSettingsFromDatabase } from './services/wa.service';
 import logger from './utils/logger';
 import prisma from './config/database';
 
@@ -9,8 +10,14 @@ import prisma from './config/database';
  */
 async function startServer() {
   try {
+    // Load settings from database
+    await loadSettingsFromDatabase();
+
     // Connect to RabbitMQ
     await connectRabbitMQ();
+
+    // Start consuming AI reply events
+    await startConsumingAIReply();
 
     // Create Express app
     const app = createApp();

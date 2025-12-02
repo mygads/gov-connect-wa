@@ -9,12 +9,13 @@ import { searchKnowledge, buildKnowledgeContext } from './knowledge.service';
 import { startTyping, stopTyping } from './channel-client.service';
 
 // In-memory cache for address confirmation state
-// Key: wa_user_id, Value: { alamat: string, kategori: string, deskripsi: string, timestamp: number }
+// Key: wa_user_id, Value: { alamat: string, kategori: string, deskripsi: string, timestamp: number, foto_url?: string }
 const pendingAddressConfirmation: Map<string, {
   alamat: string;
   kategori: string;
   deskripsi: string;
   timestamp: number;
+  foto_url?: string;
 }> = new Map();
 
 // Cleanup expired confirmations (older than 10 minutes)
@@ -146,12 +147,14 @@ function isConfirmationResponse(message: string): boolean {
  * Main orchestration logic - processes incoming WhatsApp messages
  */
 export async function processMessage(event: MessageReceivedEvent): Promise<void> {
-  const { wa_user_id, message, message_id } = event;
+  const { wa_user_id, message, message_id, has_media, media_url, media_public_url, media_type, media_caption } = event;
   
   logger.info('🎯 Processing message', {
     wa_user_id,
     message_id,
     messageLength: message.length,
+    hasMedia: has_media,
+    mediaType: media_type,
   });
   
   try {
@@ -193,13 +196,15 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
           deskripsi: pendingConfirm.deskripsi,
           alamat: pendingConfirm.alamat,
           rt_rw: '',
+          foto_url: pendingConfirm.foto_url,
         });
         
         await stopTyping(wa_user_id);
         
         let finalReply: string;
         if (complaintId) {
-          finalReply = `✅ Terima kasih! Laporan Anda telah kami terima dengan nomor ${complaintId}.\n\nPetugas akan segera menindaklanjuti laporan Anda.`;
+          const withPhoto = pendingConfirm.foto_url ? ' 📷' : '';
+          finalReply = `✅ Terima kasih! Laporan Anda telah kami terima dengan nomor ${complaintId}.${withPhoto}\n\nPetugas akan segera menindaklanjuti laporan Anda.`;
         } else {
           finalReply = '⚠️ Maaf, terjadi kendala saat memproses laporan. Mohon coba lagi.';
         }
@@ -233,13 +238,15 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
             deskripsi: pendingConfirm.deskripsi,
             alamat: message.trim(),
             rt_rw: '',
+            foto_url: pendingConfirm.foto_url,
           });
           
           await stopTyping(wa_user_id);
           
           let finalReply: string;
           if (complaintId) {
-            finalReply = `✅ Terima kasih! Laporan Anda telah kami terima dengan nomor ${complaintId}.\n\nPetugas akan segera menindaklanjuti laporan di ${message.trim()}.`;
+            const withPhoto = pendingConfirm.foto_url ? ' 📷' : '';
+            finalReply = `✅ Terima kasih! Laporan Anda telah kami terima dengan nomor ${complaintId}.${withPhoto}\n\nPetugas akan segera menindaklanjuti laporan di ${message.trim()}.`;
           } else {
             finalReply = '⚠️ Maaf, terjadi kendala saat memproses laporan. Mohon coba lagi.';
           }
@@ -286,7 +293,8 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
     
     switch (llmResponse.intent) {
       case 'CREATE_COMPLAINT':
-        finalReplyText = await handleComplaintCreation(wa_user_id, llmResponse, message);
+        // Pass media_public_url for Dashboard to display (not internal Docker URL)
+        finalReplyText = await handleComplaintCreation(wa_user_id, llmResponse, message, media_public_url || media_url);
         break;
       
       case 'CREATE_TICKET':
@@ -358,7 +366,7 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
 /**
  * Handle complaint creation
  */
-async function handleComplaintCreation(wa_user_id: string, llmResponse: any, currentMessage: string): Promise<string> {
+async function handleComplaintCreation(wa_user_id: string, llmResponse: any, currentMessage: string, mediaUrl?: string): Promise<string> {
   const { kategori, rt_rw } = llmResponse.fields;
   let { alamat, deskripsi } = llmResponse.fields;
   
@@ -369,6 +377,7 @@ async function handleComplaintCreation(wa_user_id: string, llmResponse: any, cur
     alamat,
     deskripsi,
     rt_rw,
+    hasMedia: !!mediaUrl,
     currentMessage: currentMessage.substring(0, 100),
   });
   
@@ -466,16 +475,18 @@ async function handleComplaintCreation(wa_user_id: string, llmResponse: any, cur
       kategori,
     });
     
-    // Store pending confirmation
+    // Store pending confirmation (including foto_url if present)
     pendingAddressConfirmation.set(wa_user_id, {
       alamat,
       kategori,
       deskripsi: deskripsi || `Laporan ${kategori.replace(/_/g, ' ')}`,
       timestamp: Date.now(),
+      foto_url: mediaUrl,
     });
     
     const kategoriLabel = kategori.replace(/_/g, ' ');
-    return `📍 Alamat "${alamat}" sepertinya kurang spesifik untuk laporan ${kategoriLabel}.\n\nApakah Anda ingin menambahkan detail alamat (nomor rumah, RT/RW, nama jalan lengkap) atau ketik "ya" untuk tetap menggunakan alamat ini?`;
+    const photoNote = mediaUrl ? '\n\n📷 Foto Anda sudah kami terima.' : '';
+    return `📍 Alamat "${alamat}" sepertinya kurang spesifik untuk laporan ${kategoriLabel}.${photoNote}\n\nApakah Anda ingin menambahkan detail alamat (nomor rumah, RT/RW, nama jalan lengkap) atau ketik "ya" untuk tetap menggunakan alamat ini?`;
   }
   
   // Create complaint in Case Service (SYNC call)
@@ -485,10 +496,12 @@ async function handleComplaintCreation(wa_user_id: string, llmResponse: any, cur
     deskripsi: deskripsi || `Laporan ${kategori.replace(/_/g, ' ')}`,
     alamat: alamat,
     rt_rw: rt_rw || '',
+    foto_url: mediaUrl,
   });
   
   if (complaintId) {
-    return `✅ Terima kasih! Laporan Anda telah kami terima dengan nomor ${complaintId}.\n\nPetugas akan segera menindaklanjuti laporan Anda di ${alamat}.`;
+    const withPhoto = mediaUrl ? ' 📷' : '';
+    return `✅ Terima kasih! Laporan Anda telah kami terima dengan nomor ${complaintId}.${withPhoto}\n\nPetugas akan segera menindaklanjuti laporan Anda di ${alamat}.`;
   } else {
     return `⚠️ Maaf, terjadi kendala saat memproses laporan Anda. Mohon coba lagi atau hubungi kantor kelurahan langsung.`;
   }

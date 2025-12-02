@@ -1,11 +1,15 @@
 import express, { Application } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import path from 'path';
 import webhookRoutes from './routes/webhook.routes';
 import internalRoutes from './routes/internal.routes';
 import healthRoutes from './routes/health.routes';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.middleware';
 import logger from './utils/logger';
+
+// Media storage path
+const MEDIA_STORAGE_PATH = process.env.MEDIA_STORAGE_PATH || '/app/uploads';
 
 /**
  * Create Express application
@@ -14,12 +18,20 @@ export function createApp(): Application {
   const app = express();
 
   // Security middleware
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow images to be loaded from other origins
+  }));
   app.use(cors());
 
   // Body parser
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Serve uploaded media files statically
+  app.use('/uploads', express.static(MEDIA_STORAGE_PATH, {
+    maxAge: '7d', // Cache for 7 days
+    etag: true,
+  }));
 
   // Request logging
   app.use((req, res, next) => {

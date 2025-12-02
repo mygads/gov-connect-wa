@@ -49,6 +49,14 @@ services:
       LOG_DIR: logs
       CASE_SERVICE_URL: http://case-service:3003
       NOTIFICATION_SERVICE_URL: http://notification-service:3004
+      # Media storage configuration
+      MEDIA_STORAGE_PATH: /app/uploads
+      # Internal URL for Docker network (used by Case Service)
+      MEDIA_INTERNAL_URL: http://channel-service:3001/uploads
+      # Public URL for browser access (used by Dashboard)
+      MEDIA_PUBLIC_URL: http://localhost:3001/uploads
+    volumes:
+      - channel-uploads:/app/uploads
     networks:
       - govconnect-network
     depends_on:
@@ -283,3 +291,5 @@ volumes:
     name: govconnect-rabbitmq-data
   ai-service-data:
     name: govconnect-ai-service-data
+  channel-uploads:
+    name: govconnect-channel-uploads

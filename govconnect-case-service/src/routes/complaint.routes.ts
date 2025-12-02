@@ -37,7 +37,16 @@ router.post(
     body('deskripsi').isLength({ min: 10, max: 1000 }).withMessage('Deskripsi 10-1000 chars'),
     body('alamat').optional().isString(),
     body('rt_rw').optional().isString(),
-    body('foto_url').optional().isURL(),
+    // Allow URLs with localhost for development, or any http/https URL
+    body('foto_url').optional().custom((value) => {
+      if (!value) return true;
+      // Accept http:// or https:// URLs (including localhost for dev)
+      const urlPattern = /^https?:\/\/.+/i;
+      if (!urlPattern.test(value)) {
+        throw new Error('foto_url must be a valid URL');
+      }
+      return true;
+    }),
   ],
   validate,
   handleCreateComplaint

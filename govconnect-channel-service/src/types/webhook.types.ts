@@ -95,6 +95,12 @@ export interface GenfityMediaMessage {
   Mimetype?: string;
   FileSHA256?: string;
   FileLength?: number;
+  // Additional fields for media download
+  MediaKey?: string;       // Base64 encoded byte array
+  DirectPath?: string;
+  FileEncSha256?: string;  // Base64 encoded byte array
+  // Thumbnail (always available as fallback)
+  JPEGThumbnail?: string;  // Base64 encoded thumbnail
 }
 
 export interface S3Data {

@@ -8,6 +8,7 @@ interface ComplaintData {
   deskripsi: string;
   alamat?: string;
   rt_rw?: string;
+  foto_url?: string;
 }
 
 interface TicketData {
