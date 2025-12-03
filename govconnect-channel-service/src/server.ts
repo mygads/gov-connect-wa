@@ -1,7 +1,8 @@
 import { createApp } from './app';
 import { config } from './config/env';
-import { connectRabbitMQ, disconnectRabbitMQ, startConsumingAIReply, startConsumingAIError } from './services/rabbitmq.service';
+import { connectRabbitMQ, disconnectRabbitMQ, startConsumingAIReply, startConsumingAIError, startConsumingMessageStatus } from './services/rabbitmq.service';
 import { loadSettingsFromDatabase } from './services/wa.service';
+import { cleanupOldMessages } from './services/pending-message.service';
 import logger from './utils/logger';
 import prisma from './config/database';
 
@@ -21,6 +22,18 @@ async function startServer() {
 
     // Start consuming AI error events
     await startConsumingAIError();
+
+    // Start consuming message status events
+    await startConsumingMessageStatus();
+
+    // Start periodic cleanup of old pending messages
+    setInterval(async () => {
+      try {
+        await cleanupOldMessages();
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }, 60 * 60 * 1000); // Every hour
 
     // Create Express app
     const app = createApp();

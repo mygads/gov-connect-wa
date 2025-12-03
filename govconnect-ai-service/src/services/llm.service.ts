@@ -43,16 +43,28 @@ const AVAILABLE_MODELS = [
 // 2.5 models also support: Thinking/Reasoning ✓
 
 // Retry configuration - AGGRESSIVE to ensure NEVER fail
-const MAX_RETRIES_PER_MODEL = 2;     // Max retries per model before switching
-const RETRY_DELAY_MS = 2000;         // 2 seconds between retries
+const MAX_RETRIES_PER_MODEL = 3;     // Max retries per model before switching
+const BASE_RETRY_DELAY_MS = 1000;    // Base delay for exponential backoff (1 second)
+const MAX_RETRY_DELAY_MS = 10000;    // Max delay cap (10 seconds)
 const MAX_CYCLES = 5;                // Max full cycles through all models
-const CYCLE_DELAY_MS = 3000;         // 3 seconds delay before new cycle
+const CYCLE_DELAY_MS = 5000;         // 5 seconds delay before new cycle
+const JSON_RETRY_EXTRA_DELAY_MS = 500; // Extra delay for JSON parsing errors
 
 /**
  * Sleep for specified milliseconds
  */
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Calculate exponential backoff delay with jitter
+ * Formula: min(maxDelay, baseDelay * 2^attempt + random jitter)
+ */
+function calculateBackoffDelay(attempt: number, baseDelay: number = BASE_RETRY_DELAY_MS, maxDelay: number = MAX_RETRY_DELAY_MS): number {
+  const exponentialDelay = baseDelay * Math.pow(2, attempt);
+  const jitter = Math.random() * 500; // Random jitter 0-500ms
+  return Math.min(maxDelay, exponentialDelay + jitter);
 }
 
 /**
@@ -174,19 +186,27 @@ export async function callGemini(systemPrompt: string): Promise<{ response: LLMR
           break; // Skip retries, move to next model
         }
         
-        // Check if it's a JSON parsing error - retry might help
-        if (lastError.includes('JSON') || lastError.includes('Unterminated')) {
-          logger.warn('⚠️ JSON parsing error, will retry', {
+        // Calculate backoff delay based on retry attempt
+        const isJsonError = lastError.includes('JSON') || lastError.includes('Unterminated') || lastError.includes('parsing');
+        const backoffDelay = calculateBackoffDelay(retry);
+        const actualDelay = isJsonError ? backoffDelay + JSON_RETRY_EXTRA_DELAY_MS : backoffDelay;
+        
+        if (isJsonError) {
+          logger.warn('⚠️ JSON parsing error, will retry with backoff', {
             model: modelName,
             retry: retry + 1,
             error: lastError,
+            backoffDelay: actualDelay,
           });
         }
         
-        // Wait before retry (unless it's the last retry)
+        // Wait before retry with exponential backoff (unless it's the last retry)
         if (retry < MAX_RETRIES_PER_MODEL - 1) {
-          logger.info(`⏳ Waiting ${RETRY_DELAY_MS}ms before retry...`);
-          await sleep(RETRY_DELAY_MS);
+          logger.info(`⏳ Waiting ${actualDelay}ms before retry (exponential backoff)...`, {
+            attempt: retry + 1,
+            delay: actualDelay,
+          });
+          await sleep(actualDelay);
         }
       }
     }

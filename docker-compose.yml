@@ -1,9 +1,9 @@
 services:
   # ==================== DATABASE ====================
   
-  # Single PostgreSQL instance with multiple schemas
+  # Single PostgreSQL instance with multiple schemas (with pgvector)
   postgres:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     container_name: govconnect-postgres
     command: 
       - "postgres"

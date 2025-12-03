@@ -11,16 +11,31 @@ export interface MessageReceivedEvent {
   media_caption?: string;
   media_mime_type?: string;
   media_file_name?: string;
+  // Batched messages (when multiple messages are combined)
+  is_batched?: boolean;
+  batched_message_ids?: string[];  // All message IDs in this batch
+  original_messages?: string[];    // Original messages before combining
 }
 
 export interface AIReplyEvent {
   wa_user_id: string;
   reply_text: string;
   guidance_text?: string;  // Optional second bubble for guidance/follow-up
+  message_id?: string;     // Single message ID that was answered
+  batched_message_ids?: string[];  // Message IDs that were answered in this reply (for batched)
 }
 
 export interface AIErrorEvent {
   wa_user_id: string;
   error_message: string;
   pending_message_id?: string;  // Message ID that failed processing
+  batched_message_ids?: string[];  // All message IDs if batched
+}
+
+// Event to notify channel service about message status
+export interface MessageStatusEvent {
+  wa_user_id: string;
+  message_ids: string[];
+  status: 'processing' | 'completed' | 'failed';
+  error_message?: string;
 }

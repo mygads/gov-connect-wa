@@ -302,8 +302,8 @@ export async function handleRetryAI(req: Request, res: Response): Promise<void> 
     // Re-publish the message to AI service queue
     await publishEvent(rabbitmqConfig.ROUTING_KEYS.MESSAGE_RECEIVED, {
       wa_user_id,
+      message: pendingMessage.message_text,
       message_id: pendingMessage.message_id,
-      message_text: pendingMessage.message_text,
       is_retry: true,
     });
     

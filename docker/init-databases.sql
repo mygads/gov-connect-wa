@@ -44,6 +44,9 @@ GRANT ALL ON SCHEMA notification TO postgres;
 GRANT ALL ON SCHEMA dashboard TO postgres;
 GRANT ALL ON SCHEMA testing TO postgres;
 
+-- Install pgvector extension in dashboard schema for embeddings/RAG
+CREATE EXTENSION IF NOT EXISTS "vector" SCHEMA dashboard;
+
 -- Set default privileges for future tables
 ALTER DEFAULT PRIVILEGES IN SCHEMA channel GRANT ALL ON TABLES TO postgres;
 ALTER DEFAULT PRIVILEGES IN SCHEMA cases GRANT ALL ON TABLES TO postgres;

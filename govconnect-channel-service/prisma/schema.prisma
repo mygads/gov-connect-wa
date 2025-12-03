@@ -76,7 +76,7 @@ model Conversation {
   last_message_at      DateTime @default(now())
   unread_count         Int      @default(0)
   is_takeover          Boolean  @default(false)
-  ai_status            String?  // null | "processing" | "error"
+  ai_status            String?  // null | "processing" | "error" | "queued"
   ai_error_message     String?  @db.Text // Error message if AI failed
   pending_message_id   String?  // Message ID that needs AI retry
   created_at           DateTime @default(now())
@@ -86,4 +86,21 @@ model Conversation {
   @@index([last_message_at])
   @@index([ai_status])
   @@map("conversations")
+}
+
+// Pending messages queue - for batching and retry
+model PendingMessage {
+  id           String   @id @default(cuid())
+  wa_user_id   String   // User phone number
+  message_id   String   @unique // WhatsApp message ID
+  message_text String   @db.Text
+  status       String   @default("pending") // pending | processing | completed | failed
+  retry_count  Int      @default(0)
+  error_msg    String?  @db.Text
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now()) @updatedAt
+  
+  @@index([wa_user_id, status])
+  @@index([status, created_at])
+  @@map("pending_messages")
 }

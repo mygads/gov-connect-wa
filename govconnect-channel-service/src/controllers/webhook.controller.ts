@@ -3,13 +3,14 @@ import {
   saveIncomingMessage,
   checkDuplicateMessage,
 } from '../services/message.service';
-import { publishEvent } from '../services/rabbitmq.service';
+import { publishEvent, isConnected as isRabbitConnected } from '../services/rabbitmq.service';
 import {
   markMessageAsRead,
-  isAutoReadEnabled,
+  sendTypingIndicator,
 } from '../services/wa.service';
 import { processMediaFromWebhook, MediaInfo } from '../services/media.service';
 import { updateConversation, isUserInTakeover, setAIProcessing } from '../services/takeover.service';
+import { addPendingMessage } from '../services/pending-message.service';
 import { rabbitmqConfig } from '../config/rabbitmq';
 import logger from '../utils/logger';
 import { 
@@ -102,31 +103,40 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
     // Extract phone number from JID (remove @s.whatsapp.net)
     const waUserId = extractPhoneFromJID(from);
 
-    // Auto-read message if enabled
-    if (isAutoReadEnabled() && messageId && chatPhone && senderPhone) {
+    // ============================================
+    // STEP 1: IMMEDIATELY READ MESSAGE (don't wait for AI)
+    // ============================================
+    // Always read message immediately so user sees "read" status
+    if (messageId && chatPhone && senderPhone) {
       markMessageAsRead([messageId], chatPhone, senderPhone).catch((err) => {
         logger.warn('Failed to mark message as read', { error: err.message });
       });
     }
 
-    // Process media if present
+    // ============================================
+    // STEP 2: SAVE TO DATABASE (parallel with media processing)
+    // ============================================
+    
+    // Process media if present (non-blocking)
     let mediaInfo: MediaInfo = { hasMedia: false };
-    try {
-      mediaInfo = await processMediaFromWebhook(payload, waUserId, messageId);
-      if (mediaInfo.hasMedia) {
-        logger.info('Media processed', {
-          wa_user_id: waUserId,
+    const mediaPromise = processMediaFromWebhook(payload, waUserId, messageId)
+      .then(info => {
+        mediaInfo = info;
+        if (info.hasMedia) {
+          logger.info('Media processed', {
+            wa_user_id: waUserId,
+            message_id: messageId,
+            mediaType: info.mediaType,
+            hasUrl: !!info.mediaUrl,
+          });
+        }
+      })
+      .catch((err) => {
+        logger.warn('Failed to process media, continuing without it', {
+          error: err.message,
           message_id: messageId,
-          mediaType: mediaInfo.mediaType,
-          hasUrl: !!mediaInfo.mediaUrl,
         });
-      }
-    } catch (mediaError: any) {
-      logger.warn('Failed to process media, continuing without it', {
-        error: mediaError.message,
-        message_id: messageId,
       });
-    }
 
     // Save message to database
     await saveIncomingMessage({
@@ -137,33 +147,75 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
     });
 
     // Update conversation for live chat
-    // Extract push name from payload for user display name
     const pushName = payload.event?.Info.PushName || undefined;
     await updateConversation(waUserId, message, pushName, true);
 
-    // Check if user is in takeover mode
+    // Wait for media processing to complete
+    await mediaPromise;
+
+    // ============================================
+    // STEP 3: CHECK TAKEOVER STATUS
+    // ============================================
     const inTakeover = await isUserInTakeover(waUserId);
     
-    // If NOT in takeover, set AI processing status
-    if (!inTakeover) {
-      await setAIProcessing(waUserId, messageId);
+    if (inTakeover) {
+      // User is being handled by admin - don't process with AI
+      logger.info('User in takeover mode, skipping AI processing', {
+        wa_user_id: waUserId,
+        message_id: messageId,
+      });
+      res.json({ status: 'ok', message_id: messageId, mode: 'takeover' });
+      return;
     }
 
-    // Publish event to RabbitMQ with media info
-    await publishEvent(rabbitmqConfig.ROUTING_KEYS.MESSAGE_RECEIVED, {
+    // ============================================
+    // STEP 4: QUEUE FOR AI PROCESSING
+    // ============================================
+    // Add to pending queue (for batching and retry)
+    await addPendingMessage({
       wa_user_id: waUserId,
-      message: message,
       message_id: messageId,
-      received_at: timestamp.toISOString(),
-      // Media information
-      has_media: mediaInfo.hasMedia,
-      media_type: mediaInfo.mediaType,
-      media_url: mediaInfo.mediaUrl,              // Internal URL for Case Service
-      media_public_url: mediaInfo.mediaPublicUrl, // Public URL for Dashboard
-      media_caption: mediaInfo.caption,
-      media_mime_type: mediaInfo.mimeType,
-      media_file_name: mediaInfo.fileName,
+      message_text: message,
     });
+
+    // Set AI status to queued
+    await setAIProcessing(waUserId, messageId);
+
+    // Try to publish to RabbitMQ
+    // If RabbitMQ is down, message is still in pending queue for retry
+    if (isRabbitConnected()) {
+      try {
+        await publishEvent(rabbitmqConfig.ROUTING_KEYS.MESSAGE_RECEIVED, {
+          wa_user_id: waUserId,
+          message: message,
+          message_id: messageId,
+          received_at: timestamp.toISOString(),
+          // Media information
+          has_media: mediaInfo.hasMedia,
+          media_type: mediaInfo.mediaType,
+          media_url: mediaInfo.mediaUrl,
+          media_public_url: mediaInfo.mediaPublicUrl,
+          media_caption: mediaInfo.caption,
+          media_mime_type: mediaInfo.mimeType,
+          media_file_name: mediaInfo.fileName,
+        });
+        
+        logger.info('Message queued for AI processing', {
+          wa_user_id: waUserId,
+          message_id: messageId,
+        });
+      } catch (pubError: any) {
+        // RabbitMQ publish failed - message is still in pending queue
+        logger.warn('Failed to publish to RabbitMQ, message in pending queue', {
+          error: pubError.message,
+          message_id: messageId,
+        });
+      }
+    } else {
+      logger.warn('RabbitMQ not connected, message in pending queue for retry', {
+        message_id: messageId,
+      });
+    }
 
     logger.info('Webhook processed successfully', {
       from: waUserId,

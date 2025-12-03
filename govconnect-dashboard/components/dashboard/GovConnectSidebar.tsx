@@ -11,7 +11,6 @@ import {
   Ticket,
   BarChart3,
   ChevronRight,
-  BookOpen,
   Bot,
   Smartphone,
   MessageCircle,
@@ -19,6 +18,7 @@ import {
   TrendingUp,
   Shield,
   Brain,
+  Activity,
 } from "lucide-react"
 
 import {
@@ -134,12 +134,12 @@ export function GovConnectSidebar() {
         {
           title: "AI Analytics",
           url: "/dashboard/ai-analytics",
-          icon: Brain,
+          icon: Activity,
         },
         {
-          title: "Knowledge Base",
+          title: "Knowledge & RAG",
           url: "/dashboard/knowledge",
-          icon: BookOpen,
+          icon: Brain,
         },
         {
           title: "Rate Limit",

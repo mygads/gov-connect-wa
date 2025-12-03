@@ -5,6 +5,9 @@ import { checkCaseServiceHealth } from './services/case-client.service';
 import { modelStatsService } from './services/model-stats.service';
 import { rateLimiterService } from './services/rate-limiter.service';
 import { aiAnalyticsService } from './services/ai-analytics.service';
+import { getEmbeddingStats } from './services/embedding.service';
+import { getVectorCacheStats } from './services/vector-store.service';
+import documentRoutes from './routes/document.routes';
 import axios from 'axios';
 import { config } from './config/env';
 
@@ -323,6 +326,31 @@ app.post('/rate-limit/reset/:wa_user_id', (req: Request, res: Response) => {
   }
 });
 
+// ===========================================
+// Embedding & RAG Endpoints
+// ===========================================
+
+// Mount document processing routes
+app.use('/api/internal', documentRoutes);
+
+// Embedding stats
+app.get('/stats/embeddings', (req: Request, res: Response) => {
+  try {
+    const embeddingStats = getEmbeddingStats();
+    const vectorCacheStats = getVectorCacheStats();
+    
+    res.json({
+      embedding: embeddingStats,
+      vectorCache: vectorCacheStats,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Failed to get embedding stats',
+      message: error.message,
+    });
+  }
+});
+
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
   res.json({
@@ -338,9 +366,13 @@ app.get('/', (req: Request, res: Response) => {
       analyticsIntents: '/stats/analytics/intents',
       analyticsFlow: '/stats/analytics/flow',
       analyticsTokens: '/stats/analytics/tokens',
+      embeddingStats: '/stats/embeddings',
       rateLimit: '/rate-limit',
       rateLimitCheck: '/rate-limit/check/:wa_user_id',
       blacklist: '/rate-limit/blacklist',
+      processDocument: '/api/internal/process-document',
+      embedKnowledge: '/api/internal/embed-knowledge',
+      embedAllKnowledge: '/api/internal/embed-all-knowledge',
     },
   });
 });

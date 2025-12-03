@@ -3,12 +3,16 @@ import { MessageReceivedEvent } from '../types/event.types';
 import { buildContext, buildKnowledgeQueryContext } from './context-builder.service';
 import { callGemini } from './llm.service';
 import { createComplaint, createTicket, getComplaintStatus, getTicketStatus, cancelComplaint, cancelTicket, getUserHistory, HistoryItem } from './case-client.service';
-import { publishAIReply, publishAIError } from './rabbitmq.service';
+import { publishAIReply, publishAIError, publishMessageStatus } from './rabbitmq.service';
 import { isAIChatbotEnabled } from './settings.service';
-import { searchKnowledge, buildKnowledgeContext } from './knowledge.service';
+import { searchKnowledge, getRAGContext } from './knowledge.service';
 import { startTyping, stopTyping, isUserInTakeover } from './channel-client.service';
 import { rateLimiterService } from './rate-limiter.service';
 import { aiAnalyticsService } from './ai-analytics.service';
+import { shouldRetrieveContext, isSpamMessage } from './rag.service';
+import { sanitizeUserInput } from './context-builder.service';
+import { detectLanguage, getLanguageContext } from './language-detection.service';
+import { analyzeSentiment, getSentimentContext, needsHumanEscalation } from './sentiment-analysis.service';
 
 // In-memory cache for address confirmation state
 // Key: wa_user_id, Value: { alamat: string, kategori: string, deskripsi: string, timestamp: number, foto_url?: string }
@@ -31,6 +35,55 @@ setInterval(() => {
     }
   }
 }, 60 * 1000); // Check every minute
+
+/**
+ * ==================== RESPONSE QUALITY VALIDATION ====================
+ */
+
+/**
+ * Profanity patterns to filter from AI response
+ * AI should never generate these, but this is a safety net
+ */
+const PROFANITY_PATTERNS = [
+  /\b(anjing|babi|bangsat|kontol|memek|ngentot|jancok|kampret|tai|asu|bajingan|keparat)\b/gi,
+  /\b(bodoh|tolol|idiot|goblok|bego|dungu)\b/gi,
+];
+
+/**
+ * Validate and sanitize AI response before sending to user
+ * Returns cleaned response or fallback if invalid
+ */
+function validateResponse(response: string): string {
+  if (!response || response.trim().length === 0) {
+    return 'Ada yang bisa saya bantu lagi?';
+  }
+  
+  let cleaned = response;
+  
+  // Remove any profanity (should never happen, but safety net)
+  for (const pattern of PROFANITY_PATTERNS) {
+    cleaned = cleaned.replace(pattern, '***');
+  }
+  
+  // Ensure response isn't too long (WhatsApp limit ~65000 chars, but keep it reasonable)
+  if (cleaned.length > 4000) {
+    cleaned = cleaned.substring(0, 3950) + '...\n\nPesan terpotong karena terlalu panjang.';
+  }
+  
+  // Ensure response doesn't contain raw JSON/code artifacts
+  if (cleaned.includes('```') || cleaned.includes('{\"')) {
+    logger.warn('Response contains code artifacts, cleaning...');
+    cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+    cleaned = cleaned.replace(/\{\"[\s\S]*?\}/g, '');
+    cleaned = cleaned.trim();
+    
+    if (cleaned.length < 10) {
+      return 'Maaf, terjadi kesalahan. Silakan ulangi pertanyaan Anda.';
+    }
+  }
+  
+  return cleaned;
+}
 
 /**
  * Check if an address is too vague/incomplete
@@ -200,7 +253,17 @@ function isConfirmationResponse(message: string): boolean {
  * Main orchestration logic - processes incoming WhatsApp messages
  */
 export async function processMessage(event: MessageReceivedEvent): Promise<void> {
-  const { wa_user_id, message, message_id, has_media, media_url, media_public_url, media_type, media_caption } = event;
+  const { wa_user_id, message, message_id, has_media, media_url, media_public_url, media_type, media_caption, is_batched, batched_message_ids, original_messages } = event;
+  
+  // Validate required fields
+  if (!wa_user_id || !message || !message_id) {
+    logger.error('❌ Invalid message event - missing required fields', {
+      hasWaUserId: !!wa_user_id,
+      hasMessage: !!message,
+      hasMessageId: !!message_id,
+    });
+    return; // Skip processing - message will be acked to prevent infinite loop
+  }
   
   logger.info('🎯 Processing message', {
     wa_user_id,
@@ -208,7 +271,18 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
     messageLength: message.length,
     hasMedia: has_media,
     mediaType: media_type,
+    isBatched: is_batched,
+    batchCount: batched_message_ids?.length,
   });
+  
+  // Notify that we're processing
+  if (is_batched && batched_message_ids) {
+    await publishMessageStatus({
+      wa_user_id,
+      message_ids: batched_message_ids,
+      status: 'processing',
+    });
+  }
   
   try {
     // Step 0: Check if AI chatbot is enabled
@@ -219,6 +293,14 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
         wa_user_id,
         message_id,
       });
+      // Mark as completed even if not processed
+      if (is_batched && batched_message_ids) {
+        await publishMessageStatus({
+          wa_user_id,
+          message_ids: batched_message_ids,
+          status: 'completed',
+        });
+      }
       return; // Exit without processing or replying
     }
     
@@ -230,7 +312,53 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
         wa_user_id,
         message_id,
       });
+      // Mark as completed - admin will handle
+      if (is_batched && batched_message_ids) {
+        await publishMessageStatus({
+          wa_user_id,
+          message_ids: batched_message_ids,
+          status: 'completed',
+        });
+      }
       return; // Exit - admin is handling this conversation
+    }
+    
+    // Step 0.2: Spam/malicious content check
+    if (isSpamMessage(message)) {
+      logger.warn('🚫 Spam message detected, ignoring', {
+        wa_user_id,
+        message_id,
+        messagePreview: message.substring(0, 50),
+      });
+      if (is_batched && batched_message_ids) {
+        await publishMessageStatus({
+          wa_user_id,
+          message_ids: batched_message_ids,
+          status: 'completed',
+        });
+      }
+      return; // Exit without replying to potential spam
+    }
+    
+    // Sanitize user input to prevent prompt injection
+    const sanitizedMessage = sanitizeUserInput(message);
+    
+    // Step 0.25: Language detection (regional Indonesian languages)
+    const languageDetection = detectLanguage(sanitizedMessage);
+    const languageContext = getLanguageContext(languageDetection);
+    
+    // Step 0.26: Sentiment analysis
+    const sentiment = analyzeSentiment(sanitizedMessage, wa_user_id);
+    const sentimentContext = getSentimentContext(sentiment);
+    
+    // Check if user needs human escalation (consecutive frustration)
+    if (needsHumanEscalation(wa_user_id)) {
+      logger.warn('🚨 User needs human escalation', {
+        wa_user_id,
+        sentiment: sentiment.level,
+        score: sentiment.score,
+      });
+      // Note: You could auto-enable takeover mode here or notify admin
     }
     
     // Step 0.3: Check if there's a pending address confirmation
@@ -273,7 +401,20 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
         const withPhoto = pendingConfirm.foto_url ? ' 📷' : '';
         const finalReply = `✅ Terima kasih! Laporan Anda telah kami terima dengan nomor ${complaintId}.${withPhoto}\n\nPetugas akan segera menindaklanjuti laporan Anda.`;
         
-        await publishAIReply({ wa_user_id, reply_text: finalReply });
+        await publishAIReply({ 
+          wa_user_id, 
+          reply_text: finalReply,
+          batched_message_ids: is_batched ? batched_message_ids : undefined,
+        });
+        
+        // Mark as completed
+        if (is_batched && batched_message_ids) {
+          await publishMessageStatus({
+            wa_user_id,
+            message_ids: batched_message_ids,
+            status: 'completed',
+          });
+        }
         return;
       } else {
         // Check if user provides more specific address
@@ -315,7 +456,20 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
           const withPhoto = pendingConfirm.foto_url ? ' 📷' : '';
           const finalReply = `✅ Terima kasih! Laporan Anda telah kami terima dengan nomor ${complaintId}.${withPhoto}\n\nPetugas akan segera menindaklanjuti laporan di ${message.trim()}.`;
           
-          await publishAIReply({ wa_user_id, reply_text: finalReply });
+          await publishAIReply({ 
+            wa_user_id, 
+            reply_text: finalReply,
+            batched_message_ids: is_batched ? batched_message_ids : undefined,
+          });
+          
+          // Mark as completed
+          if (is_batched && batched_message_ids) {
+            await publishMessageStatus({
+              wa_user_id,
+              message_ids: batched_message_ids,
+              status: 'completed',
+            });
+          }
           return;
         }
         
@@ -331,15 +485,61 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
     // Step 0.5: Send typing indicator BEFORE processing
     await startTyping(wa_user_id);
     
-    // Step 1: Build context (fetch history + format prompt)
-    const { systemPrompt, messageCount } = await buildContext(wa_user_id, message);
+    // Step 1: Pre-fetch RAG context if message looks like a question (OPTIMIZATION)
+    // This allows single LLM call for knowledge queries instead of two
+    let preloadedRAGContext: any = undefined;
+    const looksLikeQuestion = shouldRetrieveContext(sanitizedMessage);
+    
+    if (looksLikeQuestion) {
+      logger.debug('Message looks like a question, pre-fetching RAG context', {
+        wa_user_id,
+        message: sanitizedMessage.substring(0, 50),
+      });
+      
+      try {
+        // Non-blocking RAG fetch - we'll use it if needed
+        const ragContext = await getRAGContext(sanitizedMessage);
+        if (ragContext.totalResults > 0) {
+          // Pass full RAGContext object (includes confidence scoring)
+          preloadedRAGContext = ragContext;
+          logger.info('Pre-loaded RAG context', {
+            wa_user_id,
+            resultsFound: ragContext.totalResults,
+            confidence: ragContext.confidence?.level,
+            searchTimeMs: ragContext.searchTimeMs,
+          });
+        }
+      } catch (error: any) {
+        logger.warn('Pre-fetch RAG failed, will fallback if needed', {
+          wa_user_id,
+          error: error.message,
+        });
+      }
+    }
+    
+    // Step 2: Build context (fetch history + format prompt) - include pre-fetched knowledge with confidence
+    let { systemPrompt, messageCount } = await buildContext(wa_user_id, sanitizedMessage, preloadedRAGContext);
+    
+    // Inject language and sentiment context into prompt
+    if (languageContext || sentimentContext) {
+      const additionalContext = `${languageContext}${sentimentContext}`;
+      // Insert before the final user message section
+      systemPrompt = systemPrompt.replace(
+        'PESAN TERAKHIR USER:',
+        `${additionalContext}\n\nPESAN TERAKHIR USER:`
+      );
+    }
     
     logger.debug('Context built', {
       wa_user_id,
       historyMessages: messageCount,
+      language: languageDetection.primary !== 'indonesian' ? languageDetection.primary : undefined,
+      sentiment: sentiment.level !== 'neutral' ? sentiment.level : undefined,
+      hasPreloadedKnowledge: !!preloadedRAGContext,
+      knowledgeConfidence: preloadedRAGContext?.confidence?.level,
     });
     
-    // Step 2: Call LLM for initial intent detection
+    // Step 3: Call LLM for intent detection (with knowledge already injected if available)
     const { response: llmResponse, metrics } = await callGemini(systemPrompt);
     
     // Stop typing after LLM responds
@@ -399,8 +599,18 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
         break;
       
       case 'KNOWLEDGE_QUERY':
-        // Need to fetch knowledge and do second LLM call
-        finalReplyText = await handleKnowledgeQuery(wa_user_id, message, llmResponse);
+        // If we pre-loaded knowledge and LLM already answered with it, use that reply
+        // Otherwise fetch knowledge and do second LLM call (fallback)
+        if (preloadedRAGContext?.contextString && llmResponse.reply_text && llmResponse.reply_text.length > 20) {
+          // LLM already answered with pre-loaded knowledge context
+          logger.info('Using pre-loaded knowledge response (single LLM call)', { 
+            wa_user_id,
+            confidence: preloadedRAGContext.confidence?.level 
+          });
+        } else {
+          // Need to fetch knowledge and do second LLM call (fallback path)
+          finalReplyText = await handleKnowledgeQuery(wa_user_id, message, llmResponse);
+        }
         break;
       
       case 'QUESTION':
@@ -419,19 +629,45 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
         });
     }
     
-    // Step 4: Publish AI reply event (for Notification Service)
+    // Step 4: Validate and sanitize response before sending
+    const validatedReply = validateResponse(finalReplyText);
+    const validatedGuidance = guidanceText ? validateResponse(guidanceText) : '';
+    
+    // Add context for batched messages
+    let batchedReplyText = validatedReply;
+    if (is_batched && original_messages && original_messages.length > 1) {
+      // Prepend a note that we're responding to multiple messages
+      logger.info('Responding to batched messages', {
+        wa_user_id,
+        messageCount: original_messages.length,
+      });
+    }
+    
+    // Step 5: Publish AI reply event (for Notification Service)
     // Include guidance_text if present - it will be sent as a separate bubble
     await publishAIReply({
       wa_user_id,
-      reply_text: finalReplyText,
-      guidance_text: guidanceText || undefined,
+      reply_text: batchedReplyText,
+      guidance_text: validatedGuidance || undefined,
+      message_id: is_batched ? undefined : message_id,  // For single message cleanup
+      batched_message_ids: is_batched ? batched_message_ids : undefined,
     });
+    
+    // Mark messages as completed
+    if (is_batched && batched_message_ids) {
+      await publishMessageStatus({
+        wa_user_id,
+        message_ids: batched_message_ids,
+        status: 'completed',
+      });
+    }
     
     logger.info('✅ Message processed successfully', {
       wa_user_id,
       message_id,
       intent: llmResponse.intent,
-      hasGuidance: !!guidanceText,
+      hasGuidance: !!validatedGuidance,
+      isBatched: is_batched,
     });
   } catch (error: any) {
     // Stop typing indicator on error
@@ -441,6 +677,7 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
       wa_user_id,
       message_id,
       error: error.message,
+      isBatched: is_batched,
     });
     
     // DON'T send error message to user - let admin handle via dashboard
@@ -448,7 +685,18 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
     await publishAIError({
       wa_user_id,
       error_message: error.message || 'Unknown error',
+      batched_message_ids: is_batched ? batched_message_ids : undefined,
     });
+    
+    // Mark messages as failed
+    if (is_batched && batched_message_ids) {
+      await publishMessageStatus({
+        wa_user_id,
+        message_ids: batched_message_ids,
+        status: 'failed',
+        error_message: error.message,
+      });
+    }
   }
 }
 

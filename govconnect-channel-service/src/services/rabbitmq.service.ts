@@ -5,15 +5,103 @@ import { rabbitmqConfig } from '../config/rabbitmq';
 import { sendTextMessage } from './wa.service';
 import { saveOutgoingMessage } from './message.service';
 import { updateConversation, markConversationAsRead, clearAIStatus, setAIError } from './takeover.service';
+import { markMessagesAsCompleted, markMessageAsFailed } from './pending-message.service';
 
 let connection: any = null;
 let channel: any = null;
+let isReconnecting = false;
+let reconnectAttempts = 0;
+
+// Reconnection configuration with exponential backoff
+const RECONNECT_CONFIG = {
+  BASE_DELAY_MS: 1000,       // Initial delay: 1 second
+  MAX_DELAY_MS: 30000,       // Max delay: 30 seconds  
+  MAX_ATTEMPTS: 0,           // 0 = infinite attempts
+  JITTER_FACTOR: 0.3,        // 30% random jitter
+};
 
 /**
- * Connect to RabbitMQ
+ * Calculate exponential backoff delay with jitter
+ */
+function calculateReconnectDelay(attempt: number): number {
+  const exponentialDelay = RECONNECT_CONFIG.BASE_DELAY_MS * Math.pow(2, Math.min(attempt, 10)); // Cap exponent at 10
+  const jitter = exponentialDelay * RECONNECT_CONFIG.JITTER_FACTOR * Math.random();
+  return Math.min(RECONNECT_CONFIG.MAX_DELAY_MS, exponentialDelay + jitter);
+}
+
+/**
+ * Sleep for specified milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Handle reconnection with exponential backoff
+ */
+async function handleReconnect(): Promise<void> {
+  if (isReconnecting) {
+    logger.debug('Reconnection already in progress, skipping...');
+    return;
+  }
+  
+  isReconnecting = true;
+  
+  while (true) {
+    reconnectAttempts++;
+    const delay = calculateReconnectDelay(reconnectAttempts);
+    
+    logger.warn(`🔄 Attempting RabbitMQ reconnection (attempt ${reconnectAttempts})`, {
+      delayMs: delay,
+      attempt: reconnectAttempts,
+    });
+    
+    await sleep(delay);
+    
+    try {
+      await connectRabbitMQ();
+      
+      // Reconnect successful - restart consumers
+      await startConsumingAIReply();
+      await startConsumingAIError();
+      await startConsumingMessageStatus();
+      
+      logger.info('✅ RabbitMQ reconnected successfully after ' + reconnectAttempts + ' attempts');
+      reconnectAttempts = 0;
+      isReconnecting = false;
+      return;
+    } catch (error: any) {
+      logger.error('❌ RabbitMQ reconnection failed', {
+        attempt: reconnectAttempts,
+        error: error.message,
+        nextDelayMs: calculateReconnectDelay(reconnectAttempts + 1),
+      });
+      
+      // Check max attempts (0 = infinite)
+      if (RECONNECT_CONFIG.MAX_ATTEMPTS > 0 && reconnectAttempts >= RECONNECT_CONFIG.MAX_ATTEMPTS) {
+        logger.error('🚨 Max reconnection attempts reached, giving up');
+        isReconnecting = false;
+        throw new Error('RabbitMQ reconnection failed after max attempts');
+      }
+    }
+  }
+}
+
+/**
+ * Connect to RabbitMQ with auto-reconnect capability
  */
 export async function connectRabbitMQ(): Promise<void> {
   try {
+    // Close existing connections if any
+    if (channel) {
+      try { await channel.close(); } catch (e) { /* ignore */ }
+      channel = null;
+    }
+    if (connection) {
+      try { await connection.close(); } catch (e) { /* ignore */ }
+      connection = null;
+    }
+    
     connection = await amqp.connect(config.RABBITMQ_URL);
     channel = await connection.createChannel();
 
@@ -28,14 +116,33 @@ export async function connectRabbitMQ(): Promise<void> {
       exchange: rabbitmqConfig.EXCHANGE_NAME,
     });
 
-    // Handle connection errors
+    // Handle connection errors - trigger reconnect
     connection.on('error', (err: Error) => {
       logger.error('RabbitMQ connection error', { error: err.message });
+      // Don't reconnect here - 'close' event will trigger it
     });
 
     connection.on('close', () => {
-      logger.warn('RabbitMQ connection closed');
+      logger.warn('RabbitMQ connection closed unexpectedly');
+      // Trigger reconnection if not shutting down gracefully
+      if (!isReconnecting && connection !== null) {
+        connection = null;
+        channel = null;
+        handleReconnect().catch(err => {
+          logger.error('Failed to handle reconnection', { error: err.message });
+        });
+      }
     });
+    
+    // Handle channel errors
+    channel.on('error', (err: Error) => {
+      logger.error('RabbitMQ channel error', { error: err.message });
+    });
+    
+    channel.on('close', () => {
+      logger.warn('RabbitMQ channel closed');
+    });
+    
   } catch (error: any) {
     logger.error('❌ RabbitMQ connection failed', { error: error.message });
     throw error;
@@ -72,13 +179,23 @@ export async function publishEvent(routingKey: string, payload: any): Promise<vo
 }
 
 /**
- * Disconnect from RabbitMQ
+ * Disconnect from RabbitMQ gracefully (prevents auto-reconnect)
  */
 export async function disconnectRabbitMQ(): Promise<void> {
   try {
-    if (channel) await channel.close();
-    if (connection) await connection.close();
-    logger.info('RabbitMQ disconnected');
+    // Mark as intentionally disconnecting to prevent auto-reconnect
+    isReconnecting = true; // Prevents reconnect on close event
+    
+    if (channel) {
+      await channel.close();
+      channel = null;
+    }
+    if (connection) {
+      await connection.close();
+      connection = null;
+    }
+    
+    logger.info('RabbitMQ disconnected gracefully');
   } catch (error: any) {
     logger.error('Error disconnecting RabbitMQ', { error: error.message });
   }
@@ -88,7 +205,19 @@ export async function disconnectRabbitMQ(): Promise<void> {
  * Get connection status
  */
 export function isConnected(): boolean {
-  return connection !== null && channel !== null;
+  return connection !== null && channel !== null && !isReconnecting;
+}
+
+/**
+ * Force reconnection (for manual trigger)
+ */
+export async function forceReconnect(): Promise<void> {
+  logger.info('🔄 Force reconnection triggered');
+  connection = null;
+  channel = null;
+  isReconnecting = false;
+  reconnectAttempts = 0;
+  await handleReconnect();
 }
 
 /**
@@ -100,6 +229,8 @@ interface AIReplyEvent {
   guidance_text?: string;  // Optional second message for guidance/follow-up
   intent?: string;
   complaint_id?: string;
+  message_id?: string;     // Single message ID that was answered
+  batched_message_ids?: string[];  // Message IDs that were answered
 }
 
 /**
@@ -219,6 +350,31 @@ export async function startConsumingAIReply(): Promise<void> {
           await updateConversation(payload.wa_user_id, replyText, undefined, false);
           await markConversationAsRead(payload.wa_user_id);
           await clearAIStatus(payload.wa_user_id);
+          
+          // Mark messages as completed - handle both single and batched messages
+          const messageIdsToComplete: string[] = [];
+          
+          if (payload.message_id) {
+            messageIdsToComplete.push(payload.message_id);
+          }
+          
+          if (payload.batched_message_ids && payload.batched_message_ids.length > 0) {
+            messageIdsToComplete.push(...payload.batched_message_ids);
+          }
+          
+          if (messageIdsToComplete.length > 0) {
+            try {
+              await markMessagesAsCompleted(messageIdsToComplete);
+              logger.info('✅ Messages marked as completed', {
+                wa_user_id: payload.wa_user_id,
+                count: messageIdsToComplete.length,
+                messageIds: messageIdsToComplete,
+              });
+            } catch (e) {
+              // Ignore - might not have pending messages
+              logger.debug('No pending messages to mark complete', { wa_user_id: payload.wa_user_id });
+            }
+          }
         } else {
           logger.error('❌ Failed to send AI reply', {
             wa_user_id: payload.wa_user_id,
@@ -251,6 +407,7 @@ interface AIErrorEvent {
   wa_user_id: string;
   error_message: string;
   message_id?: string;
+  batched_message_ids?: string[];
 }
 
 /**
@@ -291,10 +448,22 @@ export async function startConsumingAIError(): Promise<void> {
         logger.info('📨 AI error event received', {
           wa_user_id: payload.wa_user_id,
           error_message: payload.error_message,
+          batched_message_ids: payload.batched_message_ids,
         });
 
         // Set AI error status in conversation
         await setAIError(payload.wa_user_id, payload.error_message, payload.message_id);
+
+        // Mark batched messages as failed for retry
+        if (payload.batched_message_ids && payload.batched_message_ids.length > 0) {
+          for (const msgId of payload.batched_message_ids) {
+            try {
+              await markMessageAsFailed(msgId, payload.error_message);
+            } catch (e) {
+              // Ignore - message might not exist
+            }
+          }
+        }
 
         logger.info('⚠️ AI error status set for conversation', {
           wa_user_id: payload.wa_user_id,
@@ -312,6 +481,90 @@ export async function startConsumingAIError(): Promise<void> {
     });
   } catch (error: any) {
     logger.error('Failed to start consuming AI error events', {
+      error: error.message,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Message Status Event payload interface
+ */
+interface MessageStatusEvent {
+  wa_user_id: string;
+  message_ids: string[];
+  status: 'processing' | 'completed' | 'failed';
+  error_message?: string;
+}
+
+/**
+ * Start consuming message status events
+ */
+export async function startConsumingMessageStatus(): Promise<void> {
+  if (!channel) {
+    logger.error('RabbitMQ channel not initialized');
+    throw new Error('RabbitMQ channel not available');
+  }
+
+  try {
+    const queueName = rabbitmqConfig.QUEUES.CHANNEL_MESSAGE_STATUS;
+    const routingKey = rabbitmqConfig.ROUTING_KEYS.MESSAGE_STATUS;
+
+    // Declare queue
+    await channel.assertQueue(queueName, { durable: true });
+
+    // Bind queue to exchange with routing key
+    await channel.bindQueue(
+      queueName,
+      rabbitmqConfig.EXCHANGE_NAME,
+      routingKey
+    );
+
+    logger.info('🎧 Started consuming message status events', {
+      queue: queueName,
+      routingKey,
+    });
+
+    // Consume messages
+    channel.consume(queueName, async (msg: any) => {
+      if (!msg) return;
+
+      try {
+        const payload: MessageStatusEvent = JSON.parse(msg.content.toString());
+        
+        logger.info('📨 Message status event received', {
+          wa_user_id: payload.wa_user_id,
+          status: payload.status,
+          messageCount: payload.message_ids.length,
+        });
+
+        // Update pending messages based on status
+        switch (payload.status) {
+          case 'completed':
+            await markMessagesAsCompleted(payload.message_ids);
+            break;
+          case 'failed':
+            for (const msgId of payload.message_ids) {
+              await markMessageAsFailed(msgId, payload.error_message || 'Unknown error');
+            }
+            break;
+          case 'processing':
+            // No action needed - already marked when published to queue
+            break;
+        }
+
+        // Acknowledge message
+        channel.ack(msg);
+      } catch (error: any) {
+        logger.error('Error processing message status event', {
+          error: error.message,
+        });
+        // Nack and don't requeue to avoid infinite loop
+        channel.nack(msg, false, false);
+      }
+    });
+  } catch (error: any) {
+    logger.error('Failed to start consuming message status events', {
       error: error.message,
     });
     throw error;

@@ -6,11 +6,13 @@ export const rabbitmqConfig = {
     MESSAGE_SENT: 'whatsapp.message.sent',
     AI_REPLY: 'govconnect.ai.reply',
     AI_ERROR: 'govconnect.ai.error',
+    MESSAGE_STATUS: 'govconnect.message.status',
   },
   QUEUES: {
     AI_SERVICE: 'ai-service.whatsapp.message.#',
     CHANNEL_AI_REPLY: 'channel-service.ai.reply',
     CHANNEL_AI_ERROR: 'channel-service.ai.error',
+    CHANNEL_MESSAGE_STATUS: 'channel-service.message.status',
   },
   OPTIONS: {
     durable: true,

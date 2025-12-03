@@ -74,15 +74,19 @@ process.on('uncaughtException', (error) => {
     error: error.message,
     stack: error.stack,
   });
-  process.exit(1);
+  // Only exit on critical errors, not recoverable ones
+  if (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
+    process.exit(1);
+  }
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason: any, promise) => {
   logger.error('Unhandled Rejection', {
-    reason,
-    promise,
+    reason: reason?.message || reason,
+    stack: reason?.stack,
   });
-  process.exit(1);
+  // Don't exit on unhandled rejections - log and continue
+  // This prevents crash loops from transient errors
 });
 
 // Start the server

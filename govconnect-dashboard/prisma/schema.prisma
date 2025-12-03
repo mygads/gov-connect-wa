@@ -6,12 +6,14 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
   schemas  = ["dashboard"]
+  extensions = [pgvector(map: "vector", schema: "dashboard")]
 }
 
 model admin_users {
@@ -86,8 +88,84 @@ model knowledge_base {
   updated_at  DateTime @updatedAt
   created_at  DateTime @default(now())
   
+  // Embedding fields for semantic search (RAG)
+  embedding          Unsupported("vector(768)")? // 768 dimensions (Gemini recommended)
+  embedding_model    String?                      // e.g., "gemini-embedding-001"
+  last_embedded_at   DateTime?                    // When embedding was generated
+  
+  // Quality scoring fields for RAG optimization
+  quality_score    Float     @default(1.0)  // 0.0 - 1.0 (higher = more trustworthy)
+  usage_count      Int       @default(0)    // How often this is retrieved
+  last_retrieved   DateTime?               // When was this last used in RAG
+  feedback_score   Float?                  // User feedback if implemented (-1.0 to 1.0)
+  retrieval_count  Int       @default(0)   // Total times shown in search results
+  click_count      Int       @default(0)   // Times user selected this result
+  
   @@index([category])
   @@index([is_active])
   @@index([keywords])
+  @@index([quality_score])
+  @@schema("dashboard")
+}
+
+// ==================== KNOWLEDGE DOCUMENTS ====================
+
+model knowledge_documents {
+  id              String   @id @default(cuid())
+  filename        String   // Stored filename (sanitized)
+  original_name   String   // Original upload filename
+  mime_type       String   // application/pdf, text/plain, etc.
+  file_size       Int      // File size in bytes
+  file_url        String   // Storage URL (local or S3)
+  
+  // Processing status
+  status          String   @default("pending") // pending, processing, completed, failed
+  error_message   String?  @db.Text
+  
+  // Metadata
+  title           String?  // Document title (extracted or provided)
+  description     String?  @db.Text
+  category        String?  // Document category for filtering
+  
+  // Processing info
+  total_chunks    Int?     // Number of chunks after processing
+  total_tokens    Int?     // Estimated token count
+  
+  // Relations
+  admin_id        String?  // Who uploaded this
+  chunks          document_chunks[]
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  
+  @@index([status])
+  @@index([category])
+  @@index([created_at])
+  @@schema("dashboard")
+}
+
+// ==================== DOCUMENT CHUNKS ====================
+
+model document_chunks {
+  id              String   @id @default(cuid())
+  document_id     String
+  chunk_index     Int      // Order in document (0-based)
+  content         String   @db.Text
+  
+  // Embedding for semantic search
+  embedding       Unsupported("vector(768)")? // 768 dimensions
+  embedding_model String   @default("gemini-embedding-001")
+  
+  // Metadata for context
+  page_number     Int?     // Page number if from PDF
+  section_title   String?  // Section/chapter title if available
+  
+  // Relations
+  document        knowledge_documents @relation(fields: [document_id], references: [id], onDelete: Cascade)
+  
+  created_at      DateTime @default(now())
+  
+  @@index([document_id])
+  @@index([chunk_index])
   @@schema("dashboard")
 }
