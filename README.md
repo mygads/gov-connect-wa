@@ -12,52 +12,72 @@ GovConnect menggunakan **microservices architecture** dengan 5 services utama:
 └──────┬──────┘
        │
        ▼
-┌─────────────────────────────────────────────┐
-│  Service 1: Channel Service (Port 3001)     │
-│  - Webhook handler                          │
-│  - FIFO 30 messages storage                 │
-│  - WhatsApp sender                          │
-└──────┬──────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│          TRAEFIK API GATEWAY                            │
+│  - SSL/TLS termination                                  │
+│  - Rate limiting & Circuit breaker                      │
+│  - govconnect.my.id / api.govconnect.my.id             │
+└──────┬──────────────────────────────────────────────────┘
+       │
+       ├────────────────────────────────────────────┐
+       ▼                                            ▼
+┌─────────────────────────────┐   ┌─────────────────────────────┐
+│  Service 1: Channel Service │   │  Service 4: Dashboard       │
+│  Port: 3001                 │   │  Port: 3000                 │
+│  - Webhook handler          │   │  - Admin panel (Next.js)    │
+│  - FIFO 30 messages         │   │  - Manage laporan & tiket   │
+│  - WhatsApp sender          │   │  - Statistics & charts      │
+└──────┬──────────────────────┘   └─────────────────────────────┘
        │ (RabbitMQ Events)
        ▼
-┌─────────────────────────────────────────────┐
-│  Service 2: AI Orchestrator (Port 3002)     │
-│  - LLM integration (Gemini)                 │
-│  - Intent detection                         │
-│  - Context builder                          │
-│  - STATELESS (no database)                  │
-└──────┬──────────────────────────────────────┘
+┌─────────────────────────────┐
+│  Service 2: AI Orchestrator │
+│  Port: 3002                 │
+│  - LLM integration (Gemini) │
+│  - Intent detection         │
+│  - Circuit Breaker          │
+│  - STATELESS (no database)  │
+└──────┬──────────────────────┘
        │ (SYNC REST API)
        ▼
-┌─────────────────────────────────────────────┐
-│  Service 3: Case Service (Port 3003)        │
-│  - Laporan management                       │
-│  - Tiket management                         │
-│  - REST API for Dashboard                   │
-└──────┬──────────────────────────────────────┘
+┌─────────────────────────────┐
+│  Service 3: Case Service    │
+│  Port: 3003                 │
+│  - Laporan management       │
+│  - Tiket management         │
+│  - REST API for Dashboard   │
+└──────┬──────────────────────┘
        │ (RabbitMQ Events)
        ▼
-┌─────────────────────────────────────────────┐
-│  Service 5: Notification Service (Port 3004)│
-│  - Send notifications via Service 1         │
-│  - Template builder                         │
-│  - Notification logs                        │
-└─────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────┐
-│  Service 4: Dashboard (Port 3000)           │
-│  - Admin panel (Next.js)                    │
-│  - Manage laporan & tiket                   │
-│  - Statistics & charts                      │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────┐
+│  Service 5: Notification    │
+│  Port: 3004                 │
+│  - Send via Service 1       │
+│  - Template builder         │
+│  - Notification logs        │
+└─────────────────────────────┘
 ```
+
+## ✅ Features Implemented
+
+- [x] **5 Microservices** - Channel, AI, Case, Notification, Dashboard
+- [x] **Schema-per-Service** - Single PostgreSQL with separate schemas
+- [x] **RabbitMQ** - Async message broker for events
+- [x] **REST APIs** - Sync communication between services
+- [x] **Traefik API Gateway** - SSL, routing, rate limiting
+- [x] **Kubernetes Manifests** - Full K8s deployment ready
+- [x] **OpenAPI Documentation** - Complete API docs
+- [x] **Circuit Breaker** - Resilience with Opossum
+- [x] **CI/CD Pipeline** - GitHub Actions + GHCR
+- [x] **Monitoring** - Prometheus + Grafana + cAdvisor
+- [x] **Logging** - Loki + Promtail
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ & pnpm
-- Docker & Docker Compose
+- Node.js 20+ & pnpm
+- Docker & Docker Compose v2+
 - PostgreSQL client tools (optional)
 
 ### 1. Clone & Setup
@@ -68,157 +88,168 @@ cp .env.example .env
 # Edit .env with your credentials
 ```
 
-### 2. Start Infrastructure
+### 2. Start Services
 
 ```bash
-# Start PostgreSQL & RabbitMQ
-docker-compose up -d
+# Core services only
+docker compose up -d
 
-# Check status
-docker-compose ps
+# With monitoring (Prometheus + Grafana)
+docker compose --profile monitoring up -d
 
-# View logs
-docker-compose logs -f
+# With logging (Loki + Promtail)
+docker compose --profile logging up -d
+
+# Full production stack (+ Traefik)
+docker compose --profile production up -d
+
+# All profiles
+docker compose --profile monitoring --profile logging --profile production up -d
 ```
 
 ### 3. Verify Setup
 
-**PostgreSQL Database:**
 ```bash
-# Connect to database
-docker exec -it govconnect-postgres psql -U postgres -d govconnect
+# Check all services
+docker compose ps
 
-# Test query
-SELECT * FROM health_check();
+# View logs
+docker compose logs -f
 
-# List all schemas
-\dn
-
-# Switch to channel schema
-SET search_path TO channel;
+# Test health endpoints
+curl http://localhost:3001/health  # Channel Service
+curl http://localhost:3002/health  # AI Service
+curl http://localhost:3003/health  # Case Service
+curl http://localhost:3004/health  # Notification Service
+curl http://localhost:3000/api/health  # Dashboard
 ```
 
-**RabbitMQ Management:**
-- URL: http://localhost:15672
-- Login: `admin` / `rabbitmq_secret_2025`
+### 4. Access UIs
 
-### 4. Stop Infrastructure
+| Service | URL |
+|---------|-----|
+| Dashboard | http://localhost:3000 |
+| RabbitMQ | http://localhost:15672 (admin/rabbitmq_secret_2025) |
+| Grafana | http://localhost:3100 (admin/govconnect-grafana-2025) |
+| Prometheus | http://localhost:9090 |
+| Traefik | http://localhost:8080 |
 
-```bash
-# Stop containers
-docker-compose down
+## 📊 Database
 
-# Stop and remove volumes (CAUTION: deletes all data)
-docker-compose down -v
+**Single PostgreSQL instance** dengan schema-per-service:
+
+| Service | Schema | Port (Host/Docker) |
+|---------|--------|-------------------|
+| Channel | `channel` | 5433 / 5432 |
+| Case | `cases` | 5433 / 5432 |
+| Notification | `notification` | 5433 / 5432 |
+| Dashboard | `dashboard` | 5433 / 5432 |
+
+Connection string format:
+```
+postgresql://postgres:postgres_secret_2025@localhost:5433/govconnect?schema={schema}
 ```
 
-## 📊 Database Schema
+## 🐰 RabbitMQ Events
 
-**Single PostgreSQL instance** dengan schema terpisah per service:
-
-| Service | Schema | Connection String (Windows Host) |
-|---------|--------|----------------------------------|
-| Channel | `channel` | `postgresql://postgres:postgres_secret_2025@localhost:5433/govconnect?schema=channel` |
-| Case | `cases` | `postgresql://postgres:postgres_secret_2025@localhost:5433/govconnect?schema=cases` |
-| Notification | `notification` | `postgresql://postgres:postgres_secret_2025@localhost:5433/govconnect?schema=notification` |
-| Dashboard | `dashboard` | `postgresql://postgres:postgres_secret_2025@localhost:5433/govconnect?schema=dashboard` |
-| Testing | `testing` | `postgresql://postgres:postgres_secret_2025@localhost:5433/govconnect?schema=testing` |
-
-**PostgreSQL Ports**:
-- **Windows Host**: `5433` (to avoid conflict with native PostgreSQL on port 5432)
-- **Docker Network**: `5432` (internal)
-
-**Container**: `govconnect-postgres`
-
-**Important**: Services running in Docker use `postgres:5432`, services running on Windows host use `localhost:5433`
-
-## 🐰 RabbitMQ
-
-- AMQP Port: `5672`
-- Management UI: `15672`
-- Exchange: `govconnect.events` (type: topic)
+| Event | Producer | Consumer |
+|-------|----------|----------|
+| `whatsapp.message.received` | Channel | AI |
+| `govconnect.ai.reply` | AI | Notification |
+| `govconnect.complaint.created` | Case | Notification |
+| `govconnect.ticket.created` | Case | Notification |
 
 ## 📁 Project Structure
 
 ```
 govconnect/
-├── docker/                          # Docker configs
-│   ├── init-databases.sql
-│   ├── rabbitmq.conf
-│   └── definitions.json
-├── docs/                            # Documentation
-├── phases/                          # Development phase plans
-├── govconnect-channel-service/      # Service 1
-├── govconnect-ai-service/           # Service 2
-├── govconnect-case-service/         # Service 3
-├── govconnect-notification-service/ # Service 4
-├── govconnect-dashboard/            # Service 5
-├── docker-compose.yml
-├── .env.example
-└── README.md
+├── docker-compose.yml           # Unified Docker Compose
+├── .env                         # Environment variables
+├── traefik/                     # API Gateway config
+├── docker/                      # Docker init scripts
+├── k8s/                         # Kubernetes manifests
+├── docs/                        # Documentation
+│   ├── openapi/openapi.yaml    # API docs
+│   └── SERVICE_ARCHITECTURE.md
+├── phases/                      # Development phases
+├── govconnect-channel-service/  # Service 1
+├── govconnect-ai-service/       # Service 2
+├── govconnect-case-service/     # Service 3
+├── govconnect-dashboard/        # Service 4
+├── govconnect-notification-service/ # Service 5
+└── .github/workflows/ci-cd.yml  # CI/CD Pipeline
 ```
 
-## 📚 Development Phases
+## 🚀 Deployment
 
-Ikuti development phases secara berurutan:
-
-- [x] **Phase 0**: Infrastructure Setup (CURRENT)
-- [ ] **Phase 1**: Channel Service
-- [ ] **Phase 2**: AI Orchestrator
-- [ ] **Phase 3**: Case Service
-- [ ] **Phase 4**: Notification Service
-- [ ] **Phase 5**: Dashboard
-- [ ] **Phase 6**: Integration & Testing
-- [ ] **Phase 7**: Deployment
-
-Lihat detail: [GOVCONNECT_DEV_PHASES.md](./GOVCONNECT_DEV_PHASES.md)
-
-## 🔐 Security Notes
-
-- **NEVER** commit `.env` files to git
-- Change default passwords in production
-- Generate strong secrets:
-  ```bash
-  # JWT Secret
-  openssl rand -base64 32
-  
-  # Internal API Key
-  openssl rand -base64 64
-  ```
-
-## 🧪 Testing
+### Docker Compose (VPS)
 
 ```bash
-# Test database connection from Windows host
-$env:PGPASSWORD="postgres_secret_2025"
-psql -h localhost -p 5433 -U postgres -d govconnect -c "SELECT * FROM health_check();"
+# Clone & configure
+git clone <repo>
+cd govconnect
+cp .env.example .env
+nano .env  # Configure for production
 
-# Test from inside container
-docker exec -it govconnect-postgres psql -U postgres -d govconnect -c "SELECT * FROM health_check();"
-
-# List all schemas
-docker exec -it govconnect-postgres psql -U postgres -d govconnect -c "\dn"
-
-# Test RabbitMQ
-docker exec govconnect-rabbitmq rabbitmq-diagnostics status
-
-# List exchanges
-docker exec govconnect-rabbitmq rabbitmqctl list_exchanges -p govconnect
+# Deploy with Traefik
+docker compose --profile production up -d
 ```
 
-**Note**: For comprehensive testing guide, see [docs/database-testing-guide.md](./docs/database-testing-guide.md)
+### Kubernetes
 
-## 📞 Support
+```bash
+cd k8s
+./deploy.sh
+```
 
-- Instructions: [.github/instructions/govconnect.instructions.md](../.github/instructions/govconnect.instructions.md)
-- Development Plan: [GOVCONNECT_DEV_PHASES.md](./GOVCONNECT_DEV_PHASES.md)
+## 🔧 Development
+
+### Start Individual Service
+
+```bash
+cd govconnect-channel-service
+pnpm install
+pnpm prisma generate
+pnpm prisma migrate deploy
+pnpm dev
+```
+
+### Local Development Ports
+
+| Service | Port |
+|---------|------|
+| Dashboard | 3000 |
+| Channel | 3001 |
+| AI | 3002 |
+| Case | 3003 |
+| Notification | 3004 |
+| PostgreSQL | 5433 |
+| RabbitMQ | 5672, 15672 |
+
+## 📚 Documentation
+
+- [Service Architecture](./docs/SERVICE_ARCHITECTURE.md)
+- [Deployment Guide](./docs/DEPLOYMENT.md)
+- [API Documentation](./docs/openapi/openapi.yaml)
+- [Development Phases](./phases/DEVELOPMENT_PROGRESS.md)
+- [Instructions](./.github/instructions/govconnect.instructions.md)
+
+## 🔐 Security
+
+- Change all default passwords in production
+- Generate strong secrets:
+  ```bash
+  openssl rand -base64 32  # JWT Secret
+  openssl rand -base64 64  # API Key
+  ```
+- Use HTTPS in production (Traefik handles SSL via Let's Encrypt)
 
 ## 📝 License
 
-Internal project for government services.
+Internal project - Tugas Besar EAI 2025
 
 ---
 
-**Status**: Phase 0 Complete ✅  
-**Last Updated**: November 25, 2025  
-**PostgreSQL Port**: 5433 (Windows Host) / 5432 (Docker Internal)
+**Status**: ✅ ALL PHASES COMPLETE - READY FOR DEPLOYMENT  
+**Domain**: govconnect.my.id  
+**Last Updated**: January 2025

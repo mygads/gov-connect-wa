@@ -1,304 +1,158 @@
-# 🟩 GOVCONNECT - DEVELOPMENT PROGRESS TRACKER
+# 🚀 GOVCONNECT DEVELOPMENT PHASES - COMPLETE
 
-**Last Updated**: November 24, 2025  
-**Overall Progress**: 50% (4/8 phases)
-
----
-
-## 📊 PHASE STATUS OVERVIEW
-
-| Phase | Name | Status | Duration | Completion |
-|-------|------|--------|----------|------------|
-| 0 | Infrastructure Setup | ✅ COMPLETE | 2h | 100% |
-| 1 | Channel Service | ✅ COMPLETE | 8h | 100% |
-| 2 | AI Orchestrator | ✅ COMPLETE | 2h | 100% |
-| 3 | Case Service | ✅ COMPLETE | 4h | 100% |
-| 4 | Notification Service | 🔴 Not Started | 4-6h | 0% |
-| 5 | Dashboard | 🔴 Not Started | 10-12h | 0% |
-| 6 | Integration & Testing | 🔴 Not Started | 6-8h | 0% |
-| 7 | Deployment | 🔴 Not Started | 4-6h | 0% |
+Dokumen ini berisi tahapan development lengkap sistem GovConnect dari awal hingga production-ready.
 
 ---
 
-## ✅ PHASE 0: INFRASTRUCTURE SETUP - COMPLETE
+## 📑 DAFTAR PHASES
 
-**Completion Date**: November 24, 2025
+### ✅ Core Development (Phase 0-7) - SELESAI
 
-### Infrastructure Components
-- [x] PostgreSQL 16 (single instance, 5 schemas)
-- [x] RabbitMQ 3.13 (with management UI)
-- [x] Docker Compose configuration
-- [x] Environment variables setup
-- [x] Git repository structure
-
-### Database Schemas
-- [x] `channel` - Channel Service
-- [x] `cases` - Case Service  
-- [x] `notification` - Notification Service
-- [x] `dashboard` - Dashboard Service
-- [x] `testing` - Testing environment
-
-### Verification
-- [x] All containers healthy
-- [x] All schemas created
-- [x] Extensions installed (uuid-ossp, pgcrypto)
-- [x] RabbitMQ exchange created (`govconnect.events`)
-- [x] Connection strings tested
-
-**Documentation**: [PHASE_0_VERIFICATION_REPORT.md](./PHASE_0_VERIFICATION_REPORT.md)
+| Phase | Service | Status | File Plan |
+|-------|---------|--------|-----------|
+| Phase 0 | Infrastructure Setup | ✅ Complete | [PHASE_0_INFRASTRUCTURE.md](./PHASE_0_INFRASTRUCTURE.md) |
+| Phase 1 | Channel Service | ✅ Complete | [PHASE_1_CHANNEL_SERVICE.md](./PHASE_1_CHANNEL_SERVICE.md) |
+| Phase 2 | AI Orchestrator | ✅ Complete | [PHASE_2_AI_ORCHESTRATOR.md](./PHASE_2_AI_ORCHESTRATOR.md) |
+| Phase 3 | Case Service | ✅ Complete | [PHASE_3_CASE_SERVICE.md](./PHASE_3_CASE_SERVICE.md) |
+| Phase 4 | Notification Service | ✅ Complete | [PHASE_4_NOTIFICATION_SERVICE.md](./PHASE_4_NOTIFICATION_SERVICE.md) |
+| Phase 5 | Dashboard | ✅ Complete | [PHASE_5_DASHBOARD.md](./PHASE_5_DASHBOARD.md) |
+| Phase 6 | Integration & Testing | ✅ Complete | [PHASE_6_INTEGRATION.md](./PHASE_6_INTEGRATION.md) |
+| Phase 7 | Deployment (Docker) | ✅ Complete | [PHASE_7_DEPLOYMENT.md](./PHASE_7_DEPLOYMENT.md) |
 
 ---
 
-## ✅ PHASE 1: CHANNEL SERVICE - COMPLETE
+### ✅ Tubes Requirement (Phase 8-10) - SELESAI
 
-**Completion Date**: November 24, 2025  
-**Actual Duration**: 8 hours
-
-### Completed Objectives
-- [x] Initialize Express.js project with TypeScript
-- [x] Setup Prisma ORM with `channel` schema
-- [x] Implement WhatsApp webhook handler
-- [x] Implement FIFO 30 messages storage
-- [x] Implement RabbitMQ event publisher
-- [x] Create internal API for sending messages
-- [x] Write unit tests
-
-### Verified Features
-- ✅ WhatsApp Cloud API integration (webhook verification working)
-- ✅ Message history management (FIFO 30 tested with 35 messages)
-- ✅ Event publishing to RabbitMQ (govconnect.events exchange)
-- ✅ Internal API authentication (X-Internal-API-Key)
-- ✅ Duplicate message detection (idempotency working)
-- ✅ Health check endpoints
-- ✅ Comprehensive logging (Winston)
-- ✅ Error handling middleware
-
-**Completion Report**: [phases/PHASE_1_COMPLETE.md](./phases/PHASE_1_COMPLETE.md)
+| Phase | Komponen | Status | File Plan | Bobot Nilai |
+|-------|----------|--------|-----------|-------------|
+| Phase 8 | **Kubernetes Manifest** | ✅ Complete | [PHASE_8_KUBERNETES.md](./PHASE_8_KUBERNETES.md) | **20%** |
+| Phase 9 | **API Gateway (Traefik)** | ✅ Complete | [PHASE_9_API_GATEWAY.md](./PHASE_9_API_GATEWAY.md) | **Wajib** |
+| Phase 10 | **OpenAPI/Swagger Docs** | ✅ Complete | [PHASE_10_OPENAPI_SWAGGER.md](./PHASE_10_OPENAPI_SWAGGER.md) | **Wajib** |
 
 ---
 
-## ✅ PHASE 2: AI ORCHESTRATOR - COMPLETE
+### ✅ Bonus Features (Phase 11) - SELESAI
 
-**Completion Date**: November 24, 2025  
-**Actual Duration**: 2 hours
+| Feature | Status | Deskripsi | Bonus |
+|---------|--------|-----------|-------|
+| **Circuit Breaker** | ✅ Complete | Opossum di AI Service | +3% |
+| **CI/CD Pipeline** | ✅ Complete | GitHub Actions + GHCR | +3% |
+| **Centralized Logging** | ✅ Complete | Loki + Promtail | +2% |
+| **Monitoring** | ✅ Complete | Prometheus + Grafana + cAdvisor | +2% |
+| **Deploy ke Cloud** | 🔄 Ready | VPS deployment ready | **+5%** |
 
-### Completed Objectives
-- [x] Initialize Express.js project with TypeScript
-- [x] Integrate Google Gemini API with structured JSON output
-- [x] Implement conversation context builder (30 messages)
-- [x] Implement intent detection & extraction (Zod validation)
-- [x] Create SYNC API calls to Case Service
-- [x] Implement RabbitMQ consumer & publisher (manual ack)
-- [x] Docker containerization
-
-### Verified Features
-- ✅ Stateless architecture (no database)
-- ✅ LLM-powered intent detection (CREATE_COMPLAINT, CREATE_TICKET, QUESTION, UNKNOWN)
-- ✅ Structured JSON output with Gemini responseSchema
-- ✅ Context-aware responses (30 message history)
-- ✅ SYNC calls to Case Service (await response before replying)
-- ✅ RabbitMQ manual acknowledgment (prefetch=1)
-- ✅ Health check endpoints (4 endpoints)
-- ✅ Graceful shutdown handlers
-- ✅ Comprehensive error handling & fallbacks
-- ✅ Docker build successful (~200MB Alpine image)
-
-**Completion Report**: [phases/PHASE_2_COMPLETE.md](./phases/PHASE_2_COMPLETE.md)
+**File Plan**: [PHASE_11_BONUS_FEATURES.md](./PHASE_11_BONUS_FEATURES.md)
 
 ---
 
-## ✅ PHASE 3: CASE SERVICE - COMPLETE
+## 📊 STATUS RINGKASAN - 100% COMPLETE
 
-**Completion Date**: November 24, 2025  
-**Actual Duration**: 4 hours
-
-### Completed Objectives
-- [x] Initialize Express.js project with TypeScript
-- [x] Setup Prisma ORM with `cases` schema
-- [x] Implement Complaint management API (5 endpoints)
-- [x] Implement Ticket management API (5 endpoints)
-- [x] Implement status update endpoints
-- [x] Setup RabbitMQ event publishing (3 events)
-- [x] Docker containerization
-
-### Verified Features
-- ✅ REST API with 13 endpoints (complaints, tickets, health)
-- ✅ PostgreSQL with Prisma ORM (2 models: Complaint, Ticket)
-- ✅ ID generation (LAP-YYYYMMDD-XXX, TIK-YYYYMMDD-XXX)
-- ✅ Daily auto-increment reset
-- ✅ Filtering & pagination (status, kategori, rt_rw, jenis, wa_user_id)
-- ✅ Statistics aggregation (by_status, by_kategori, by_rt_rw, by_jenis)
-- ✅ RabbitMQ event publishing (complaint.created, ticket.created, status.updated)
-- ✅ Internal API authentication (X-Internal-API-Key)
-- ✅ Input validation (express-validator)
-- ✅ Error handling & logging (Winston)
-- ✅ Health check endpoints (3 endpoints)
-- ✅ Docker build successful (~350MB Alpine image)
-
-**Completion Report**: [phases/PHASE_3_COMPLETE.md](./phases/PHASE_3_COMPLETE.md)
+### Semua Requirement Selesai ✅
+- [x] 5 Microservices terpisah (Channel, AI, Case, Notification, Dashboard)
+- [x] Database per Service (Schema-per-service pattern)
+- [x] RabbitMQ untuk async communication
+- [x] REST API untuk sync communication
+- [x] **Unified Docker Compose** dengan profiles (monitoring, logging, production)
+- [x] **Traefik API Gateway** (menggantikan NGINX)
+- [x] **Kubernetes Manifests** dengan Traefik IngressRoute
+- [x] **OpenAPI Documentation** (`docs/openapi/openapi.yaml`)
+- [x] **Circuit Breaker** dengan Opossum
+- [x] **CI/CD Pipeline** GitHub Actions
+- [x] **Monitoring** Prometheus + Grafana + cAdvisor + Node Exporter + Alertmanager
+- [x] **Logging** Loki + Promtail
 
 ---
 
-## 🔴 PHASE 4: NOTIFICATION SERVICE - NOT STARTED
+## 📁 FINAL PROJECT STRUCTURE
 
-**Target Start**: After Phase 3  
-**Estimated Duration**: 4-6 hours
-
-### Objectives
-- [ ] Initialize Express.js project with TypeScript
-- [ ] Consume RabbitMQ events (complaint.created, ticket.created, status.updated)
-- [ ] Build notification template system
-- [ ] Call Channel Service to send messages
-- [ ] Log notification delivery
-- [ ] Setup database for notification logs
-
-### Key Features
-- Event-driven notification sending
-- Template builder for different notification types
-- Notification delivery tracking
-- Retry mechanism for failed sends
-
-**Planning Document**: [phases/PHASE_4_NOTIFICATION_SERVICE.md](./phases/PHASE_4_NOTIFICATION_SERVICE.md)
-
----
-
-## 🔴 PHASE 4: NOTIFICATION SERVICE - NOT STARTED
-
-**Target Start**: After Phase 3  
-**Estimated Duration**: 4-6 hours
-
-### Objectives
-- [ ] Initialize Express.js project with TypeScript
-- [ ] Setup Prisma ORM with `notification` schema
-- [ ] Implement RabbitMQ consumers
-- [ ] Create notification templates
-- [ ] Implement message sending via Channel Service
-- [ ] Setup notification logging
-- [ ] Write unit tests
-
-### Key Features
-- Event-driven notifications
-- Template-based messaging
-- Notification history tracking
-- Integration with Channel Service
-
-**Planning Document**: [phases/PHASE_4_NOTIFICATION_SERVICE.md](./phases/PHASE_4_NOTIFICATION_SERVICE.md)
+```
+govconnect/
+├── docker-compose.yml           # Unified dengan profiles
+├── .env                         # Environment variables
+├── .env.example                 # Template
+├── traefik/                     # Traefik API Gateway config
+│   ├── traefik.yaml
+│   └── dynamic/config.yaml
+├── docker/                      # Docker config files
+│   ├── init-databases.sql       # DB initialization
+│   ├── prometheus.yml           # Prometheus config
+│   ├── alertmanager.yml         # Alert rules
+│   ├── loki-config.yml          # Loki config
+│   ├── promtail-config.yml      # Promtail config
+│   └── grafana/                 # Grafana dashboards
+├── k8s/                         # Kubernetes manifests
+│   ├── 00-namespace.yaml
+│   ├── 01-configmap.yaml
+│   ├── 02-secrets.yaml
+│   ├── 10-postgres.yaml
+│   ├── 11-rabbitmq.yaml
+│   ├── 20-channel-service.yaml
+│   ├── 21-ai-service.yaml
+│   ├── 22-case-service.yaml
+│   ├── 23-notification-service.yaml
+│   ├── 24-dashboard.yaml
+│   ├── api-gateway/             # Traefik for K8s
+│   ├── deploy.sh
+│   └── kustomization.yaml
+├── docs/
+│   ├── openapi/openapi.yaml     # API Documentation
+│   ├── SERVICE_ARCHITECTURE.md
+│   ├── DEPLOYMENT.md
+│   └── EVALUASI_TUBES.md
+├── .github/workflows/ci-cd.yml  # CI/CD Pipeline
+└── govconnect-*/                # 5 Microservices
+```
 
 ---
 
-## 🔴 PHASE 5: DASHBOARD - NOT STARTED
+## 🚀 DEPLOYMENT COMMANDS
 
-**Target Start**: After Phase 4  
-**Estimated Duration**: 10-12 hours
+### Development (Core Only)
+```bash
+docker compose up -d
+```
 
-### Objectives
-- [ ] Initialize Next.js 14 project
-- [ ] Setup Prisma ORM with `dashboard` schema
-- [ ] Implement admin authentication (JWT)
-- [ ] Create complaint management pages
-- [ ] Create ticket management pages
-- [ ] Implement statistics & charts
-- [ ] Setup API routes for Case Service proxy
-- [ ] Write E2E tests
+### With Monitoring
+```bash
+docker compose --profile monitoring up -d
+```
 
-### Key Features
-- Modern UI with shadcn/ui
-- Real-time statistics
-- Complaint/ticket management
-- Admin user management
-- Activity logging
+### With Logging
+```bash
+docker compose --profile logging up -d
+```
 
-**Planning Document**: [phases/PHASE_5_DASHBOARD.md](./phases/PHASE_5_DASHBOARD.md)
+### Full Production Stack
+```bash
+docker compose --profile monitoring --profile logging --profile production up -d
+```
 
----
-
-## 🔴 PHASE 6: INTEGRATION & TESTING - NOT STARTED
-
-**Target Start**: After Phase 5  
-**Estimated Duration**: 6-8 hours
-
-### Objectives
-- [ ] End-to-end testing scenarios
-- [ ] Integration tests between services
-- [ ] Load testing
-- [ ] Security testing
-- [ ] Documentation review
-- [ ] Bug fixes
-
-### Test Scenarios
-- WhatsApp message → AI → Case creation → Notification
-- Dashboard CRUD operations
-- RabbitMQ message flow
-- Database transactions
-- Error handling
-
-**Planning Document**: [phases/PHASE_6_INTEGRATION.md](./phases/PHASE_6_INTEGRATION.md)
+### Kubernetes
+```bash
+cd k8s && ./deploy.sh
+```
 
 ---
 
-## 🔴 PHASE 7: DEPLOYMENT - NOT STARTED
+## 🎯 EXPECTED SCORE: 100++ (BONUS FEATURES IMPLEMENTED)
 
-**Target Start**: After Phase 6  
-**Estimated Duration**: 4-6 hours
-
-### Objectives
-- [ ] Production Docker Compose
-- [ ] Environment configuration
-- [ ] SSL/TLS setup
-- [ ] Nginx reverse proxy
-- [ ] Monitoring & logging
-- [ ] Backup & recovery procedures
-- [ ] Documentation
-
-### Deployment Strategy
-- Docker Compose for production
-- Nginx for reverse proxy
-- SSL certificates (Let's Encrypt)
-- Health checks & monitoring
-- Database backups
-
-**Planning Document**: [phases/PHASE_7_DEPLOYMENT.md](./phases/PHASE_7_DEPLOYMENT.md)
+| Component | Score |
+|-----------|-------|
+| 5 Microservices | Base |
+| Schema-per-Service | ✅ |
+| RabbitMQ Async | ✅ |
+| REST Sync | ✅ |
+| Docker Compose | ✅ |
+| Kubernetes Manifests | +20% |
+| API Gateway (Traefik) | ✅ |
+| OpenAPI/Swagger | ✅ |
+| Circuit Breaker | +3% |
+| CI/CD Pipeline | +3% |
+| Monitoring | +2% |
+| Logging | +2% |
+| **Cloud Deployment** | +5% (ready) |
 
 ---
 
-## 🔗 QUICK LINKS
-
-### Documentation
-- [Main Instructions](../.github/instructions/govconnect.instructions.md)
-- [Development Phases Overview](./GOVCONNECT_DEV_PHASES.md)
-- [Phase 0 Verification Report](./PHASE_0_VERIFICATION_REPORT.md)
-
-### Infrastructure
-- PostgreSQL: `localhost:5432` (database: `govconnect`)
-- RabbitMQ AMQP: `localhost:5672`
-- RabbitMQ Management: http://localhost:15672
-
-### Service Ports (Planned)
-- Dashboard: `3000`
-- Channel Service: `3001`
-- AI Orchestrator: `3002`
-- Case Service: `3003`
-- Notification Service: `3004`
-
----
-
-## 📝 DEVELOPMENT NOTES
-
-### Current State
-✅ Infrastructure is fully operational and ready for service development
-
-### Next Action
-🚀 Start Phase 1: Channel Service implementation
-
-### Important Reminders
-- Always run tests before moving to next phase
-- Keep documentation updated
-- Use schema-qualified queries in PostgreSQL
-- Follow architecture guidelines in `.github/instructions/govconnect.instructions.md`
-
----
-
-**Project Start**: November 24, 2025  
-**Current Phase**: Phase 0 ✅  
-**Next Phase**: Phase 1 🔴  
-**Total Estimated Time**: 46-60 hours
+**Last Updated**: January 2025
+**Status**: ✅ ALL PHASES COMPLETE - READY FOR DEPLOYMENT

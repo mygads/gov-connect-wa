@@ -1,19 +1,104 @@
-# PHASE 7: DEPLOYMENT
+# PHASE 7: PRODUCTION DEPLOYMENT
 
 **Duration**: 3-4 jam  
 **Complexity**: ⭐⭐ Medium  
 **Prerequisites**: Phase 0-6 completed
+**Status**: ✅ FILES CREATED
 
 ---
 
 ## 🎯 OBJECTIVES
 
-- Setup production environment
-- Deploy all services via Docker Compose
-- Configure production databases
+- Setup production environment dengan Docker Compose
+- Deploy semua services dengan konfigurasi production
+- Configure NGINX sebagai API Gateway
 - Setup monitoring & logging
 - Configure domain & SSL
-- Final testing in production
+
+---
+
+## 📐 CURRENT ARCHITECTURE
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              INTERNET                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+              ┌──────────────────────────────────────────┐
+              │         NGINX (API Gateway)              │
+              │         Port 80/443                      │
+              │   - SSL Termination                      │
+              │   - Rate Limiting                        │
+              │   - Request Routing                      │
+              └──────────────────────────────────────────┘
+                                    │
+          ┌─────────────────────────┴─────────────────────────┐
+          ▼                         ▼                         ▼
+  ┌───────────────┐         ┌───────────────┐         ┌───────────────┐
+  │  Dashboard    │         │   Channel     │         │   API Routes  │
+  │    :3000      │         │   Service     │         │  /api/cases   │
+  │   (Next.js)   │         │    :3001      │         │  /api/ai      │
+  └───────────────┘         │  (Webhook)    │         │  /api/notif   │
+                            └───────────────┘         └───────────────┘
+
+  ┌───────────────┐         ┌───────────────┐         ┌───────────────┐
+  │  AI Service   │         │ Case Service  │         │ Notification  │
+  │    :3002      │         │    :3003      │         │    :3004      │
+  └───────────────┘         └───────────────┘         └───────────────┘
+          │                         │                         │
+          └─────────────────────────┼─────────────────────────┘
+                                    ▼
+          ┌─────────────────────────────────────────────────┐
+          │   ┌────────────────┐    ┌────────────────────┐  │
+          │   │  PostgreSQL    │    │     RabbitMQ       │  │
+          │   │   (pgvector)   │    │    (govconnect)    │  │
+          │   │  ┌─────────┐   │    │  Exchanges:        │  │
+          │   │  │ channel │   │    │  - messages        │  │
+          │   │  │  cases  │   │    │  - cases           │  │
+          │   │  │ notif.  │   │    │  - notifications   │  │
+          │   │  │dashboard│   │    │                    │  │
+          │   │  └─────────┘   │    │                    │  │
+          │   │   Schemas      │    │                    │  │
+          │   └────────────────┘    └────────────────────┘  │
+          └─────────────────────────────────────────────────┘
+```
+
+## 📦 DATABASE ARCHITECTURE
+
+Menggunakan **single PostgreSQL instance** dengan **schema-per-service pattern**:
+
+```
+govconnect (database)
+├── channel (schema)     → Channel Service
+├── cases (schema)       → Case Service  
+├── notification (schema) → Notification Service
+└── dashboard (schema)   → Dashboard Service
+```
+
+**Database URL Pattern:**
+```
+postgresql://postgres:{password}@postgres:5432/govconnect?schema={schema_name}
+```
+
+---
+
+## 📋 PRODUCTION FILES CREATED
+
+### ✅ docker-compose.prod.yml
+- Single PostgreSQL dengan pgvector
+- RabbitMQ dengan vhost `govconnect`
+- 5 Microservices dengan health checks & resource limits
+- NGINX sebagai API Gateway
+
+### ✅ .env.production.example
+Template environment variables untuk production
+
+### ✅ nginx/nginx.conf
+- Rate limiting (30 req/s API, 100 req/s webhook)
+- Security headers
+- Request routing
+- Gzip compression
 
 ---
 
@@ -180,347 +265,59 @@
 
 ---
 
-## 📦 PRODUCTION DOCKER COMPOSE
-
-`docker-compose.prod.yml`:
-
-```yaml
-version: '3.8'
-
-services:
-  # ==================== INFRASTRUCTURE ====================
-  db-channel:
-    image: postgres:15-alpine
-    container_name: govconnect-db-channel-prod
-    restart: always
-    environment:
-      POSTGRES_DB: gc_channel_db
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - pgdata-channel-prod:/var/lib/postgresql/data
-    networks:
-      - govconnect-prod
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-  db-case:
-    image: postgres:15-alpine
-    container_name: govconnect-db-case-prod
-    restart: always
-    environment:
-      POSTGRES_DB: gc_case_db
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - pgdata-case-prod:/var/lib/postgresql/data
-    networks:
-      - govconnect-prod
-
-  db-notification:
-    image: postgres:15-alpine
-    container_name: govconnect-db-notification-prod
-    restart: always
-    environment:
-      POSTGRES_DB: gc_notification_db
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - pgdata-notification-prod:/var/lib/postgresql/data
-    networks:
-      - govconnect-prod
-
-  db-dashboard:
-    image: postgres:15-alpine
-    container_name: govconnect-db-dashboard-prod
-    restart: always
-    environment:
-      POSTGRES_DB: gc_dashboard_db
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - pgdata-dashboard-prod:/var/lib/postgresql/data
-    networks:
-      - govconnect-prod
-
-  rabbitmq:
-    image: rabbitmq:3.12-management-alpine
-    container_name: govconnect-rabbitmq-prod
-    restart: always
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
-      RABBITMQ_DEFAULT_VHOST: govconnect
-    volumes:
-      - rabbitmq-data-prod:/var/lib/rabbitmq
-    networks:
-      - govconnect-prod
-
-  # ==================== SERVICES ====================
-  channel-service:
-    build: ./govconnect-channel-service
-    container_name: govconnect-channel-prod
-    restart: always
-    env_file: .env.production
-    depends_on:
-      - db-channel
-      - rabbitmq
-    networks:
-      - govconnect-prod
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  ai-service:
-    build: ./govconnect-ai-service
-    container_name: govconnect-ai-prod
-    restart: always
-    env_file: .env.production
-    depends_on:
-      - rabbitmq
-      - channel-service
-      - case-service
-    networks:
-      - govconnect-prod
-
-  case-service:
-    build: ./govconnect-case-service
-    container_name: govconnect-case-prod
-    restart: always
-    env_file: .env.production
-    depends_on:
-      - db-case
-      - rabbitmq
-    networks:
-      - govconnect-prod
-
-  notification-service:
-    build: ./govconnect-notification-service
-    container_name: govconnect-notification-prod
-    restart: always
-    env_file: .env.production
-    depends_on:
-      - db-notification
-      - rabbitmq
-      - channel-service
-    networks:
-      - govconnect-prod
-
-  dashboard:
-    build: ./govconnect-dashboard
-    container_name: govconnect-dashboard-prod
-    restart: always
-    env_file: .env.production
-    depends_on:
-      - db-dashboard
-      - case-service
-    networks:
-      - govconnect-prod
-
-  # ==================== REVERSE PROXY ====================
-  nginx:
-    image: nginx:alpine
-    container_name: govconnect-nginx-prod
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-      - ./nginx/logs:/var/log/nginx
-    depends_on:
-      - channel-service
-      - dashboard
-    networks:
-      - govconnect-prod
-
-networks:
-  govconnect-prod:
-    driver: bridge
-
-volumes:
-  pgdata-channel-prod:
-  pgdata-case-prod:
-  pgdata-notification-prod:
-  pgdata-dashboard-prod:
-  rabbitmq-data-prod:
-```
-
----
-
-## 🔧 NGINX CONFIGURATION
-
-`nginx/nginx.conf`:
-
-```nginx
-events {
-    worker_connections 1024;
-}
-
-http {
-    upstream channel_service {
-        server channel-service:3001;
-    }
-
-    upstream dashboard {
-        server dashboard:3000;
-    }
-
-    # Redirect HTTP to HTTPS
-    server {
-        listen 80;
-        server_name api.govconnect.id dashboard.govconnect.id;
-        return 301 https://$host$request_uri;
-    }
-
-    # API (Webhook)
-    server {
-        listen 443 ssl http2;
-        server_name api.govconnect.id;
-
-        ssl_certificate /etc/nginx/ssl/fullchain.pem;
-        ssl_certificate_key /etc/nginx/ssl/privkey.pem;
-
-        location / {
-            proxy_pass http://channel_service;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-    }
-
-    # Dashboard
-    server {
-        listen 443 ssl http2;
-        server_name dashboard.govconnect.id;
-
-        ssl_certificate /etc/nginx/ssl/fullchain.pem;
-        ssl_certificate_key /etc/nginx/ssl/privkey.pem;
-
-        location / {
-            proxy_pass http://dashboard;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-        }
-    }
-}
-```
-
----
-
-## 🔐 PRODUCTION SECRETS
-
-Generate strong secrets:
-
-```bash
-# JWT Secret (32 characters)
-openssl rand -base64 32
-
-# Internal API Key (64 characters)
-openssl rand -base64 64
-
-# Database Password (24 characters)
-openssl rand -base64 24
-```
-
----
-
 ## 🚀 DEPLOYMENT COMMANDS
 
-```bash
-# 1. Clone repository
-git clone https://github.com/your-org/govconnect.git
-cd govconnect
+```powershell
+# 1. Navigate to govconnect folder
+cd c:\Yoga\Programming\Kuliah\clivy\govconnect
 
-# 2. Checkout production branch/tag
-git checkout v1.0.0
+# 2. Copy environment template
+Copy-Item .env.production.example .env.production
 
-# 3. Copy environment variables
-cp .env.production.example .env.production
-# Edit .env.production dengan nilai production
+# 3. Edit .env.production (CHANGE ALL PASSWORDS!)
 
-# 4. Build images
+# 4. Build all images
 docker-compose -f docker-compose.prod.yml build
 
 # 5. Start services
 docker-compose -f docker-compose.prod.yml up -d
 
-# 6. Run migrations
-docker-compose -f docker-compose.prod.yml exec channel-service pnpm prisma migrate deploy
-docker-compose -f docker-compose.prod.yml exec case-service pnpm prisma migrate deploy
-docker-compose -f docker-compose.prod.yml exec notification-service pnpm prisma migrate deploy
-docker-compose -f docker-compose.prod.yml exec dashboard pnpm prisma migrate deploy
+# 6. Check status
+docker-compose -f docker-compose.prod.yml ps
 
-# 7. Seed admin user
-docker-compose -f docker-compose.prod.yml exec dashboard pnpm prisma db seed
-
-# 8. Check logs
-docker-compose -f docker-compose.prod.yml logs -f
+# 7. Run migrations
+docker-compose -f docker-compose.prod.yml exec channel-service npx prisma migrate deploy
+docker-compose -f docker-compose.prod.yml exec case-service npx prisma migrate deploy
+docker-compose -f docker-compose.prod.yml exec notification-service npx prisma migrate deploy
+docker-compose -f docker-compose.prod.yml exec dashboard npx prisma migrate deploy
 ```
 
 ---
 
-## 📊 MONITORING CHECKLIST
+## 🔄 API ROUTING (NGINX)
 
-### Daily Checks
-- [ ] All containers running
-- [ ] Disk space > 20%
-- [ ] No critical errors in logs
-- [ ] RabbitMQ queue depth < 100
-
-### Weekly Checks
-- [ ] Database backup successful
-- [ ] SSL certificate valid (> 30 days remaining)
-- [ ] Review error logs
-- [ ] Check performance metrics
-
-### Monthly Checks
-- [ ] Update dependencies (security patches)
-- [ ] Review resource usage trends
-- [ ] Test disaster recovery
-- [ ] Review and archive old logs
+| Path | Destination | Service |
+|------|-------------|---------|
+| `/` | `dashboard:3000` | Dashboard |
+| `/webhook` | `channel-service:3001` | WhatsApp Webhook |
+| `/api/channel/*` | `channel-service:3001` | Channel API |
+| `/api/cases/*` | `case-service:3003` | Case API |
+| `/api/ai/*` | `ai-service:3002` | AI API |
+| `/api/notifications/*` | `notification-service:3004` | Notification API |
+| `/uploads/*` | `channel-service:3001` | Media Files |
 
 ---
 
 ## ✅ COMPLETION CRITERIA
 
-Phase 7 dianggap selesai jika:
-
-- [x] All services deployed and running
-- [x] SSL configured and working
-- [x] Webhook receiving messages
-- [x] Dashboard accessible
-- [x] End-to-end production test passed
-- [x] Monitoring setup and working
-- [x] Backup automated
-- [x] Documentation complete
+- [x] `docker-compose.prod.yml` created
+- [x] `.env.production.example` created  
+- [x] `nginx/nginx.conf` created
+- [ ] All images build successfully
+- [ ] All containers start and pass health checks
+- [ ] Database migrations run successfully
 
 ---
 
-## 🎉 PROJECT COMPLETE!
-
-Selamat! GovConnect sudah siap production.
-
-### Next Steps:
-1. Monitor logs harian minggu pertama
-2. Siapkan user training untuk admin dashboard
-3. Launch soft testing dengan user terbatas
-4. Full launch setelah 2 minggu stable
-
----
-
-**Phase 7 Status**: 🔴 Not Started  
-**Last Updated**: November 24, 2025
-
----
-
-**🏆 GOVCONNECT DEVELOPMENT COMPLETE! 🏆**
+**Phase 7 Status**: ✅ FILES CREATED  
+**Last Updated**: November 25, 2025

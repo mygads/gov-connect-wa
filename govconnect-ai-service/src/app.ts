@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import swaggerUi from 'swagger-ui-express';
 import logger from './utils/logger';
 import { isConnected as isRabbitMQConnected } from './services/rabbitmq.service';
 import { checkCaseServiceHealth } from './services/case-client.service';
@@ -7,13 +8,33 @@ import { rateLimiterService } from './services/rate-limiter.service';
 import { aiAnalyticsService } from './services/ai-analytics.service';
 import { getEmbeddingStats } from './services/embedding.service';
 import { getVectorCacheStats } from './services/vector-store.service';
+import { resilientHttp } from './services/circuit-breaker.service';
 import documentRoutes from './routes/document.routes';
+import { swaggerSpec } from './config/swagger';
 import axios from 'axios';
 import { config } from './config/env';
 
 const app = express();
 
 app.use(express.json());
+
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customSiteTitle: 'GovConnect AI Service API',
+  customCss: '.swagger-ui .topbar { display: none }',
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    docExpansion: 'list',
+  },
+}));
+
+// OpenAPI spec as JSON
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
@@ -351,15 +372,59 @@ app.get('/stats/embeddings', (req: Request, res: Response) => {
   }
 });
 
+// ===========================================
+// Circuit Breaker Endpoints
+// ===========================================
+
+// Get circuit breaker status
+app.get('/stats/circuit-breaker', (req: Request, res: Response) => {
+  try {
+    const stats = resilientHttp.getStats();
+    res.json({
+      status: stats.state,
+      description: getCircuitBreakerDescription(stats.state),
+      stats: {
+        successful: stats.stats.successes,
+        failed: stats.stats.failures,
+        rejected: stats.stats.rejects,
+        timeout: stats.stats.timeouts,
+        fallback: stats.stats.fallbacks,
+        cacheHits: stats.stats.cacheHits,
+        cacheMisses: stats.stats.cacheMisses,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Failed to get circuit breaker stats',
+      message: error.message,
+    });
+  }
+});
+
+function getCircuitBreakerDescription(state: string): string {
+  switch (state) {
+    case 'CLOSED':
+      return 'All systems operational. Requests are being processed normally.';
+    case 'OPEN':
+      return 'Circuit is open! Case Service is unavailable. Requests will fail fast.';
+    case 'HALF-OPEN':
+      return 'Testing recovery. Some requests being sent to check if service recovered.';
+    default:
+      return 'Unknown state';
+  }
+}
+
 // Root endpoint
 app.get('/', (req: Request, res: Response) => {
   res.json({
     service: 'GovConnect AI Orchestrator',
     version: '1.0.0',
     status: 'running',
+    docs: '/api-docs',
     description: 'Stateless AI service for processing WhatsApp messages',
     endpoints: {
       health: '/health',
+      circuitBreaker: '/stats/circuit-breaker',
       modelStats: '/stats/models',
       modelStatsDetail: '/stats/models/:modelName',
       analytics: '/stats/analytics',

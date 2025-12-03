@@ -2,10 +2,12 @@ import express, { Application } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import path from 'path';
+import swaggerUi from 'swagger-ui-express';
 import webhookRoutes from './routes/webhook.routes';
 import internalRoutes from './routes/internal.routes';
 import healthRoutes from './routes/health.routes';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.middleware';
+import { swaggerSpec } from './config/swagger';
 import logger from './utils/logger';
 
 // Media storage path
@@ -48,12 +50,32 @@ export function createApp(): Application {
   app.use('/internal', internalRoutes);
   app.use('/health', healthRoutes);
 
+  // Swagger API Documentation
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customSiteTitle: 'GovConnect Channel Service API',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+      docExpansion: 'list',
+      filter: true,
+    },
+  }));
+
+  // OpenAPI spec as JSON
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+
   // Root endpoint
   app.get('/', (req, res) => {
     res.json({
       service: 'GovConnect Channel Service',
       version: '1.0.0',
       status: 'running',
+      docs: '/api-docs',
     });
   });
 

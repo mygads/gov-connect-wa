@@ -1,0 +1,374 @@
+# ==================== TRAEFIK DYNAMIC CONFIGURATION ====================
+# Dynamic routing, middleware, and TLS configuration
+# Domain: govconnect.my.id (Dashboard), api.govconnect.my.id (API)
+
+# ==================== HTTP CONFIGURATION ====================
+http:
+  # ==================== ROUTERS ====================
+  routers:
+    # ==================== DASHBOARD ====================
+    # Dashboard at root domain: govconnect.my.id
+    dashboard:
+      rule: "Host(`govconnect.my.id`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - security-headers
+        - compress
+        - rate-limit-public
+      service: dashboard
+      tls:
+        certResolver: letsencrypt
+
+    # ==================== WEBHOOK ====================
+    # WhatsApp webhook - highest priority
+    webhook:
+      rule: "Host(`api.govconnect.my.id`) && PathPrefix(`/webhook`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - rate-limit-webhook
+        - cors-webhook
+        - security-headers
+      service: channel-service
+      priority: 100
+      tls:
+        certResolver: letsencrypt
+
+    # ==================== CHANNEL SERVICE ====================
+    channel-api:
+      rule: "Host(`api.govconnect.my.id`) && PathPrefix(`/api/channel`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - rate-limit-internal
+        - cors-dashboard
+        - security-headers
+        - strip-api-channel
+        - retry
+      service: channel-service
+      priority: 50
+      tls:
+        certResolver: letsencrypt
+
+    # Media uploads
+    uploads:
+      rule: "Host(`api.govconnect.my.id`) && PathPrefix(`/uploads`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - security-headers
+        - compress
+      service: channel-service
+      priority: 50
+      tls:
+        certResolver: letsencrypt
+
+    # ==================== CASE SERVICE ====================
+    case-api:
+      rule: "Host(`api.govconnect.my.id`) && PathPrefix(`/api/cases`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - rate-limit-internal
+        - cors-dashboard
+        - security-headers
+        - strip-api-cases
+        - retry
+      service: case-service
+      priority: 50
+      tls:
+        certResolver: letsencrypt
+
+    # Legacy endpoints
+    case-legacy:
+      rule: "Host(`api.govconnect.my.id`) && (PathPrefix(`/laporan`) || PathPrefix(`/tiket`) || PathPrefix(`/statistics`))"
+      entryPoints:
+        - websecure
+      middlewares:
+        - rate-limit-internal
+        - cors-dashboard
+        - security-headers
+        - retry
+      service: case-service
+      priority: 40
+      tls:
+        certResolver: letsencrypt
+
+    # ==================== AI SERVICE ====================
+    ai-api:
+      rule: "Host(`api.govconnect.my.id`) && PathPrefix(`/api/ai`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - rate-limit-ai
+        - cors-dashboard
+        - security-headers
+        - strip-api-ai
+        - circuit-breaker
+      service: ai-service
+      priority: 50
+      tls:
+        certResolver: letsencrypt
+
+    # ==================== NOTIFICATION SERVICE ====================
+    notification-api:
+      rule: "Host(`api.govconnect.my.id`) && PathPrefix(`/api/notifications`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - rate-limit-internal
+        - cors-dashboard
+        - security-headers
+        - strip-api-notifications
+        - retry
+      service: notification-service
+      priority: 50
+      tls:
+        certResolver: letsencrypt
+
+    # ==================== HEALTH ENDPOINTS ====================
+    health-main:
+      rule: "Host(`api.govconnect.my.id`) && Path(`/health`)"
+      entryPoints:
+        - websecure
+      service: channel-service
+      priority: 200
+      tls:
+        certResolver: letsencrypt
+
+    health-channel:
+      rule: "Host(`api.govconnect.my.id`) && Path(`/health/channel`)"
+      entryPoints:
+        - websecure
+      service: channel-service
+      priority: 200
+      tls:
+        certResolver: letsencrypt
+
+    health-ai:
+      rule: "Host(`api.govconnect.my.id`) && Path(`/health/ai`)"
+      entryPoints:
+        - websecure
+      service: ai-service
+      priority: 200
+      tls:
+        certResolver: letsencrypt
+
+    health-cases:
+      rule: "Host(`api.govconnect.my.id`) && Path(`/health/cases`)"
+      entryPoints:
+        - websecure
+      service: case-service
+      priority: 200
+      tls:
+        certResolver: letsencrypt
+
+    health-notifications:
+      rule: "Host(`api.govconnect.my.id`) && Path(`/health/notifications`)"
+      entryPoints:
+        - websecure
+      service: notification-service
+      priority: 200
+      tls:
+        certResolver: letsencrypt
+
+    # ==================== TRAEFIK DASHBOARD ====================
+    traefik-dashboard:
+      rule: "Host(`traefik.govconnect.my.id`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - dashboard-auth
+        - security-headers
+      service: api@internal
+      tls:
+        certResolver: letsencrypt
+
+  # ==================== SERVICES ====================
+  services:
+    dashboard:
+      loadBalancer:
+        servers:
+          - url: "http://dashboard:3000"
+        healthCheck:
+          path: /api/health
+          interval: 30s
+          timeout: 5s
+
+    channel-service:
+      loadBalancer:
+        servers:
+          - url: "http://channel-service:3001"
+        healthCheck:
+          path: /health
+          interval: 30s
+          timeout: 5s
+
+    ai-service:
+      loadBalancer:
+        servers:
+          - url: "http://ai-service:3002"
+        healthCheck:
+          path: /health
+          interval: 30s
+          timeout: 5s
+
+    case-service:
+      loadBalancer:
+        servers:
+          - url: "http://case-service:3003"
+        healthCheck:
+          path: /health
+          interval: 30s
+          timeout: 5s
+
+    notification-service:
+      loadBalancer:
+        servers:
+          - url: "http://notification-service:3004"
+        healthCheck:
+          path: /health
+          interval: 30s
+          timeout: 5s
+
+  # ==================== MIDDLEWARES ====================
+  middlewares:
+    # Rate Limiting - Public (100 req/s)
+    rate-limit-public:
+      rateLimit:
+        average: 100
+        burst: 200
+        period: 1s
+
+    # Rate Limiting - Webhook (higher)
+    rate-limit-webhook:
+      rateLimit:
+        average: 200
+        burst: 500
+        period: 1s
+
+    # Rate Limiting - Internal APIs
+    rate-limit-internal:
+      rateLimit:
+        average: 500
+        burst: 1000
+        period: 1s
+
+    # Rate Limiting - AI (lower due to cost)
+    rate-limit-ai:
+      rateLimit:
+        average: 30
+        burst: 50
+        period: 1s
+
+    # Security Headers
+    security-headers:
+      headers:
+        frameDeny: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        stsSeconds: 63072000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        customResponseHeaders:
+          X-Powered-By: "GovConnect"
+          Server: ""
+
+    # CORS - Dashboard
+    cors-dashboard:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Internal-API-Key
+          - X-Request-Id
+        accessControlAllowOriginList:
+          - "https://govconnect.my.id"
+          - "http://localhost:3000"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 86400
+        addVaryHeader: true
+
+    # CORS - Webhook (allow WhatsApp)
+    cors-webhook:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Content-Type
+          - X-Hub-Signature
+          - X-Hub-Signature-256
+        accessControlAllowOriginList:
+          - "*"
+        accessControlMaxAge: 86400
+
+    # Compress
+    compress:
+      compress:
+        excludedContentTypes:
+          - text/event-stream
+
+    # Retry
+    retry:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
+
+    # Circuit Breaker
+    circuit-breaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.30 || ResponseCodeRatio(500, 600, 0, 600) > 0.25"
+
+    # Strip Prefixes
+    strip-api-channel:
+      stripPrefix:
+        prefixes:
+          - /api/channel
+
+    strip-api-cases:
+      stripPrefix:
+        prefixes:
+          - /api/cases
+
+    strip-api-ai:
+      stripPrefix:
+        prefixes:
+          - /api/ai
+
+    strip-api-notifications:
+      stripPrefix:
+        prefixes:
+          - /api/notifications
+
+    # Dashboard Basic Auth
+    # admin:govconnect2025
+    # Generate: echo $(htpasswd -nb admin govconnect2025) | sed -e s/\\$/\\$\\$/g
+    dashboard-auth:
+      basicAuth:
+        users:
+          - "admin:$$apr1$$test$$Test1234"
+
+# ==================== TLS CONFIGURATION ====================
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: true
+      cipherSuites:
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305

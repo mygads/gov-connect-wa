@@ -1,9 +1,11 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
 import config from './config/env';
 import logger from './utils/logger';
 import prisma from './config/database';
 import { isConnected } from './services/rabbitmq.service';
+import { swaggerSpec } from './config/swagger';
 
 const app: Application = express();
 
@@ -21,12 +23,31 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
+// Swagger API Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customSiteTitle: 'GovConnect Notification Service API',
+  customCss: '.swagger-ui .topbar { display: none }',
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    docExpansion: 'list',
+  },
+}));
+
+// OpenAPI spec as JSON
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // Root endpoint
 app.get('/', (_req: Request, res: Response) => {
   res.json({
     service: 'govconnect-notification-service',
     version: '1.0.0',
     status: 'running',
+    docs: '/api-docs',
     timestamp: new Date().toISOString()
   });
 });

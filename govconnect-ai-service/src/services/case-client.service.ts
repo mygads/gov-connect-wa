@@ -1,6 +1,7 @@
 import axios from 'axios';
 import logger from '../utils/logger';
 import { config } from '../config/env';
+import { resilientHttp } from './circuit-breaker.service';
 
 interface ComplaintData {
   wa_user_id: string;
@@ -34,7 +35,7 @@ interface TicketResponse {
 }
 
 /**
- * Create complaint in Case Service (SYNC call)
+ * Create complaint in Case Service (SYNC call with Circuit Breaker)
  */
 export async function createComplaint(data: ComplaintData): Promise<string | null> {
   logger.info('Creating complaint in Case Service', {
@@ -44,7 +45,7 @@ export async function createComplaint(data: ComplaintData): Promise<string | nul
   
   try {
     const url = `${config.caseServiceUrl}/laporan/create`;
-    const response = await axios.post<ComplaintResponse>(
+    const response = await resilientHttp.post<ComplaintResponse>(
       url,
       data,
       {
@@ -55,6 +56,14 @@ export async function createComplaint(data: ComplaintData): Promise<string | nul
         timeout: 10000, // 10 seconds
       }
     );
+    
+    // Check if circuit breaker returned fallback
+    if (resilientHttp.isFallbackResponse(response)) {
+      logger.error('❌ Case Service unavailable (circuit breaker open)', {
+        wa_user_id: data.wa_user_id,
+      });
+      return null;
+    }
     
     const complaintId = response.data.data.complaint_id;
     
@@ -77,7 +86,7 @@ export async function createComplaint(data: ComplaintData): Promise<string | nul
 }
 
 /**
- * Create ticket in Case Service (SYNC call)
+ * Create ticket in Case Service (SYNC call with Circuit Breaker)
  */
 export async function createTicket(data: TicketData): Promise<string | null> {
   logger.info('Creating ticket in Case Service', {
@@ -87,7 +96,7 @@ export async function createTicket(data: TicketData): Promise<string | null> {
   
   try {
     const url = `${config.caseServiceUrl}/tiket/create`;
-    const response = await axios.post<TicketResponse>(
+    const response = await resilientHttp.post<TicketResponse>(
       url,
       data,
       {
@@ -98,6 +107,14 @@ export async function createTicket(data: TicketData): Promise<string | null> {
         timeout: 10000,
       }
     );
+    
+    // Check if circuit breaker returned fallback
+    if (resilientHttp.isFallbackResponse(response)) {
+      logger.error('❌ Case Service unavailable (circuit breaker open)', {
+        wa_user_id: data.wa_user_id,
+      });
+      return null;
+    }
     
     const ticketId = response.data.data.ticket_id;
     
