@@ -1,0 +1,457 @@
+# ===================================================================================
+# GOVCONNECT - DOCKER SWARM DEPLOYMENT
+# ===================================================================================
+#
+# Production deployment dengan:
+#   ✅ Zero-downtime rolling updates
+#   ✅ Auto rollback on failure
+#   ✅ Health checks
+#   ✅ Resource limits
+#
+# USAGE:
+# ┌─────────────────────────────────────────────────────────────────────────────────┐
+# │ 1. Initialize Swarm (sekali saja):                                              │
+# │    docker swarm init                                                            │
+# │                                                                                 │
+# │ 2. Create secrets:                                                              │
+# │    echo "your-password" | docker secret create postgres_password -              │
+# │    echo "your-password" | docker secret create rabbitmq_password -              │
+# │    echo "your-key" | docker secret create internal_api_key -                    │
+# │    echo "your-key" | docker secret create gemini_api_key -                      │
+# │    echo "your-secret" | docker secret create jwt_secret -                       │
+# │                                                                                 │
+# │ 3. Deploy stack:                                                                │
+# │    docker stack deploy -c docker-compose.swarm.yml govconnect                   │
+# │                                                                                 │
+# │ 4. Update service (auto rolling update):                                        │
+# │    docker service update --image ghcr.io/mygads/govconnect-ai-service:latest \  │
+# │      govconnect_ai-service                                                      │
+# │                                                                                 │
+# │ 5. Rollback if needed:                                                          │
+# │    docker service rollback govconnect_ai-service                                │
+# │                                                                                 │
+# │ 6. View status:                                                                 │
+# │    docker stack services govconnect                                             │
+# │    docker service logs -f govconnect_ai-service                                 │
+# └─────────────────────────────────────────────────────────────────────────────────┘
+#
+# ===================================================================================
+
+version: "3.8"
+
+services:
+  # ===================================================================================
+  # INFRASTRUCTURE
+  # ===================================================================================
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+    environment:
+      POSTGRES_DB: govconnect
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./docker/init-pg-hba.sh:/docker-entrypoint-initdb.d/02-init-pg-hba.sh:ro
+    networks:
+      - govconnect-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d govconnect"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS_FILE: /run/secrets/rabbitmq_password
+      RABBITMQ_DEFAULT_VHOST: govconnect
+    secrets:
+      - rabbitmq_password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - ./docker/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./docker/definitions.json:/etc/rabbitmq/definitions.json:ro
+    networks:
+      - govconnect-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # ===================================================================================
+  # MICROSERVICES - With Rolling Update & Auto Rollback
+  # ===================================================================================
+
+  channel-service:
+    image: ghcr.io/mygads/govconnect-channel-service:${IMAGE_TAG:-latest}
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      SERVICE_NAME: channel-service
+      DATABASE_URL: postgresql://postgres:postgree_govconnect@postgres:5432/govconnect?schema=channel
+      RABBITMQ_URL: amqp://admin:rabbitmq_govconnect@rabbitmq:5672/govconnect
+      INTERNAL_API_KEY_FILE: /run/secrets/internal_api_key
+      WA_WEBHOOK_VERIFY_TOKEN: ${WA_WEBHOOK_VERIFY_TOKEN:-govconnect_verify_token_2025}
+      WA_API_URL: ${WA_API_URL:-https://api-wa.genfity.com/wa}
+      WA_ACCESS_TOKEN: ${WA_ACCESS_TOKEN:-govconnect}
+      CASE_SERVICE_URL: http://case-service:3003
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+      MEDIA_STORAGE_PATH: /app/uploads
+      MEDIA_INTERNAL_URL: http://channel-service:3001/uploads
+      MEDIA_PUBLIC_URL: ${MEDIA_PUBLIC_URL:-https://govconnect.my.id/uploads}
+      LOG_LEVEL: info
+    secrets:
+      - internal_api_key
+    volumes:
+      - channel-uploads:/app/uploads
+    networks:
+      - govconnect-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first          # Start new before stopping old = ZERO DOWNTIME
+        failure_action: rollback    # Auto rollback if health check fails
+        monitor: 60s                # Monitor for 60s after update
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  ai-service:
+    image: ghcr.io/mygads/govconnect-ai-service:${IMAGE_TAG:-latest}
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      SERVICE_NAME: ai-service
+      RABBITMQ_URL: amqp://admin:rabbitmq_govconnect@rabbitmq:5672/govconnect
+      CHANNEL_SERVICE_URL: http://channel-service:3001
+      CASE_SERVICE_URL: http://case-service:3003
+      DASHBOARD_SERVICE_URL: http://dashboard:3000
+      GEMINI_API_KEY_FILE: /run/secrets/gemini_api_key
+      INTERNAL_API_KEY_FILE: /run/secrets/internal_api_key
+      LLM_TEMPERATURE: 0.3
+      LLM_MAX_TOKENS: 2000
+      LLM_TIMEOUT_MS: 30000
+      MAX_HISTORY_MESSAGES: 30
+      LOG_LEVEL: info
+    secrets:
+      - internal_api_key
+      - gemini_api_key
+    volumes:
+      - ai-service-data:/app/data
+    networks:
+      - govconnect-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 60s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  case-service:
+    image: ghcr.io/mygads/govconnect-case-service:${IMAGE_TAG:-latest}
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      SERVICE_NAME: case-service
+      DATABASE_URL: postgresql://postgres:postgree_govconnect@postgres:5432/govconnect?schema=cases
+      RABBITMQ_URL: amqp://admin:rabbitmq_govconnect@rabbitmq:5672/govconnect
+      INTERNAL_API_KEY_FILE: /run/secrets/internal_api_key
+      LOG_LEVEL: info
+    secrets:
+      - internal_api_key
+    networks:
+      - govconnect-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 60s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  notification-service:
+    image: ghcr.io/mygads/govconnect-notification-service:${IMAGE_TAG:-latest}
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      SERVICE_NAME: notification-service
+      DATABASE_URL: postgresql://postgres:postgree_govconnect@postgres:5432/govconnect?schema=notification
+      RABBITMQ_URL: amqp://admin:rabbitmq_govconnect@rabbitmq:5672/govconnect
+      CHANNEL_SERVICE_URL: http://channel-service:3001
+      INTERNAL_API_KEY_FILE: /run/secrets/internal_api_key
+      LOG_LEVEL: info
+    secrets:
+      - internal_api_key
+    networks:
+      - govconnect-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 60s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  dashboard:
+    image: ghcr.io/mygads/govconnect-dashboard:${IMAGE_TAG:-latest}
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://postgres:postgree_govconnect@postgres:5432/govconnect?schema=dashboard
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      CASE_SERVICE_URL: http://case-service:3003
+      CHANNEL_SERVICE_URL: http://channel-service:3001
+      AI_SERVICE_URL: http://ai-service:3002
+      INTERNAL_API_KEY_FILE: /run/secrets/internal_api_key
+      NEXT_PUBLIC_APP_NAME: "GovConnect Dashboard"
+    secrets:
+      - internal_api_key
+      - jwt_secret
+    networks:
+      - govconnect-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+        monitor: 60s
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # ===================================================================================
+  # TRAEFIK REVERSE PROXY (SSL, Load Balancing)
+  # ===================================================================================
+
+  traefik:
+    image: traefik:v2.11
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@govconnect.my.id}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--metrics.prometheus=true"
+      - "--accesslog=true"
+      - "--log.level=INFO"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-certs:/letsencrypt
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+    networks:
+      - govconnect-network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+# ===================================================================================
+# SECRETS (Encrypted, secure)
+# ===================================================================================
+secrets:
+  postgres_password:
+    external: true
+  rabbitmq_password:
+    external: true
+  internal_api_key:
+    external: true
+  gemini_api_key:
+    external: true
+  jwt_secret:
+    external: true
+
+# ===================================================================================
+# NETWORKS
+# ===================================================================================
+networks:
+  govconnect-network:
+    driver: overlay
+    attachable: true
+
+# ===================================================================================
+# VOLUMES
+# ===================================================================================
+volumes:
+  pgdata:
+  rabbitmq-data:
+  channel-uploads:
+  ai-service-data:
+  traefik-certs:

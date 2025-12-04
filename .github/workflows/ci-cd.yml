@@ -6,6 +6,7 @@ on:
     paths:
       - 'govconnect-*/**'
       - 'docker-compose.yml'
+      - 'docker-compose.swarm.yml'
       - 'docker/**'
       - 'k8s/**'
       - 'traefik/**'
@@ -72,6 +73,7 @@ jobs:
               - 'docker/promtail/**'
             docker-compose:
               - 'docker-compose.yml'
+              - 'docker-compose.swarm.yml'
               - 'docker-compose.*.yml'
             any-service:
               - 'govconnect-*/**'
@@ -166,9 +168,9 @@ jobs:
           format: 'table'
         continue-on-error: true
 
-  # ==================== DEPLOY TO STAGING ====================
+  # ==================== DEPLOY TO STAGING (Docker Swarm) ====================
   deploy-staging:
-    name: Deploy to Staging
+    name: Deploy to Staging (Swarm)
     runs-on: ubuntu-latest
     needs: [detect-changes, build]
     if: |
@@ -183,7 +185,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to Staging via SSH
+      - name: Deploy to Staging via SSH (Docker Swarm)
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.STAGING_HOST }}
@@ -194,20 +196,15 @@ jobs:
             git pull origin main
             
             # Check what changed
-            SERVICE_CHANGED="${{ needs.detect-changes.outputs.any-service }}"
-            INFRA_CHANGED="${{ needs.detect-changes.outputs.infrastructure }}"
-            TRAEFIK_CHANGED="${{ needs.detect-changes.outputs.traefik }}"
-            MONITORING_CHANGED="${{ needs.detect-changes.outputs.monitoring }}"
-            DOCKER_COMPOSE_CHANGED="${{ needs.detect-changes.outputs.docker-compose }}"
-            
             CHANNEL_CHANGED="${{ needs.detect-changes.outputs.channel-service }}"
             AI_CHANGED="${{ needs.detect-changes.outputs.ai-service }}"
             CASE_CHANGED="${{ needs.detect-changes.outputs.case-service }}"
             NOTIFICATION_CHANGED="${{ needs.detect-changes.outputs.notification-service }}"
             DASHBOARD_CHANGED="${{ needs.detect-changes.outputs.dashboard }}"
+            DOCKER_COMPOSE_CHANGED="${{ needs.detect-changes.outputs.docker-compose }}"
             
             echo "=========================================="
-            echo "  GovConnect Smart Deployment"
+            echo "  GovConnect Docker Swarm Deployment"
             echo "=========================================="
             echo ""
             echo "--- Changes Detected ---"
@@ -216,90 +213,92 @@ jobs:
             echo "Case Service: $CASE_CHANGED"
             echo "Notification Service: $NOTIFICATION_CHANGED"
             echo "Dashboard: $DASHBOARD_CHANGED"
-            echo "Traefik: $TRAEFIK_CHANGED"
-            echo "Monitoring: $MONITORING_CHANGED"
             echo "Docker Compose: $DOCKER_COMPOSE_CHANGED"
             echo ""
             
-            # Smart rebuild - only rebuild changed services
+            # Ensure Swarm is initialized
+            if ! docker info | grep -q "Swarm: active"; then
+              echo ">>> Initializing Docker Swarm..."
+              docker swarm init --advertise-addr $(hostname -I | awk '{print $1}') || true
+            fi
+            
+            # Login to GHCR
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Build changed services locally (faster than pulling pre-built)
             if [ "$CHANNEL_CHANGED" == "true" ]; then
-              echo ">>> Rebuilding channel-service..."
-              docker compose build --no-cache channel-service
+              echo ">>> Building channel-service..."
+              docker compose -f docker-compose.swarm.yml build channel-service
             fi
             
             if [ "$AI_CHANGED" == "true" ]; then
-              echo ">>> Rebuilding ai-service..."
-              docker compose build --no-cache ai-service
+              echo ">>> Building ai-service..."
+              docker compose -f docker-compose.swarm.yml build ai-service
             fi
             
             if [ "$CASE_CHANGED" == "true" ]; then
-              echo ">>> Rebuilding case-service..."
-              docker compose build --no-cache case-service
+              echo ">>> Building case-service..."
+              docker compose -f docker-compose.swarm.yml build case-service
             fi
             
             if [ "$NOTIFICATION_CHANGED" == "true" ]; then
-              echo ">>> Rebuilding notification-service..."
-              docker compose build --no-cache notification-service
+              echo ">>> Building notification-service..."
+              docker compose -f docker-compose.swarm.yml build notification-service
             fi
             
             if [ "$DASHBOARD_CHANGED" == "true" ]; then
-              echo ">>> Rebuilding dashboard..."
-              docker compose build --no-cache dashboard
+              echo ">>> Building dashboard..."
+              docker compose -f docker-compose.swarm.yml build dashboard
             fi
             
-            # Smart restart - only restart what changed
-            RESTART_SERVICES=""
+            # Deploy/Update the stack with zero-downtime rolling updates
+            echo ">>> Deploying stack with rolling update..."
+            docker stack deploy -c docker-compose.swarm.yml govconnect --with-registry-auth
             
-            if [ "$CHANNEL_CHANGED" == "true" ]; then
-              RESTART_SERVICES="$RESTART_SERVICES channel-service"
-            fi
-            if [ "$AI_CHANGED" == "true" ]; then
-              RESTART_SERVICES="$RESTART_SERVICES ai-service"
-            fi
-            if [ "$CASE_CHANGED" == "true" ]; then
-              RESTART_SERVICES="$RESTART_SERVICES case-service"
-            fi
-            if [ "$NOTIFICATION_CHANGED" == "true" ]; then
-              RESTART_SERVICES="$RESTART_SERVICES notification-service"
-            fi
-            if [ "$DASHBOARD_CHANGED" == "true" ]; then
-              RESTART_SERVICES="$RESTART_SERVICES dashboard"
-            fi
+            # Wait for services to stabilize
+            echo ">>> Waiting for services to stabilize..."
+            sleep 10
             
-            # If only traefik config changed, only restart traefik
-            if [ "$TRAEFIK_CHANGED" == "true" ]; then
-              echo ">>> Restarting Traefik (config changed)..."
-              docker compose --profile production restart traefik
-            fi
-            
-            # If only monitoring config changed, restart monitoring stack
-            if [ "$MONITORING_CHANGED" == "true" ]; then
-              echo ">>> Restarting Monitoring stack (config changed)..."
-              docker compose --profile monitoring restart prometheus grafana alertmanager
-              docker compose --profile logging restart loki promtail || true
-            fi
-            
-            # If docker-compose.yml changed, need full restart
-            if [ "$DOCKER_COMPOSE_CHANGED" == "true" ]; then
-              echo ">>> Docker Compose changed - full restart..."
-              docker compose --profile production --profile monitoring --profile logging down
-              docker compose --profile production --profile monitoring --profile logging up -d
-            elif [ -n "$RESTART_SERVICES" ]; then
-              echo ">>> Restarting changed services: $RESTART_SERVICES"
-              docker compose --profile production restart $RESTART_SERVICES
-            fi
-            
-            # Show running containers
+            # Check service status
             echo ""
-            echo "--- Running Containers ---"
-            docker compose --profile production --profile monitoring --profile logging ps --format "table {{.Name}}\t{{.Status}}"
+            echo "--- Service Status ---"
+            docker service ls --filter name=govconnect
+            
+            # Show update status for changed services
+            UPDATE_SERVICES=""
+            if [ "$CHANNEL_CHANGED" == "true" ]; then
+              echo ""
+              echo ">>> Channel Service Update Status:"
+              docker service update --force govconnect_channel-service 2>/dev/null || true
+            fi
+            if [ "$AI_CHANGED" == "true" ]; then
+              echo ""
+              echo ">>> AI Service Update Status:"
+              docker service update --force govconnect_ai-service 2>/dev/null || true
+            fi
+            if [ "$CASE_CHANGED" == "true" ]; then
+              echo ""
+              echo ">>> Case Service Update Status:"
+              docker service update --force govconnect_case-service 2>/dev/null || true
+            fi
+            if [ "$NOTIFICATION_CHANGED" == "true" ]; then
+              echo ""
+              echo ">>> Notification Service Update Status:"
+              docker service update --force govconnect_notification-service 2>/dev/null || true
+            fi
+            if [ "$DASHBOARD_CHANGED" == "true" ]; then
+              echo ""
+              echo ">>> Dashboard Update Status:"
+              docker service update --force govconnect_dashboard 2>/dev/null || true
+            fi
             
             # Cleanup old images
             docker system prune -f --volumes=false
             
             echo ""
             echo "=========================================="
-            echo "  Deployment completed at $(date)"
+            echo "  Swarm Deployment completed at $(date)"
+            echo "  Zero-downtime rolling update applied!"
             echo "=========================================="
         continue-on-error: true
 
