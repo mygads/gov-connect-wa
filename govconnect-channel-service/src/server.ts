@@ -3,6 +3,7 @@ import { config } from './config/env';
 import { connectRabbitMQ, disconnectRabbitMQ, startConsumingAIReply, startConsumingAIError, startConsumingMessageStatus } from './services/rabbitmq.service';
 import { loadSettingsFromDatabase } from './services/wa.service';
 import { cleanupOldMessages } from './services/pending-message.service';
+import { flushAllBatches } from './services/message-batcher.service';
 import logger from './utils/logger';
 import prisma from './config/database';
 
@@ -52,6 +53,9 @@ async function startServer() {
 
       server.close(async () => {
         logger.info('HTTP server closed');
+
+        // Flush all pending message batches before shutdown
+        await flushAllBatches();
 
         // Disconnect RabbitMQ
         await disconnectRabbitMQ();

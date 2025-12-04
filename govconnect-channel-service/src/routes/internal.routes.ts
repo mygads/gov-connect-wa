@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getMessages, sendMessage, setTyping } from '../controllers/internal.controller';
+import { getMessages, sendMessage, setTyping, markMessagesRead } from '../controllers/internal.controller';
 import {
   getStatus,
   connect,
@@ -37,6 +37,7 @@ router.use(internalAuth);
 router.get('/messages', validateGetMessages, getMessages);
 router.post('/send', validateSendMessage, sendMessage);
 router.post('/typing', setTyping);
+router.post('/messages/read', markMessagesRead);
 
 // WhatsApp Session Management Routes
 router.get('/whatsapp/status', getStatus);

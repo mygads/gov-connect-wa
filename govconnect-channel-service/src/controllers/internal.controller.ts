@@ -4,7 +4,7 @@ import {
   saveOutgoingMessage,
   logSentMessage,
 } from '../services/message.service';
-import { sendTextMessage, sendTypingIndicator } from '../services/wa.service';
+import { sendTextMessage, sendTypingIndicator, markMessageAsRead } from '../services/wa.service';
 import logger from '../utils/logger';
 
 /**
@@ -110,6 +110,44 @@ export async function setTyping(req: Request, res: Response): Promise<void> {
     }
   } catch (error: any) {
     logger.error('Typing indicator error', { error: error.message });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+/**
+ * Mark messages as read in WhatsApp
+ * POST /internal/messages/read
+ * Body: { wa_user_id: "628xxx", message_ids: ["msgid1", "msgid2"] }
+ * 
+ * This is called by AI service when it starts processing messages
+ * so user sees "read" status (blue checkmarks) at that moment
+ */
+export async function markMessagesRead(req: Request, res: Response): Promise<void> {
+  try {
+    const { wa_user_id, message_ids } = req.body;
+    
+    if (!wa_user_id || !message_ids || !Array.isArray(message_ids)) {
+      res.status(400).json({ 
+        error: 'wa_user_id and message_ids array are required' 
+      });
+      return;
+    }
+    
+    // Mark messages as read in WhatsApp
+    // Use wa_user_id as both chat and sender for simplicity
+    await markMessageAsRead(message_ids, wa_user_id, wa_user_id);
+    
+    logger.info('Messages marked as read', { 
+      wa_user_id, 
+      count: message_ids.length 
+    });
+    
+    res.json({ 
+      status: 'ok', 
+      marked_count: message_ids.length 
+    });
+  } catch (error: any) {
+    logger.error('Mark messages read error', { error: error.message });
     res.status(500).json({ error: 'Internal server error' });
   }
 }

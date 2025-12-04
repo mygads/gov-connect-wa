@@ -144,6 +144,9 @@ services:
       MEDIA_STORAGE_PATH: /app/uploads
       MEDIA_INTERNAL_URL: http://channel-service:3001/uploads
       MEDIA_PUBLIC_URL: ${MEDIA_PUBLIC_URL:-https://govconnect.my.id/uploads}
+      # Message batching - wait for more messages before sending to AI
+      MESSAGE_BATCH_DELAY_MS: ${MESSAGE_BATCH_DELAY_MS:-5000}
+      MAX_BATCH_SIZE: ${MAX_BATCH_SIZE:-10}
       LOG_LEVEL: info
     secrets:
       - internal_api_key

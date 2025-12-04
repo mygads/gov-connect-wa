@@ -61,6 +61,50 @@ export async function stopTyping(wa_user_id: string): Promise<boolean> {
 }
 
 /**
+ * Mark messages as read via Channel Service
+ * This is called when AI starts processing the message
+ * @param wa_user_id - User's WhatsApp phone number
+ * @param message_ids - Array of message IDs to mark as read
+ */
+export async function markMessagesAsRead(
+  wa_user_id: string,
+  message_ids: string[]
+): Promise<boolean> {
+  try {
+    const url = `${config.channelServiceUrl}/internal/messages/read`;
+    
+    await axios.post(
+      url,
+      {
+        wa_user_id,
+        message_ids,
+      },
+      {
+        headers: {
+          'x-internal-api-key': config.internalApiKey,
+          'Content-Type': 'application/json',
+        },
+        timeout: 5000,
+      }
+    );
+    
+    logger.debug('Messages marked as read', {
+      wa_user_id,
+      count: message_ids.length,
+    });
+    
+    return true;
+  } catch (error: any) {
+    logger.warn('Failed to mark messages as read', {
+      wa_user_id,
+      error: error.message,
+    });
+    // Don't throw - marking as read is non-critical
+    return false;
+  }
+}
+
+/**
  * Check if a user is in takeover mode (admin handling)
  * @param wa_user_id - User's WhatsApp phone number
  * @returns true if user is in takeover mode, false otherwise

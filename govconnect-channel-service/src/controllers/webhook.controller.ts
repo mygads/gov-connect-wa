@@ -3,15 +3,11 @@ import {
   saveIncomingMessage,
   checkDuplicateMessage,
 } from '../services/message.service';
-import { publishEvent, isConnected as isRabbitConnected } from '../services/rabbitmq.service';
-import {
-  markMessageAsRead,
-  sendTypingIndicator,
-} from '../services/wa.service';
+// markMessageAsRead is now called by AI service when processing starts
 import { processMediaFromWebhook, MediaInfo } from '../services/media.service';
 import { updateConversation, isUserInTakeover, setAIProcessing } from '../services/takeover.service';
 import { addPendingMessage } from '../services/pending-message.service';
-import { rabbitmqConfig } from '../config/rabbitmq';
+import { addMessageToBatch, cancelBatch } from '../services/message-batcher.service';
 import logger from '../utils/logger';
 import { 
   GenfityWebhookPayload,
@@ -71,7 +67,7 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
     }
 
     // Parse genfity-wa webhook payload
-    const { message, from, messageId, timestamp, senderPhone, chatPhone } = parseGenfityPayload(payload);
+    const { message, from, messageId, timestamp } = parseGenfityPayload(payload);
 
     logger.debug('Parsed payload result', { message, from, messageId, timestamp });
 
@@ -104,14 +100,10 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
     const waUserId = extractPhoneFromJID(from);
 
     // ============================================
-    // STEP 1: IMMEDIATELY READ MESSAGE (don't wait for AI)
+    // STEP 1: DON'T READ MESSAGE YET
     // ============================================
-    // Always read message immediately so user sees "read" status
-    if (messageId && chatPhone && senderPhone) {
-      markMessageAsRead([messageId], chatPhone, senderPhone).catch((err) => {
-        logger.warn('Failed to mark message as read', { error: err.message });
-      });
-    }
+    // Message will be marked as read when AI starts processing
+    // This gives user feedback that their message is being worked on
 
     // ============================================
     // STEP 2: SAVE TO DATABASE (parallel with media processing)
@@ -160,6 +152,9 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
     
     if (inTakeover) {
       // User is being handled by admin - don't process with AI
+      // Cancel any pending batch for this user
+      cancelBatch(waUserId);
+      
       logger.info('User in takeover mode, skipping AI processing', {
         wa_user_id: waUserId,
         message_id: messageId,
@@ -169,9 +164,9 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
     }
 
     // ============================================
-    // STEP 4: QUEUE FOR AI PROCESSING
+    // STEP 4: BATCH MESSAGES FOR AI PROCESSING
     // ============================================
-    // Add to pending queue (for batching and retry)
+    // Add to pending queue (for retry if needed)
     await addPendingMessage({
       wa_user_id: waUserId,
       message_id: messageId,
@@ -181,41 +176,28 @@ export async function handleWebhook(req: Request, res: Response): Promise<void> 
     // Set AI status to queued
     await setAIProcessing(waUserId, messageId);
 
-    // Try to publish to RabbitMQ
-    // If RabbitMQ is down, message is still in pending queue for retry
-    if (isRabbitConnected()) {
-      try {
-        await publishEvent(rabbitmqConfig.ROUTING_KEYS.MESSAGE_RECEIVED, {
-          wa_user_id: waUserId,
-          message: message,
-          message_id: messageId,
-          received_at: timestamp.toISOString(),
-          // Media information
-          has_media: mediaInfo.hasMedia,
-          media_type: mediaInfo.mediaType,
-          media_url: mediaInfo.mediaUrl,
-          media_public_url: mediaInfo.mediaPublicUrl,
-          media_caption: mediaInfo.caption,
-          media_mime_type: mediaInfo.mimeType,
-          media_file_name: mediaInfo.fileName,
-        });
-        
-        logger.info('Message queued for AI processing', {
-          wa_user_id: waUserId,
-          message_id: messageId,
-        });
-      } catch (pubError: any) {
-        // RabbitMQ publish failed - message is still in pending queue
-        logger.warn('Failed to publish to RabbitMQ, message in pending queue', {
-          error: pubError.message,
-          message_id: messageId,
-        });
+    // Add to message batcher
+    // The batcher will wait for more messages before sending to AI
+    // This prevents spam and combines multiple messages into one AI request
+    const { isNewBatch, batchSize } = addMessageToBatch(
+      waUserId,
+      messageId,
+      message,
+      timestamp.toISOString(),
+      {
+        has_media: mediaInfo.hasMedia,
+        media_type: mediaInfo.mediaType,
+        media_url: mediaInfo.mediaUrl,
+        media_public_url: mediaInfo.mediaPublicUrl,
       }
-    } else {
-      logger.warn('RabbitMQ not connected, message in pending queue for retry', {
-        message_id: messageId,
-      });
-    }
+    );
+    
+    logger.info('Message added to batch for AI processing', {
+      wa_user_id: waUserId,
+      message_id: messageId,
+      is_new_batch: isNewBatch,
+      batch_size: batchSize,
+    });
 
     logger.info('Webhook processed successfully', {
       from: waUserId,
@@ -278,9 +260,9 @@ function parseGenfityPayload(payload: GenfityWebhookPayload): {
     const from = info.Chat; // e.g., "628123456789@s.whatsapp.net"
     
     // Extract sender and chat phone for auto-read feature
-    // Sender format: "6281233784490:24@s.whatsapp.net" or "6281233784490@s.whatsapp.net"
+    // Sender is an object: { User: "6281233784490", Server: "s.whatsapp.net", AD?: boolean }
     // Chat format: "6281233784490@s.whatsapp.net"
-    const senderPhone = info.Sender ? info.Sender.split('@')[0].split(':')[0] : null;
+    const senderPhone = info.Sender?.User || null;
     const chatPhone = info.Chat ? info.Chat.split('@')[0] : null;
 
     // Extract message ID

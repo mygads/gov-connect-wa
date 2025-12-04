@@ -113,10 +113,10 @@ async function getModelPriority(): Promise<string[]> {
 
 /**
  * Call Gemini with structured JSON output
- * GUARANTEES a response - will retry infinitely until successful
+ * Returns null if all models fail - message will stay in pending queue for retry
  * NEVER returns error message to user
  */
-export async function callGemini(systemPrompt: string): Promise<{ response: LLMResponse; metrics: LLMMetrics }> {
+export async function callGemini(systemPrompt: string): Promise<{ response: LLMResponse; metrics: LLMMetrics } | null> {
   const startTime = Date.now();
   let totalAttempts = 0;
   let lastError: string = '';
@@ -238,35 +238,20 @@ export async function callGemini(systemPrompt: string): Promise<{ response: LLMR
     modelStatsService.recordFailure(model, finalResult.error || 'Final fallback failed', callDuration);
   }
   
-  // ABSOLUTE LAST RESORT - generate synthetic response
-  // This should essentially NEVER happen unless all Gemini services are down
+  // ABSOLUTE LAST RESORT - all models failed
+  // Return null to indicate failure - message will stay in pending queue for retry later
   const endTime = Date.now();
   const durationMs = endTime - startTime;
   
-  logger.error('🚨 CRITICAL: All LLM attempts exhausted - using synthetic response', {
+  logger.error('🚨 CRITICAL: All LLM attempts exhausted - message will be retried later', {
     totalAttempts,
     durationMs,
     lastError,
   });
   
-  // Return a helpful response that encourages user to try again
-  const fallbackResponse: LLMResponse = {
-    intent: 'QUESTION',
-    fields: {},
-    reply_text: 'Terima kasih atas pesan Anda. Mohon tunggu sebentar dan kirim pesan Anda sekali lagi dalam beberapa detik.',
-  };
-  
-  const metrics: LLMMetrics = {
-    startTime,
-    endTime,
-    durationMs,
-    model: 'synthetic-fallback',
-  };
-  
-  return {
-    response: fallbackResponse,
-    metrics,
-  };
+  // Return null to signal failure - no response will be sent
+  // Message stays in pending queue and will be retried by cron job
+  return null;
 }
 
 /**
@@ -362,17 +347,15 @@ async function callGeminiWithModel(
 }
 
 /**
- * Handle LLM errors and provide appropriate fallback
+ * Handle LLM errors - log and return null to indicate failure
+ * Message will stay in pending queue for retry
  */
-export function handleLLMError(error: any): LLMResponse {
-  logger.error('LLM error handler', {
+export function handleLLMError(error: any): null {
+  logger.error('LLM error handler - message will be retried later', {
     errorType: error.constructor.name,
     message: error.message,
   });
   
-  return {
-    intent: 'QUESTION',
-    fields: {},
-    reply_text: 'Terima kasih atas pesan Anda. Mohon ulangi permintaan Anda dengan lebih detail.',
-  };
+  // Return null to signal failure - no response will be sent
+  return null;
 }

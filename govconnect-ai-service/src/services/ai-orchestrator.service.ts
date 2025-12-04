@@ -6,7 +6,7 @@ import { createComplaint, createTicket, getComplaintStatus, getTicketStatus, can
 import { publishAIReply, publishAIError, publishMessageStatus } from './rabbitmq.service';
 import { isAIChatbotEnabled } from './settings.service';
 import { searchKnowledge, getRAGContext } from './knowledge.service';
-import { startTyping, stopTyping, isUserInTakeover } from './channel-client.service';
+import { startTyping, stopTyping, isUserInTakeover, markMessagesAsRead } from './channel-client.service';
 import { rateLimiterService } from './rate-limiter.service';
 import { aiAnalyticsService } from './ai-analytics.service';
 import { shouldRetrieveContext, isSpamMessage } from './rag.service';
@@ -275,6 +275,19 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
     batchCount: batched_message_ids?.length,
   });
   
+  // ============================================
+  // MARK MESSAGES AS READ IN WHATSAPP
+  // ============================================
+  // This is when user sees "read" status (blue checkmarks)
+  // We do this when AI starts processing, not when message is received
+  const messageIdsToRead = is_batched && batched_message_ids 
+    ? batched_message_ids 
+    : [message_id];
+  
+  markMessagesAsRead(wa_user_id, messageIdsToRead).catch((err) => {
+    logger.warn('Failed to mark messages as read', { error: err.message });
+  });
+  
   // Notify that we're processing
   if (is_batched && batched_message_ids) {
     await publishMessageStatus({
@@ -540,7 +553,34 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
     });
     
     // Step 3: Call LLM for intent detection (with knowledge already injected if available)
-    const { response: llmResponse, metrics } = await callGemini(systemPrompt);
+    const llmResult = await callGemini(systemPrompt);
+    
+    // If LLM call failed (all models exhausted), skip processing
+    // Message will stay in pending queue and be retried later
+    if (!llmResult) {
+      logger.warn('⏸️ LLM call failed, message will be retried later', {
+        wa_user_id,
+        message_id,
+        isBatched: is_batched,
+      });
+      
+      // Stop typing indicator
+      await stopTyping(wa_user_id);
+      
+      // Mark as failed for retry - don't publish error to avoid fallback message
+      if (is_batched && batched_message_ids) {
+        await publishMessageStatus({
+          wa_user_id,
+          message_ids: batched_message_ids,
+          status: 'failed',
+        });
+      }
+      
+      // Throw error to trigger message nack for requeue
+      throw new Error('LLM_FAILURE_RETRY_LATER');
+    }
+    
+    const { response: llmResponse, metrics } = llmResult;
     
     // Stop typing after LLM responds
     await stopTyping(wa_user_id);
@@ -989,7 +1029,15 @@ async function handleKnowledgeQuery(wa_user_id: string, message: string, llmResp
     );
     
     // Second LLM call with knowledge context
-    const { response: knowledgeResponse, metrics } = await callGemini(systemPrompt);
+    const knowledgeResult2 = await callGemini(systemPrompt);
+    
+    // If LLM fails, return fallback message
+    if (!knowledgeResult2) {
+      logger.warn('Knowledge query LLM failed', { wa_user_id });
+      return 'Maaf, terjadi kendala teknis. Silakan coba lagi dalam beberapa saat.';
+    }
+    
+    const { response: knowledgeResponse, metrics } = knowledgeResult2;
     
     logger.info('Knowledge query answered', {
       wa_user_id,
