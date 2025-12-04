@@ -10,7 +10,7 @@ interface EnvConfig {
   INTERNAL_API_KEY: string;
   WA_API_URL: string;
   WA_ACCESS_TOKEN: string;
-  WA_WEBHOOK_VERIFY_TOKEN: string;
+  WA_WEBHOOK_VERIFY_TOKEN: string; // Optional - if empty, webhook verification is disabled
   LOG_LEVEL: string;
   LOG_DIR: string;
   CASE_SERVICE_URL: string;
@@ -22,7 +22,7 @@ function validateEnv(): EnvConfig {
     'DATABASE_URL',
     'RABBITMQ_URL',
     'INTERNAL_API_KEY',
-    'WA_WEBHOOK_VERIFY_TOKEN',
+    // WA_WEBHOOK_VERIFY_TOKEN removed from required - now optional
   ];
 
   for (const key of required) {
@@ -41,7 +41,8 @@ function validateEnv(): EnvConfig {
     WA_API_URL: process.env.WA_API_URL || 'https://api-wa.genfity.com/wa',
     // WA_ACCESS_TOKEN: Session token from genfity-wa
     WA_ACCESS_TOKEN: process.env.WA_ACCESS_TOKEN || '',
-    WA_WEBHOOK_VERIFY_TOKEN: process.env.WA_WEBHOOK_VERIFY_TOKEN!,
+    // WA_WEBHOOK_VERIFY_TOKEN: Optional - if empty, accepts any webhook without verification
+    WA_WEBHOOK_VERIFY_TOKEN: process.env.WA_WEBHOOK_VERIFY_TOKEN || '',
     LOG_LEVEL: process.env.LOG_LEVEL || 'info',
     LOG_DIR: process.env.LOG_DIR || 'logs',
     CASE_SERVICE_URL: process.env.CASE_SERVICE_URL || 'http://localhost:3003',
