@@ -45,7 +45,7 @@ services:
     environment:
       POSTGRES_DB: govconnect
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secret_2025}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgree_govconnect}
     ports:
       - "${POSTGRES_PORT:-5433}:5432"
     volumes:
@@ -67,7 +67,7 @@ services:
     container_name: govconnect-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-rabbitmq_secret_2025}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-rabbitmq_govconnect}
       RABBITMQ_DEFAULT_VHOST: govconnect
     ports:
       - "5672:5672"
@@ -101,9 +101,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3001
       SERVICE_NAME: channel-service
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_secret_2025}@postgres:5432/govconnect?schema=channel
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_secret_2025}@rabbitmq:5672/govconnect
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-govconnect-internal-2025-secret}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgree_govconnect}@postgres:5432/govconnect?schema=channel
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_govconnect}@rabbitmq:5672/govconnect
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal_api_key_govconnect}
       WA_WEBHOOK_VERIFY_TOKEN: ${WA_WEBHOOK_VERIFY_TOKEN:-govconnect_verify_token_2025}
       WA_API_URL: ${WA_API_URL:-https://api-wa.genfity.com/wa}
       WA_ACCESS_TOKEN: ${WA_ACCESS_TOKEN:-govconnect}
@@ -147,11 +147,11 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3002
       SERVICE_NAME: ai-service
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_secret_2025}@rabbitmq:5672/govconnect
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_govconnect}@rabbitmq:5672/govconnect
       CHANNEL_SERVICE_URL: http://channel-service:3001
       CASE_SERVICE_URL: http://case-service:3003
       DASHBOARD_SERVICE_URL: http://dashboard:3000
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-govconnect-internal-2025-secret}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal_api_key_govconnect}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.3}
       LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-2000}
@@ -192,9 +192,9 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3003
       SERVICE_NAME: case-service
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_secret_2025}@postgres:5432/govconnect?schema=cases
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_secret_2025}@rabbitmq:5672/govconnect
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-govconnect-internal-2025-secret}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgree_govconnect}@postgres:5432/govconnect?schema=cases
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_govconnect}@rabbitmq:5672/govconnect
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal_api_key_govconnect}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     networks:
       - govconnect-network
@@ -226,12 +226,12 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_secret_2025}@postgres:5432/govconnect?schema=dashboard
-      JWT_SECRET: ${JWT_SECRET:-govconnect-jwt-secret-2025-change-in-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgree_govconnect}@postgres:5432/govconnect?schema=dashboard
+      JWT_SECRET: ${JWT_SECRET:-jwt_secret_govconnect}
       CASE_SERVICE_URL: http://case-service:3003
       CHANNEL_SERVICE_URL: http://channel-service:3001
       AI_SERVICE_URL: http://ai-service:3002
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-govconnect-internal-2025-secret}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal_api_key_govconnect}
       NEXT_PUBLIC_APP_NAME: "GovConnect Dashboard"
     networks:
       - govconnect-network
@@ -266,10 +266,10 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: 3004
       SERVICE_NAME: notification-service
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_secret_2025}@postgres:5432/govconnect?schema=notification
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_secret_2025}@rabbitmq:5672/govconnect
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgree_govconnect}@postgres:5432/govconnect?schema=notification
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_govconnect}@rabbitmq:5672/govconnect
       CHANNEL_SERVICE_URL: http://channel-service:3001
-      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-govconnect-internal-2025-secret}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal_api_key_govconnect}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     networks:
       - govconnect-network
