@@ -104,7 +104,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgree_govconnect}@postgres:5432/govconnect?schema=channel
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-rabbitmq_govconnect}@rabbitmq:5672/govconnect
       INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal_api_key_govconnect}
-      WA_WEBHOOK_VERIFY_TOKEN: ${WA_WEBHOOK_VERIFY_TOKEN:-govconnect_verify_token_2025}
+      WA_WEBHOOK_VERIFY_TOKEN: ${WA_WEBHOOK_VERIFY_TOKEN:-}
       WA_API_URL: ${WA_API_URL:-https://api-wa.genfity.com/wa}
       WA_ACCESS_TOKEN: ${WA_ACCESS_TOKEN:-govconnect}
       CASE_SERVICE_URL: http://case-service:3003
