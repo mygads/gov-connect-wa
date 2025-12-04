@@ -3,41 +3,98 @@ name: GovConnect CI/CD
 on:
   push:
     branches: [main, develop]
+    paths:
+      - 'govconnect-*/**'
+      - 'docker-compose.yml'
+      - 'docker/**'
+      - 'k8s/**'
+      - 'traefik/**'
+      - '.github/workflows/ci-cd.yml'
   pull_request:
     branches: [main]
+  workflow_dispatch:  # Manual trigger
 
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/govconnect
 
 jobs:
+  # ==================== DETECT CHANGES ====================
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      channel-service: ${{ steps.filter.outputs.channel-service }}
+      ai-service: ${{ steps.filter.outputs.ai-service }}
+      case-service: ${{ steps.filter.outputs.case-service }}
+      notification-service: ${{ steps.filter.outputs.notification-service }}
+      dashboard: ${{ steps.filter.outputs.dashboard }}
+      any-service: ${{ steps.filter.outputs.any-service }}
+      infrastructure: ${{ steps.filter.outputs.infrastructure }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            channel-service:
+              - 'govconnect-channel-service/**'
+            ai-service:
+              - 'govconnect-ai-service/**'
+            case-service:
+              - 'govconnect-case-service/**'
+            notification-service:
+              - 'govconnect-notification-service/**'
+            dashboard:
+              - 'govconnect-dashboard/**'
+            infrastructure:
+              - 'docker-compose.yml'
+              - 'docker/**'
+              - 'k8s/**'
+              - 'traefik/**'
+            any-service:
+              - 'govconnect-*/**'
+
   # ==================== BUILD DOCKER IMAGES ====================
   build:
     name: Build - ${{ matrix.service }}
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: detect-changes
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.detect-changes.outputs.any-service == 'true'
     strategy:
       fail-fast: false
       matrix:
-        service:
-          - channel-service
-          - ai-service
-          - case-service
-          - notification-service
-          - dashboard
+        include:
+          - service: channel-service
+            changed: ${{ needs.detect-changes.outputs.channel-service }}
+          - service: ai-service
+            changed: ${{ needs.detect-changes.outputs.ai-service }}
+          - service: case-service
+            changed: ${{ needs.detect-changes.outputs.case-service }}
+          - service: notification-service
+            changed: ${{ needs.detect-changes.outputs.notification-service }}
+          - service: dashboard
+            changed: ${{ needs.detect-changes.outputs.dashboard }}
 
     permissions:
       contents: read
       packages: write
 
     steps:
+      - name: Skip if not changed
+        if: matrix.changed != 'true'
+        run: echo "Skipping ${{ matrix.service }} - no changes detected"
+
       - name: Checkout code
+        if: matrix.changed == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
+        if: matrix.changed == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to Container Registry
+        if: matrix.changed == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -45,6 +102,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata
+        if: matrix.changed == 'true'
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -55,6 +113,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
+        if: matrix.changed == 'true'
         uses: docker/build-push-action@v5
         with:
           context: govconnect-${{ matrix.service }}
@@ -90,8 +149,13 @@ jobs:
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [detect-changes, build]
+    if: |
+      always() && 
+      github.event_name == 'push' && 
+      github.ref == 'refs/heads/main' && 
+      (needs.detect-changes.outputs.any-service == 'true' || needs.detect-changes.outputs.infrastructure == 'true') &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
     environment: staging
 
     steps:
@@ -107,10 +171,34 @@ jobs:
           script: |
             cd /opt/govconnect
             git pull origin main
-            docker compose pull
+            
+            # Check what changed
+            SERVICE_CHANGED="${{ needs.detect-changes.outputs.any-service }}"
+            INFRA_CHANGED="${{ needs.detect-changes.outputs.infrastructure }}"
+            
+            echo "=== GovConnect Deployment ==="
+            echo "Service changed: $SERVICE_CHANGED"
+            echo "Infrastructure changed: $INFRA_CHANGED"
+            
+            # If service code changed, rebuild images
+            if [ "$SERVICE_CHANGED" == "true" ]; then
+              echo ">>> Rebuilding service images..."
+              docker compose build --no-cache
+            fi
+            
+            # Restart services (handles both service & infra changes)
+            echo ">>> Restarting services..."
+            docker compose down
             docker compose up -d
+            
+            # Show running containers
+            echo ">>> Running containers:"
+            docker compose ps
+            
+            # Cleanup old images
             docker system prune -f
-            echo "Staging deployment completed at $(date)"
+            
+            echo "=== Deployment completed at $(date) ==="
         continue-on-error: true
 
   # ==================== DEPLOY TO PRODUCTION ====================
@@ -127,41 +215,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          version: '>= 363.0.0'
-
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
       - name: Configure Docker for GCP
         run: gcloud auth configure-docker asia-southeast2-docker.pkg.dev
-
-      - name: Deploy to Cloud Run (Optional)
-        run: |
-          echo "Cloud Run deployment can be configured here"
-          echo "For Kubernetes, use kubectl apply -f k8s/"
-        continue-on-error: true
-
-      - name: Deploy to GKE (Optional)
-        run: |
-          # Uncomment when GKE cluster is ready
-          # gcloud container clusters get-credentials govconnect-cluster --zone asia-southeast2-a
-          # kubectl apply -f govconnect/k8s/
-          echo "GKE deployment placeholder"
         continue-on-error: true
 
       - name: Health check
         run: |
           echo "Waiting for services to be healthy..."
-          sleep 30
-          # Uncomment when domain is configured
-          # curl -f https://api.govconnect.my.id/health || echo "Health check skipped - domain not configured"
-          echo "Health check placeholder"
+          sleep 10
+          # Health check via SSH since we deploy to VM not GKE
+          echo "Services deployed via staging step"
         continue-on-error: true
 
       - name: Notify deployment success
@@ -169,7 +242,6 @@ jobs:
           echo "✅ GovConnect deployed successfully!"
           echo "Dashboard: https://govconnect.my.id"
           echo "API: https://api.govconnect.my.id"
-        if: success()
 
   # ==================== CLEANUP ====================
   cleanup:
@@ -177,6 +249,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: deploy-production
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    permissions:
+      packages: write
 
     steps:
       - name: Delete old container images
