@@ -397,14 +397,31 @@ function extractPhoneFromJID(jid: string): string {
 /**
  * Webhook verification (for WhatsApp Cloud API setup - kept for compatibility)
  * GET /webhook/whatsapp
+ * 
+ * If WA_WEBHOOK_VERIFY_TOKEN is not set, accept any verification request.
+ * This allows simpler webhook setup without verify token.
  */
 export function verifyWebhook(req: Request, res: Response): void {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
-  const verifyToken = process.env.WA_WEBHOOK_VERIFY_TOKEN || 'govconnect_verify';
+  const verifyToken = process.env.WA_WEBHOOK_VERIFY_TOKEN;
 
+  // If no verify token is configured, accept any subscription request
+  if (!verifyToken || verifyToken === '') {
+    if (mode === 'subscribe' && challenge) {
+      logger.info('Webhook verified (no token required)');
+      res.send(challenge);
+      return;
+    }
+    // No challenge but valid request - just accept
+    logger.info('Webhook ping accepted (no token required)');
+    res.send('OK');
+    return;
+  }
+
+  // Verify token is configured - validate it
   if (mode === 'subscribe' && token === verifyToken) {
     logger.info('Webhook verified successfully');
     res.send(challenge);
