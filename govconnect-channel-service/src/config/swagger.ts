@@ -134,7 +134,7 @@ Channel Service adalah **pintu gerbang WhatsApp** untuk sistem GovConnect.
       },
     },
   },
-  apis: ['./src/routes/*.ts'],
+  apis: ['./src/routes/*.ts', './dist/routes/*.js'],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

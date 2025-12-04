@@ -146,7 +146,7 @@ Case Service mengelola **Laporan Warga** dan **Tiket Layanan** dalam sistem GovC
       },
     },
   },
-  apis: ['./src/routes/*.ts'],
+  apis: ['./src/routes/*.ts', './dist/routes/*.js'],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
