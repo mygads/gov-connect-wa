@@ -185,6 +185,52 @@ http:
       tls:
         certResolver: letsencrypt
 
+    # ==================== MONITORING - GRAFANA ====================
+    grafana:
+      rule: "Host(`grafana.govconnect.my.id`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - security-headers
+      service: grafana
+      tls:
+        certResolver: letsencrypt
+
+    # ==================== MONITORING - PROMETHEUS ====================
+    prometheus:
+      rule: "Host(`prometheus.govconnect.my.id`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - dashboard-auth
+        - security-headers
+      service: prometheus
+      tls:
+        certResolver: letsencrypt
+
+    # ==================== MONITORING - ALERTMANAGER ====================
+    alertmanager:
+      rule: "Host(`alertmanager.govconnect.my.id`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - dashboard-auth
+        - security-headers
+      service: alertmanager
+      tls:
+        certResolver: letsencrypt
+
+    # ==================== RABBITMQ MANAGEMENT ====================
+    rabbitmq:
+      rule: "Host(`rabbitmq.govconnect.my.id`)"
+      entryPoints:
+        - websecure
+      middlewares:
+        - security-headers
+      service: rabbitmq
+      tls:
+        certResolver: letsencrypt
+
   # ==================== SERVICES ====================
   services:
     dashboard:
@@ -231,6 +277,27 @@ http:
           path: /health
           interval: 30s
           timeout: 5s
+
+    # Monitoring Services
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3000"
+
+    prometheus:
+      loadBalancer:
+        servers:
+          - url: "http://prometheus:9090"
+
+    alertmanager:
+      loadBalancer:
+        servers:
+          - url: "http://alertmanager:9093"
+
+    rabbitmq:
+      loadBalancer:
+        servers:
+          - url: "http://rabbitmq:15672"
 
   # ==================== MIDDLEWARES ====================
   middlewares:

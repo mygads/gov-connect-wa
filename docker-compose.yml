@@ -128,12 +128,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.channel.rule=Host(`api.govconnect.my.id`) && PathPrefix(`/channel`)"
-      - "traefik.http.routers.channel.entrypoints=websecure"
-      - "traefik.http.routers.channel.tls.certresolver=letsencrypt"
-      - "traefik.http.services.channel.loadbalancer.server.port=3001"
 
   # Service 2: AI Orchestrator (Stateless)
   ai-service:
@@ -173,12 +167,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ai.rule=Host(`api.govconnect.my.id`) && PathPrefix(`/ai`)"
-      - "traefik.http.routers.ai.entrypoints=websecure"
-      - "traefik.http.routers.ai.tls.certresolver=letsencrypt"
-      - "traefik.http.services.ai.loadbalancer.server.port=3002"
 
   # Service 3: Case Service (Laporan & Tiket)
   case-service:
@@ -209,12 +197,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.case.rule=Host(`api.govconnect.my.id`) && PathPrefix(`/case`)"
-      - "traefik.http.routers.case.entrypoints=websecure"
-      - "traefik.http.routers.case.tls.certresolver=letsencrypt"
-      - "traefik.http.services.case.loadbalancer.server.port=3003"
 
   # Service 4: Dashboard (Next.js)
   dashboard:
@@ -247,12 +229,6 @@ services:
       timeout: 15s
       retries: 5
       start_period: 60s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.dashboard.rule=Host(`govconnect.my.id`)"
-      - "traefik.http.routers.dashboard.entrypoints=websecure"
-      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
-      - "traefik.http.services.dashboard.loadbalancer.server.port=3000"
 
   # Service 5: Notification Service
   notification-service:
@@ -286,12 +262,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.notification.rule=Host(`api.govconnect.my.id`) && PathPrefix(`/notification`)"
-      - "traefik.http.routers.notification.entrypoints=websecure"
-      - "traefik.http.routers.notification.tls.certresolver=letsencrypt"
-      - "traefik.http.services.notification.loadbalancer.server.port=3004"
 
   # ===================================================================================
   # MONITORING STACK (--profile monitoring)
@@ -314,12 +284,6 @@ services:
     networks:
       - govconnect-network
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.prometheus.rule=Host(`prometheus.govconnect.my.id`)"
-      - "traefik.http.routers.prometheus.entrypoints=websecure"
-      - "traefik.http.routers.prometheus.tls.certresolver=letsencrypt"
-      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
 
   grafana:
     image: grafana/grafana:10.3.3
@@ -341,12 +305,6 @@ services:
     depends_on:
       - prometheus
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.grafana.rule=Host(`grafana.govconnect.my.id`)"
-      - "traefik.http.routers.grafana.entrypoints=websecure"
-      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
-      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
   node-exporter:
     image: prom/node-exporter:v1.7.0
@@ -454,9 +412,8 @@ services:
     command:
       - "--api.dashboard=true"
       - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=govconnect-network"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
@@ -468,18 +425,11 @@ services:
       - "--accesslog=true"
       - "--log.level=INFO"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-certs:/letsencrypt
-      - ./traefik/traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
     networks:
       - govconnect-network
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`traefik.govconnect.my.id`)"
-      - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.routers.traefik.entrypoints=websecure"
-      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
 
 # ===================================================================================
 # NETWORKS
