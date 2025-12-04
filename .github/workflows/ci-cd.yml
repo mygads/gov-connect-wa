@@ -9,6 +9,9 @@ on:
       - 'docker/**'
       - 'k8s/**'
       - 'traefik/**'
+      - 'monitoring/**'
+      - 'prometheus/**'
+      - 'grafana/**'
       - '.github/workflows/ci-cd.yml'
   pull_request:
     branches: [main]
@@ -31,6 +34,9 @@ jobs:
       dashboard: ${{ steps.filter.outputs.dashboard }}
       any-service: ${{ steps.filter.outputs.any-service }}
       infrastructure: ${{ steps.filter.outputs.infrastructure }}
+      traefik: ${{ steps.filter.outputs.traefik }}
+      monitoring: ${{ steps.filter.outputs.monitoring }}
+      docker-compose: ${{ steps.filter.outputs.docker-compose }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -52,6 +58,21 @@ jobs:
               - 'docker/**'
               - 'k8s/**'
               - 'traefik/**'
+              - 'monitoring/**'
+              - 'prometheus/**'
+              - 'grafana/**'
+            traefik:
+              - 'traefik/**'
+            monitoring:
+              - 'monitoring/**'
+              - 'prometheus/**'
+              - 'grafana/**'
+              - 'docker/alertmanager/**'
+              - 'docker/loki/**'
+              - 'docker/promtail/**'
+            docker-compose:
+              - 'docker-compose.yml'
+              - 'docker-compose.*.yml'
             any-service:
               - 'govconnect-*/**'
 
@@ -175,30 +196,111 @@ jobs:
             # Check what changed
             SERVICE_CHANGED="${{ needs.detect-changes.outputs.any-service }}"
             INFRA_CHANGED="${{ needs.detect-changes.outputs.infrastructure }}"
+            TRAEFIK_CHANGED="${{ needs.detect-changes.outputs.traefik }}"
+            MONITORING_CHANGED="${{ needs.detect-changes.outputs.monitoring }}"
+            DOCKER_COMPOSE_CHANGED="${{ needs.detect-changes.outputs.docker-compose }}"
             
-            echo "=== GovConnect Deployment ==="
-            echo "Service changed: $SERVICE_CHANGED"
-            echo "Infrastructure changed: $INFRA_CHANGED"
+            CHANNEL_CHANGED="${{ needs.detect-changes.outputs.channel-service }}"
+            AI_CHANGED="${{ needs.detect-changes.outputs.ai-service }}"
+            CASE_CHANGED="${{ needs.detect-changes.outputs.case-service }}"
+            NOTIFICATION_CHANGED="${{ needs.detect-changes.outputs.notification-service }}"
+            DASHBOARD_CHANGED="${{ needs.detect-changes.outputs.dashboard }}"
             
-            # If service code changed, rebuild images
-            if [ "$SERVICE_CHANGED" == "true" ]; then
-              echo ">>> Rebuilding service images..."
-              docker compose build --no-cache
+            echo "=========================================="
+            echo "  GovConnect Smart Deployment"
+            echo "=========================================="
+            echo ""
+            echo "--- Changes Detected ---"
+            echo "Channel Service: $CHANNEL_CHANGED"
+            echo "AI Service: $AI_CHANGED"
+            echo "Case Service: $CASE_CHANGED"
+            echo "Notification Service: $NOTIFICATION_CHANGED"
+            echo "Dashboard: $DASHBOARD_CHANGED"
+            echo "Traefik: $TRAEFIK_CHANGED"
+            echo "Monitoring: $MONITORING_CHANGED"
+            echo "Docker Compose: $DOCKER_COMPOSE_CHANGED"
+            echo ""
+            
+            # Smart rebuild - only rebuild changed services
+            if [ "$CHANNEL_CHANGED" == "true" ]; then
+              echo ">>> Rebuilding channel-service..."
+              docker compose build --no-cache channel-service
             fi
             
-            # Restart services (handles both service & infra changes)
-            echo ">>> Restarting services..."
-            docker compose down
-            docker compose up -d
+            if [ "$AI_CHANGED" == "true" ]; then
+              echo ">>> Rebuilding ai-service..."
+              docker compose build --no-cache ai-service
+            fi
+            
+            if [ "$CASE_CHANGED" == "true" ]; then
+              echo ">>> Rebuilding case-service..."
+              docker compose build --no-cache case-service
+            fi
+            
+            if [ "$NOTIFICATION_CHANGED" == "true" ]; then
+              echo ">>> Rebuilding notification-service..."
+              docker compose build --no-cache notification-service
+            fi
+            
+            if [ "$DASHBOARD_CHANGED" == "true" ]; then
+              echo ">>> Rebuilding dashboard..."
+              docker compose build --no-cache dashboard
+            fi
+            
+            # Smart restart - only restart what changed
+            RESTART_SERVICES=""
+            
+            if [ "$CHANNEL_CHANGED" == "true" ]; then
+              RESTART_SERVICES="$RESTART_SERVICES channel-service"
+            fi
+            if [ "$AI_CHANGED" == "true" ]; then
+              RESTART_SERVICES="$RESTART_SERVICES ai-service"
+            fi
+            if [ "$CASE_CHANGED" == "true" ]; then
+              RESTART_SERVICES="$RESTART_SERVICES case-service"
+            fi
+            if [ "$NOTIFICATION_CHANGED" == "true" ]; then
+              RESTART_SERVICES="$RESTART_SERVICES notification-service"
+            fi
+            if [ "$DASHBOARD_CHANGED" == "true" ]; then
+              RESTART_SERVICES="$RESTART_SERVICES dashboard"
+            fi
+            
+            # If only traefik config changed, only restart traefik
+            if [ "$TRAEFIK_CHANGED" == "true" ]; then
+              echo ">>> Restarting Traefik (config changed)..."
+              docker compose --profile production restart traefik
+            fi
+            
+            # If only monitoring config changed, restart monitoring stack
+            if [ "$MONITORING_CHANGED" == "true" ]; then
+              echo ">>> Restarting Monitoring stack (config changed)..."
+              docker compose --profile monitoring restart prometheus grafana alertmanager
+              docker compose --profile logging restart loki promtail || true
+            fi
+            
+            # If docker-compose.yml changed, need full restart
+            if [ "$DOCKER_COMPOSE_CHANGED" == "true" ]; then
+              echo ">>> Docker Compose changed - full restart..."
+              docker compose --profile production --profile monitoring --profile logging down
+              docker compose --profile production --profile monitoring --profile logging up -d
+            elif [ -n "$RESTART_SERVICES" ]; then
+              echo ">>> Restarting changed services: $RESTART_SERVICES"
+              docker compose --profile production restart $RESTART_SERVICES
+            fi
             
             # Show running containers
-            echo ">>> Running containers:"
-            docker compose ps
+            echo ""
+            echo "--- Running Containers ---"
+            docker compose --profile production --profile monitoring --profile logging ps --format "table {{.Name}}\t{{.Status}}"
             
             # Cleanup old images
-            docker system prune -f
+            docker system prune -f --volumes=false
             
-            echo "=== Deployment completed at $(date) ==="
+            echo ""
+            echo "=========================================="
+            echo "  Deployment completed at $(date)"
+            echo "=========================================="
         continue-on-error: true
 
   # ==================== DEPLOY TO PRODUCTION ====================
