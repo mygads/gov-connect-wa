@@ -4,23 +4,6 @@ import logger from '../utils/logger'
 
 const router: Router = Router()
 
-/**
- * @swagger
- * /statistics/overview:
- *   get:
- *     tags: [Statistics]
- *     summary: Get overview statistics
- *     description: Get overview statistics for dashboard including complaints and tickets
- *     responses:
- *       200:
- *         description: Statistics overview
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Statistics'
- *       500:
- *         description: Server error
- */
 router.get('/overview', async (req: Request, res: Response) => {
   try {
     // Get complaint statistics
@@ -105,28 +88,6 @@ router.get('/overview', async (req: Request, res: Response) => {
   }
 })
 
-/**
- * @swagger
- * /statistics/by-category:
- *   get:
- *     tags: [Statistics]
- *     summary: Get complaints by category
- *     description: Get complaints grouped by category
- *     responses:
- *       200:
- *         description: Category statistics
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   kategori:
- *                     type: string
- *                   count:
- *                     type: integer
- */
 router.get('/by-category', async (req: Request, res: Response) => {
   try {
     const complaints = await prisma.complaint.groupBy({
@@ -159,40 +120,6 @@ router.get('/by-category', async (req: Request, res: Response) => {
   }
 })
 
-/**
- * @swagger
- * /statistics/by-status:
- *   get:
- *     tags: [Statistics]
- *     summary: Get items by status
- *     description: Get complaints and tickets grouped by status
- *     responses:
- *       200:
- *         description: Status statistics
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 complaints:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       status:
- *                         type: string
- *                       count:
- *                         type: integer
- *                 tickets:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       status:
- *                         type: string
- *                       count:
- *                         type: integer
- */
 router.get('/by-status', async (req: Request, res: Response) => {
   try {
     const [complaintsByStatus, ticketsByStatus] = await Promise.all([
@@ -234,23 +161,7 @@ router.get('/by-status', async (req: Request, res: Response) => {
   }
 })
 
-/**
- * @swagger
- * /statistics/trends:
- *   get:
- *     tags: [Statistics]
- *     summary: Get trend analysis
- *     description: Get trend analysis data (weekly/monthly trends, peak hours, predictions)
- *     parameters:
- *       - in: query
- *         name: period
- *         schema:
- *           type: string
- *           enum: [weekly, monthly]
- *           default: weekly
- *         description: Analysis period
- *     responses:
- *       200:
+router.get('/trends', async (req: Request, res: Response) => {
  *         description: Trend analysis
  *         content:
  *           application/json:

@@ -41,17 +41,6 @@ app.get('/api-docs.json', (_req, res) => {
   res.send(swaggerSpec);
 });
 
-/**
- * @swagger
- * /:
- *   get:
- *     tags: [Health]
- *     summary: Service info
- *     description: Returns service information and version
- *     responses:
- *       200:
- *         description: Service info
- */
 app.get('/', (_req: Request, res: Response) => {
   res.json({
     service: 'govconnect-notification-service',
@@ -62,21 +51,6 @@ app.get('/', (_req: Request, res: Response) => {
   });
 });
 
-/**
- * @swagger
- * /health:
- *   get:
- *     tags: [Health]
- *     summary: Basic health check
- *     description: Returns basic service health status
- *     responses:
- *       200:
- *         description: Service is healthy
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/HealthResponse'
- */
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
@@ -85,19 +59,6 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-/**
- * @swagger
- * /health/database:
- *   get:
- *     tags: [Health]
- *     summary: Database health check
- *     description: Check database connectivity status
- *     responses:
- *       200:
- *         description: Database connected
- *       503:
- *         description: Database disconnected
- */
 app.get('/health/database', async (_req: Request, res: Response) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -117,19 +78,6 @@ app.get('/health/database', async (_req: Request, res: Response) => {
   }
 });
 
-/**
- * @swagger
- * /health/rabbitmq:
- *   get:
- *     tags: [Health]
- *     summary: RabbitMQ health check
- *     description: Check RabbitMQ connectivity status
- *     responses:
- *       200:
- *         description: RabbitMQ connected
- *       503:
- *         description: RabbitMQ disconnected
- */
 app.get('/health/rabbitmq', (_req: Request, res: Response) => {
   const connected = isConnected();
   

@@ -16,14 +16,7 @@ AI Service adalah **otak AI** untuk sistem GovConnect.
 - Ekstraksi data (kategori, alamat, deskripsi)
 - Multi-provider LLM (Gemini, OpenRouter)
 - Fallback mechanism untuk reliability
-
-## Flow Processing
-1. Terima event dari RabbitMQ (message.received)
-2. Ambil chat history dari Channel Service
-3. Proses dengan LLM untuk deteksi intent
-4. Ekstrak informasi dari percakapan
-5. Kirim ke Case Service jika perlu buat laporan/tiket
-6. Publish response ke RabbitMQ
+- RAG dengan knowledge base
       `,
       contact: {
         name: 'GovConnect Team',
@@ -41,8 +34,356 @@ AI Service adalah **otak AI** untuk sistem GovConnect.
       { name: 'Rate Limit', description: 'Rate limiting and blacklist management' },
       { name: 'Embeddings', description: 'Embedding and vector stats' },
       { name: 'Circuit Breaker', description: 'Circuit breaker status' },
-      { name: 'Document Processing', description: 'Internal document processing and embedding endpoints' },
+      { name: 'Document Processing', description: 'Internal document and embedding endpoints' },
     ],
+    paths: {
+      '/': {
+        get: {
+          tags: ['Health'],
+          summary: 'Service info',
+          description: 'Returns service information and available endpoints',
+          responses: {
+            '200': {
+              description: 'Service info',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      service: { type: 'string', example: 'GovConnect AI Orchestrator' },
+                      version: { type: 'string', example: '1.0.0' },
+                      status: { type: 'string', example: 'running' },
+                      docs: { type: 'string', example: '/api-docs' },
+                      endpoints: { type: 'object' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/health': {
+        get: {
+          tags: ['Health'],
+          summary: 'Basic health check',
+          description: 'Returns basic service health status',
+          responses: {
+            '200': {
+              description: 'Service is healthy',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', example: 'ok' },
+                      service: { type: 'string', example: 'ai-orchestrator' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/health/rabbitmq': {
+        get: {
+          tags: ['Health'],
+          summary: 'RabbitMQ health check',
+          description: 'Check RabbitMQ connectivity status',
+          responses: {
+            '200': {
+              description: 'RabbitMQ status',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', enum: ['connected', 'disconnected'] },
+                      service: { type: 'string', example: 'ai-orchestrator' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/health/services': {
+        get: {
+          tags: ['Health'],
+          summary: 'Dependent services health check',
+          description: 'Check connectivity to Channel Service and Case Service',
+          responses: {
+            '200': {
+              description: 'Services status',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', enum: ['ok', 'degraded'] },
+                      services: {
+                        type: 'object',
+                        properties: {
+                          channelService: { type: 'string', enum: ['healthy', 'unhealthy'] },
+                          caseService: { type: 'string', enum: ['healthy', 'unhealthy'] },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/stats/models': {
+        get: {
+          tags: ['Model Stats'],
+          summary: 'Get all LLM model statistics',
+          description: 'Returns statistics for all LLM models used by the AI service',
+          responses: {
+            '200': {
+              description: 'Model statistics',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      summary: {
+                        type: 'object',
+                        properties: {
+                          totalRequests: { type: 'integer' },
+                          lastUpdated: { type: 'string', format: 'date-time' },
+                          totalModels: { type: 'integer' },
+                        },
+                      },
+                      models: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            model: { type: 'string' },
+                            successRate: { type: 'string', example: '95%' },
+                            totalCalls: { type: 'integer' },
+                            avgResponseTimeMs: { type: 'number' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/stats/models/{modelName}': {
+        get: {
+          tags: ['Model Stats'],
+          summary: 'Get detailed model statistics',
+          parameters: [{ in: 'path', name: 'modelName', required: true, schema: { type: 'string' } }],
+          responses: { '200': { description: 'Model details' }, '404': { description: 'Not found' } },
+        },
+      },
+      '/stats/analytics': {
+        get: {
+          tags: ['Analytics'],
+          summary: 'Get AI analytics summary',
+          responses: { '200': { description: 'Analytics summary' } },
+        },
+      },
+      '/stats/analytics/intents': {
+        get: {
+          tags: ['Analytics'],
+          summary: 'Get intent distribution',
+          responses: { '200': { description: 'Intent distribution' } },
+        },
+      },
+      '/stats/analytics/flow': {
+        get: {
+          tags: ['Analytics'],
+          summary: 'Get conversation flow patterns',
+          responses: { '200': { description: 'Flow patterns' } },
+        },
+      },
+      '/stats/analytics/tokens': {
+        get: {
+          tags: ['Analytics'],
+          summary: 'Get token usage breakdown',
+          responses: { '200': { description: 'Token usage' } },
+        },
+      },
+      '/stats/analytics/full': {
+        get: {
+          tags: ['Analytics'],
+          summary: 'Get full analytics data for export',
+          responses: { '200': { description: 'Full analytics' } },
+        },
+      },
+      '/stats/embeddings': {
+        get: {
+          tags: ['Embeddings'],
+          summary: 'Get embedding stats',
+          responses: { '200': { description: 'Embedding statistics' } },
+        },
+      },
+      '/stats/circuit-breaker': {
+        get: {
+          tags: ['Circuit Breaker'],
+          summary: 'Get circuit breaker status',
+          responses: { '200': { description: 'Circuit breaker state' } },
+        },
+      },
+      '/rate-limit': {
+        get: {
+          tags: ['Rate Limit'],
+          summary: 'Get rate limiter config and stats',
+          responses: { '200': { description: 'Rate limit config' } },
+        },
+      },
+      '/rate-limit/check/{wa_user_id}': {
+        get: {
+          tags: ['Rate Limit'],
+          summary: 'Check rate limit for user',
+          parameters: [{ in: 'path', name: 'wa_user_id', required: true, schema: { type: 'string' } }],
+          responses: { '200': { description: 'User rate limit status' } },
+        },
+      },
+      '/rate-limit/blacklist': {
+        get: {
+          tags: ['Rate Limit'],
+          summary: 'Get blacklist',
+          responses: { '200': { description: 'Blacklist entries' } },
+        },
+        post: {
+          tags: ['Rate Limit'],
+          summary: 'Add user to blacklist',
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['wa_user_id', 'reason'],
+                  properties: {
+                    wa_user_id: { type: 'string' },
+                    reason: { type: 'string' },
+                    expiresInDays: { type: 'integer' },
+                  },
+                },
+              },
+            },
+          },
+          responses: { '200': { description: 'Added to blacklist' } },
+        },
+      },
+      '/rate-limit/blacklist/{wa_user_id}': {
+        delete: {
+          tags: ['Rate Limit'],
+          summary: 'Remove user from blacklist',
+          parameters: [{ in: 'path', name: 'wa_user_id', required: true, schema: { type: 'string' } }],
+          responses: { '200': { description: 'Removed' }, '404': { description: 'Not in blacklist' } },
+        },
+      },
+      '/rate-limit/reset/{wa_user_id}': {
+        post: {
+          tags: ['Rate Limit'],
+          summary: 'Reset user violations',
+          parameters: [{ in: 'path', name: 'wa_user_id', required: true, schema: { type: 'string' } }],
+          responses: { '200': { description: 'Violations reset' } },
+        },
+      },
+      '/api/internal/process-document': {
+        post: {
+          tags: ['Document Processing'],
+          summary: 'Process document with embeddings',
+          security: [{ InternalApiKey: [] }],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { type: 'object', properties: { documentId: { type: 'string' }, content: { type: 'string' } } } } },
+          },
+          responses: { '200': { description: 'Document processed' }, '403': { description: 'Unauthorized' } },
+        },
+      },
+      '/api/internal/embed-knowledge': {
+        post: {
+          tags: ['Document Processing'],
+          summary: 'Embed single knowledge item',
+          security: [{ InternalApiKey: [] }],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { type: 'object', properties: { knowledgeId: { type: 'string' }, content: { type: 'string' } } } } },
+          },
+          responses: { '200': { description: 'Embedding generated' }, '403': { description: 'Unauthorized' } },
+        },
+      },
+      '/api/internal/embed-all-knowledge': {
+        post: {
+          tags: ['Document Processing'],
+          summary: 'Embed all knowledge items',
+          security: [{ InternalApiKey: [] }],
+          responses: { '200': { description: 'Batch embedding completed' }, '403': { description: 'Unauthorized' } },
+        },
+      },
+      '/api/internal/embedding-jobs/knowledge': {
+        post: {
+          tags: ['Document Processing'],
+          summary: 'Queue knowledge embedding job',
+          security: [{ InternalApiKey: [] }],
+          responses: { '200': { description: 'Job queued' } },
+        },
+      },
+      '/api/internal/embedding-jobs/document': {
+        post: {
+          tags: ['Document Processing'],
+          summary: 'Queue document embedding job',
+          security: [{ InternalApiKey: [] }],
+          responses: { '200': { description: 'Job queued' } },
+        },
+      },
+      '/api/internal/embedding-jobs/{jobId}': {
+        get: {
+          tags: ['Document Processing'],
+          summary: 'Get embedding job status',
+          security: [{ InternalApiKey: [] }],
+          parameters: [{ in: 'path', name: 'jobId', required: true, schema: { type: 'string' } }],
+          responses: { '200': { description: 'Job status' }, '404': { description: 'Job not found' } },
+        },
+      },
+      '/api/internal/embedding-jobs-stats': {
+        get: {
+          tags: ['Document Processing'],
+          summary: 'Get embedding job queue stats',
+          security: [{ InternalApiKey: [] }],
+          responses: { '200': { description: 'Queue statistics' } },
+        },
+      },
+      '/api/internal/process-document-semantic': {
+        post: {
+          tags: ['Document Processing'],
+          summary: 'Process document with semantic chunking',
+          description: 'Process document using paragraph-aware semantic chunking',
+          security: [{ InternalApiKey: [] }],
+          requestBody: {
+            required: true,
+            content: { 'application/json': { schema: { type: 'object', required: ['documentId', 'content'], properties: { documentId: { type: 'string' }, content: { type: 'string' }, mimeType: { type: 'string' }, title: { type: 'string' }, category: { type: 'string' }, maxChunkSize: { type: 'integer', default: 1500 } } } } },
+          },
+          responses: { '200': { description: 'Document processed with semantic chunking' }, '400': { description: 'Invalid request' }, '403': { description: 'Unauthorized' } },
+        },
+      },
+      '/api/internal/embedding-jobs/batch-knowledge': {
+        post: {
+          tags: ['Document Processing'],
+          summary: 'Queue batch knowledge embedding',
+          description: 'Queue batch embedding regeneration for all knowledge items',
+          security: [{ InternalApiKey: [] }],
+          responses: { '200': { description: 'Batch job queued' }, '403': { description: 'Unauthorized' } },
+        },
+      },
+    },
     components: {
       securitySchemes: {
         InternalApiKey: {
@@ -51,66 +392,10 @@ AI Service adalah **otak AI** untuk sistem GovConnect.
           name: 'X-Internal-API-Key',
         },
       },
-      schemas: {
-        ProcessMessageRequest: {
-          type: 'object',
-          required: ['wa_user_id', 'message'],
-          properties: {
-            wa_user_id: { type: 'string', example: '6281234567890' },
-            message: { type: 'string', example: 'Jalan rusak di depan rumah saya' },
-          },
-        },
-        ProcessMessageResponse: {
-          type: 'object',
-          properties: {
-            status: { type: 'string', enum: ['success', 'error'] },
-            intent: { type: 'string', enum: ['laporan', 'tiket', 'tanya', 'batal', 'unknown'] },
-            response: { type: 'string' },
-            extracted_data: {
-              type: 'object',
-              properties: {
-                kategori: { type: 'string' },
-                deskripsi: { type: 'string' },
-                alamat: { type: 'string' },
-              },
-            },
-            case_created: { type: 'boolean' },
-            case_id: { type: 'string' },
-          },
-        },
-        AIStats: {
-          type: 'object',
-          properties: {
-            total_processed: { type: 'integer' },
-            success_rate: { type: 'number' },
-            avg_response_time_ms: { type: 'number' },
-            provider_usage: {
-              type: 'object',
-              properties: {
-                gemini: { type: 'integer' },
-                openrouter: { type: 'integer' },
-              },
-            },
-          },
-        },
-        HealthResponse: {
-          type: 'object',
-          properties: {
-            status: { type: 'string', enum: ['ok', 'degraded', 'error'] },
-            timestamp: { type: 'string', format: 'date-time' },
-            providers: {
-              type: 'object',
-              properties: {
-                gemini: { type: 'string', enum: ['available', 'unavailable'] },
-                openrouter: { type: 'string', enum: ['available', 'unavailable'] },
-              },
-            },
-          },
-        },
-      },
+      schemas: {},
     },
   },
-  apis: ['./src/app.ts', './src/routes/*.ts', './dist/app.js', './dist/routes/*.js'],
+  apis: [],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

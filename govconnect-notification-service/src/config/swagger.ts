@@ -16,12 +16,6 @@ Notification Service mengelola **pengiriman notifikasi** ke warga melalui WhatsA
 - Status update notifications
 - Queue-based async sending via RabbitMQ
 - Delivery status tracking
-
-## Notification Types
-- Konfirmasi laporan diterima
-- Update status laporan/tiket
-- Reminder follow-up
-- Broadcast announcements
       `,
       contact: {
         name: 'GovConnect Team',
@@ -33,66 +27,144 @@ Notification Service mengelola **pengiriman notifikasi** ke warga melalui WhatsA
       { url: 'https://api.govconnect.my.id/api/notifications', description: 'Production' },
     ],
     tags: [
-      { name: 'Notifications', description: 'Notification management' },
-      { name: 'Templates', description: 'Notification templates' },
-      { name: 'Health', description: 'Health checks' },
+      { name: 'Health', description: 'Health check endpoints' },
     ],
-    components: {
-      securitySchemes: {
-        InternalApiKey: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'X-Internal-API-Key',
-        },
-      },
-      schemas: {
-        SendNotificationRequest: {
-          type: 'object',
-          required: ['wa_user_id', 'template', 'data'],
-          properties: {
-            wa_user_id: { type: 'string', example: '6281234567890' },
-            template: { type: 'string', enum: ['complaint_received', 'complaint_status', 'ticket_received', 'ticket_status'] },
-            data: {
-              type: 'object',
-              properties: {
-                case_id: { type: 'string' },
-                status: { type: 'string' },
-                message: { type: 'string' },
+    paths: {
+      '/': {
+        get: {
+          tags: ['Health'],
+          summary: 'Service info',
+          description: 'Returns service information and version',
+          responses: {
+            '200': {
+              description: 'Service information',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      service: { type: 'string', example: 'govconnect-notification-service' },
+                      version: { type: 'string', example: '1.0.0' },
+                      status: { type: 'string', example: 'running' },
+                      docs: { type: 'string', example: '/api-docs' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                },
               },
             },
           },
         },
-        NotificationResponse: {
-          type: 'object',
-          properties: {
-            status: { type: 'string', enum: ['queued', 'sent', 'failed'] },
-            notification_id: { type: 'string' },
-            message: { type: 'string' },
+      },
+      '/health': {
+        get: {
+          tags: ['Health'],
+          summary: 'Basic health check',
+          description: 'Returns basic service health status',
+          responses: {
+            '200': {
+              description: 'Service is healthy',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', example: 'ok' },
+                      service: { type: 'string', example: 'govconnect-notification-service' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
-        NotificationLog: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            wa_user_id: { type: 'string' },
-            template: { type: 'string' },
-            status: { type: 'string', enum: ['pending', 'sent', 'failed'] },
-            sent_at: { type: 'string', format: 'date-time' },
-            error: { type: 'string' },
+      },
+      '/health/database': {
+        get: {
+          tags: ['Health'],
+          summary: 'Database health check',
+          description: 'Check database connectivity status',
+          responses: {
+            '200': {
+              description: 'Database connected',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', example: 'ok' },
+                      database: { type: 'string', example: 'connected' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                },
+              },
+            },
+            '503': {
+              description: 'Database disconnected',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', example: 'error' },
+                      database: { type: 'string', example: 'disconnected' },
+                      error: { type: 'string' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
-        HealthResponse: {
-          type: 'object',
-          properties: {
-            status: { type: 'string', enum: ['ok', 'degraded', 'error'] },
-            timestamp: { type: 'string', format: 'date-time' },
-            queue_status: { type: 'string' },
+      },
+      '/health/rabbitmq': {
+        get: {
+          tags: ['Health'],
+          summary: 'RabbitMQ health check',
+          description: 'Check RabbitMQ connectivity status',
+          responses: {
+            '200': {
+              description: 'RabbitMQ connected',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', example: 'ok' },
+                      rabbitmq: { type: 'string', example: 'connected' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                },
+              },
+            },
+            '503': {
+              description: 'RabbitMQ disconnected',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', example: 'error' },
+                      rabbitmq: { type: 'string', example: 'disconnected' },
+                      timestamp: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
     },
+    components: {
+      schemas: {},
+    },
   },
-  apis: ['./src/app.ts', './src/routes/*.ts', './dist/app.js', './dist/routes/*.js'],
+  apis: [],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
