@@ -131,7 +131,7 @@ app.get('/admin/failed-messages', (req: Request, res: Response) => {
         failedAt: new Date(msg.failedAt).toISOString(),
         originalMessage: msg.event.is_batched 
           ? `[Batched: ${msg.event.batched_message_ids?.length || 0} messages]`
-          : msg.event.message_text?.substring(0, 100),
+          : msg.event.message?.substring(0, 100),
       })),
     });
   } catch (error: any) {
