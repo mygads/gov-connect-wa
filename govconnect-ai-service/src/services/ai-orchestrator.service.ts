@@ -5,7 +5,7 @@ import { callGemini } from './llm.service';
 import { createComplaint, createTicket, getComplaintStatus, getTicketStatus, cancelComplaint, cancelTicket, getUserHistory, HistoryItem } from './case-client.service';
 import { publishAIReply, publishAIError, publishMessageStatus } from './rabbitmq.service';
 import { isAIChatbotEnabled } from './settings.service';
-import { searchKnowledge, getRAGContext } from './knowledge.service';
+import { searchKnowledge, getRAGContext, getKelurahanInfoContext } from './knowledge.service';
 import { startTyping, stopTyping, isUserInTakeover, markMessagesAsRead } from './channel-client.service';
 import { rateLimiterService } from './rate-limiter.service';
 import { aiAnalyticsService } from './ai-analytics.service';
@@ -503,7 +503,33 @@ export async function processMessage(event: MessageReceivedEvent): Promise<void>
     let preloadedRAGContext: any = undefined;
     const looksLikeQuestion = shouldRetrieveContext(sanitizedMessage);
     
-    if (looksLikeQuestion) {
+    // Check if message is a greeting - need kelurahan info for personalization
+    const isGreeting = /^(halo|hai|hi|hello|selamat\s+(pagi|siang|sore|malam)|assalamualaikum|permisi)/i.test(sanitizedMessage.trim());
+    
+    if (isGreeting) {
+      // For greetings, fetch kelurahan info to personalize welcome message
+      logger.debug('Greeting detected, fetching kelurahan info', {
+        wa_user_id,
+        message: sanitizedMessage.substring(0, 30),
+      });
+      
+      try {
+        const kelurahanInfo = await getKelurahanInfoContext();
+        if (kelurahanInfo) {
+          // Create a simple context string for greeting
+          preloadedRAGContext = kelurahanInfo;
+          logger.info('Loaded kelurahan info for greeting', {
+            wa_user_id,
+            infoLength: kelurahanInfo.length,
+          });
+        }
+      } catch (error: any) {
+        logger.warn('Failed to fetch kelurahan info for greeting', {
+          wa_user_id,
+          error: error.message,
+        });
+      }
+    } else if (looksLikeQuestion) {
       logger.debug('Message looks like a question, pre-fetching RAG context', {
         wa_user_id,
         message: sanitizedMessage.substring(0, 50),

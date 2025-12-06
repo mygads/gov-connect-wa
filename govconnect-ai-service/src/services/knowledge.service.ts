@@ -177,3 +177,62 @@ export async function getRAGContext(query: string, categories?: string[]): Promi
     sourceTypes: ['knowledge', 'document'],
   });
 }
+
+/**
+ * Get kelurahan information context for greetings
+ * This fetches basic kelurahan info (nama, alamat) to personalize welcome message
+ */
+export async function getKelurahanInfoContext(): Promise<string> {
+  try {
+    logger.debug('Fetching kelurahan info for greeting');
+    
+    // Try RAG-based search with specific query for kelurahan info
+    const ragContext = await retrieveContext('informasi kelurahan nama alamat', {
+      topK: 3,
+      minScore: 0.5, // Lower threshold to get basic info
+      categories: ['informasi_umum', 'kontak'],
+      sourceTypes: ['knowledge'],
+    });
+
+    if (ragContext.totalResults > 0 && ragContext.contextString) {
+      logger.info('Found kelurahan info from RAG', {
+        resultsFound: ragContext.totalResults,
+      });
+      return ragContext.contextString;
+    }
+
+    // Fallback: try to get from knowledge API
+    const response = await axios.get<{ data: KnowledgeItem[] }>(
+      `${config.dashboardServiceUrl}/api/internal/knowledge`,
+      {
+        params: { 
+          category: 'informasi_umum',
+          limit: 5,
+        },
+        headers: {
+          'x-internal-api-key': config.internalApiKey,
+        },
+        timeout: 5000,
+      }
+    );
+
+    const items = response.data.data || [];
+    if (items.length > 0) {
+      const contextParts = items.map(item => 
+        `[${item.category.toUpperCase()}] ${item.title}\n${item.content}`
+      );
+      logger.info('Found kelurahan info from knowledge API', {
+        itemsFound: items.length,
+      });
+      return contextParts.join('\n\n');
+    }
+
+    logger.debug('No kelurahan info found');
+    return '';
+  } catch (error: any) {
+    logger.warn('Failed to get kelurahan info', {
+      error: error.message,
+    });
+    return '';
+  }
+}

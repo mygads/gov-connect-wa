@@ -113,7 +113,7 @@ services:
       MEDIA_INTERNAL_URL: http://channel-service:3001/uploads
       MEDIA_PUBLIC_URL: ${MEDIA_PUBLIC_URL:-http://localhost:3001/uploads}
       # Message batching - wait for more messages before sending to AI
-      MESSAGE_BATCH_DELAY_MS: ${MESSAGE_BATCH_DELAY_MS:-5000}
+      MESSAGE_BATCH_DELAY_MS: ${MESSAGE_BATCH_DELAY_MS:-2000}
       MAX_BATCH_SIZE: ${MAX_BATCH_SIZE:-10}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     volumes:
