@@ -4,6 +4,7 @@ import {
   checkDuplicateMessage,
 } from '../services/message.service';
 // markMessageAsRead is now called by AI service when processing starts
+// Group message filtering improved - v2
 import { processMediaFromWebhook, MediaInfo } from '../services/media.service';
 import { updateConversation, isUserInTakeover, setAIProcessing } from '../services/takeover.service';
 import { addPendingMessage } from '../services/pending-message.service';
