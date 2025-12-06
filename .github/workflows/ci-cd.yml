@@ -185,17 +185,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Sync Environment Variables to Server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Create .env file from GitHub Secret
+            cat > /opt/govconnect/.env << 'ENVEOF'
+            ${{ secrets.ENV_PRODUCTION }}
+            ENVEOF
+            
+            # Fix permissions
+            chmod 600 /opt/govconnect/.env
+            
+            echo "✅ Environment variables synced from GitHub Secrets"
+
       - name: Deploy to Staging via SSH (Docker Swarm)
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.USER }}
+          username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/govconnect
             git pull origin main
             
-            # Load environment variables from .env
+            # Load environment variables from .env (synced from GitHub Secrets)
             set -a
             source .env
             set +a
