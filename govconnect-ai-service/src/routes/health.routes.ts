@@ -1,7 +1,5 @@
 import { Router, Request, Response } from 'express';
-import prisma from '../config/database';
-import { isConnected } from '../services/rabbitmq.service';
-import logger from '../utils/logger';
+import { getChannelServiceMetrics } from '../clients/channel-service.client';
 import { getCaseServiceMetrics } from '../clients/case-service.client';
 
 const router = Router();
@@ -9,42 +7,9 @@ const router = Router();
 router.get('/', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    service: 'channel-service',
+    service: 'ai-service',
     timestamp: new Date().toISOString(),
   });
-});
-
-router.get('/db', async (req: Request, res: Response) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({
-      status: 'ok',
-      database: 'connected',
-    });
-  } catch (error: any) {
-    logger.error('Database health check failed', { error: error.message });
-    res.status(503).json({
-      status: 'error',
-      database: 'disconnected',
-      error: error.message,
-    });
-  }
-});
-
-router.get('/rabbitmq', (req: Request, res: Response) => {
-  const connected = isConnected();
-
-  if (connected) {
-    res.json({
-      status: 'ok',
-      rabbitmq: 'connected',
-    });
-  } else {
-    res.status(503).json({
-      status: 'error',
-      rabbitmq: 'disconnected',
-    });
-  }
 });
 
 /**
@@ -52,10 +17,22 @@ router.get('/rabbitmq', (req: Request, res: Response) => {
  */
 router.get('/circuit-breakers', (req: Request, res: Response) => {
   try {
+    const channelServiceMetrics = getChannelServiceMetrics();
     const caseServiceMetrics = getCaseServiceMetrics();
 
     res.json({
       circuitBreakers: {
+        channelService: {
+          state: channelServiceMetrics.state,
+          failures: channelServiceMetrics.failures,
+          successes: channelServiceMetrics.successes,
+          totalRequests: channelServiceMetrics.totalRequests,
+          totalFailures: channelServiceMetrics.totalFailures,
+          totalSuccesses: channelServiceMetrics.totalSuccesses,
+          successRate: channelServiceMetrics.totalRequests > 0
+            ? ((channelServiceMetrics.totalSuccesses / channelServiceMetrics.totalRequests) * 100).toFixed(2) + '%'
+            : 'N/A',
+        },
         caseService: {
           state: caseServiceMetrics.state,
           failures: caseServiceMetrics.failures,
@@ -66,8 +43,6 @@ router.get('/circuit-breakers', (req: Request, res: Response) => {
           successRate: caseServiceMetrics.totalRequests > 0
             ? ((caseServiceMetrics.totalSuccesses / caseServiceMetrics.totalRequests) * 100).toFixed(2) + '%'
             : 'N/A',
-          lastFailureTime: caseServiceMetrics.lastFailureTime,
-          lastSuccessTime: caseServiceMetrics.lastSuccessTime,
         },
       },
       timestamp: new Date().toISOString(),
