@@ -19,7 +19,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all document chunks with embeddings
-    const chunks = await prisma.$queryRaw<any[]>`
+    type EmbeddingRow = {
+      id: string
+      document_id: string
+      content: string
+      chunk_index: number
+      page_number: number | null
+      section_title: string | null
+      embedding_text: string | null
+      document_title: string
+      category: string
+    }
+
+    const chunks = await prisma.$queryRaw<EmbeddingRow[]>`
       SELECT 
         dc.id,
         dc.document_id,
@@ -38,7 +50,7 @@ export async function GET(request: NextRequest) {
     `
 
     // Parse embedding from text format
-    const formattedChunks = chunks.map(c => ({
+    const formattedChunks = chunks.map((c: EmbeddingRow) => ({
       id: c.id,
       documentId: c.document_id,
       documentTitle: c.document_title,

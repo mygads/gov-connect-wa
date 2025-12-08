@@ -20,7 +20,16 @@ export async function GET(request: NextRequest) {
 
     // Get all active knowledge with embeddings
     // Using raw query because Prisma doesn't support vector type directly
-    const knowledge = await prisma.$queryRaw<any[]>`
+    type KnowledgeRow = {
+      id: string
+      title: string
+      content: string
+      category: string
+      keywords: string[]
+      embedding_text: string | null
+    }
+
+    const knowledge = await prisma.$queryRaw<KnowledgeRow[]>`
       SELECT 
         id,
         title,
@@ -35,7 +44,7 @@ export async function GET(request: NextRequest) {
     `
 
     // Parse embedding from text format
-    const formattedKnowledge = knowledge.map(k => ({
+    const formattedKnowledge = knowledge.map((k: KnowledgeRow) => ({
       id: k.id,
       title: k.title,
       content: k.content,

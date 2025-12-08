@@ -28,10 +28,15 @@ const buttonVariants = cva(
         "icon-sm": "size-8",
         "icon-lg": "size-10",
       },
+      rounded: {
+        default: "rounded-md",
+        full: "rounded-full",
+      },
     },
     defaultVariants: {
       variant: "default",
       size: "default",
+      rounded: "default",
     },
   }
 )
@@ -40,6 +45,7 @@ function Button({
   className,
   variant,
   size,
+  rounded,
   asChild = false,
   ...props
 }: React.ComponentProps<"button"> &
@@ -51,7 +57,7 @@ function Button({
   return (
     <Comp
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant, size, rounded, className }))}
       {...props}
     />
   )

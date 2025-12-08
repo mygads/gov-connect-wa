@@ -67,12 +67,12 @@ export async function POST(request: NextRequest) {
       params.push(topK)
 
       try {
-        const knowledgeResults = await prisma.$queryRawUnsafe<any[]>(
+        const knowledgeResults = await prisma.$queryRawUnsafe(
           knowledgeQuery,
           ...params
-        )
+        ) as any[]
         
-        results.push(...knowledgeResults.map(r => ({
+        results.push(...knowledgeResults.map((r: any) => ({
           id: r.id,
           content: r.content,
           score: parseFloat(r.score),
@@ -121,12 +121,12 @@ export async function POST(request: NextRequest) {
       params.push(topK)
 
       try {
-        const documentResults = await prisma.$queryRawUnsafe<any[]>(
+        const documentResults = await prisma.$queryRawUnsafe(
           documentQuery,
           ...params
-        )
+        ) as any[]
         
-        results.push(...documentResults.map(r => ({
+        results.push(...documentResults.map((r: any) => ({
           id: r.id,
           content: r.content,
           score: parseFloat(r.score),

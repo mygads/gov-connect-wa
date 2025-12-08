@@ -122,7 +122,16 @@ export async function GET(
 
     const { id: documentId } = await params
 
-    const chunks = await prisma.$queryRaw<any[]>`
+    type ChunkRow = {
+      id: string
+      chunk_index: number
+      content: string
+      page_number: number | null
+      section_title: string | null
+      embedding_text: string | null
+    }
+
+    const chunks = await prisma.$queryRaw<ChunkRow[]>`
       SELECT 
         id,
         chunk_index,
@@ -135,7 +144,7 @@ export async function GET(
       ORDER BY chunk_index ASC
     `
 
-    const formattedChunks = chunks.map(c => ({
+    const formattedChunks = chunks.map((c: ChunkRow) => ({
       id: c.id,
       chunkIndex: c.chunk_index,
       content: c.content,
