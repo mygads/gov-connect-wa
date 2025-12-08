@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { unlink } from 'fs/promises'
 import path from 'path'
+import { deleteDocumentVectors } from '@/lib/ai-service'
 
 /**
  * GET /api/documents/[id]
@@ -112,6 +113,11 @@ export async function DELETE(
     // Delete document record
     await prisma.knowledge_documents.delete({
       where: { id },
+    })
+
+    // Delete vectors from AI Service
+    deleteDocumentVectors(id).catch(err => {
+      console.error('Failed to delete document vectors from AI Service:', err)
     })
 
     // Try to delete file (don't fail if file doesn't exist)

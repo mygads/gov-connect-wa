@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const CASE_SERVICE_URL = process.env.CASE_SERVICE_URL || 'http://case-service:3003'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'shared-secret-key-12345'
+import { caseService } from '@/lib/api-client'
 
 export async function PATCH(
   request: NextRequest,
@@ -24,14 +22,7 @@ export async function PATCH(
     const body = await request.json()
     const { id } = await params
 
-    const response = await fetch(`${CASE_SERVICE_URL}/tiket/${id}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-internal-api-key': INTERNAL_API_KEY,
-      },
-      body: JSON.stringify(body),
-    })
+    const response = await caseService.updateTiketStatus(id, body)
 
     if (!response.ok) {
       const error = await response.json()

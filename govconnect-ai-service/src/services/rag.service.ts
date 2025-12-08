@@ -19,11 +19,7 @@ import {
   VectorSearchOptions,
 } from '../types/embedding.types';
 import { generateEmbedding } from './embedding.service';
-import { searchVectors } from './vector-store.service';
-import { 
-  applyQualityScoring, 
-  recordBatchRetrievals 
-} from './knowledge-quality.service';
+import { searchVectors, recordBatchRetrievals } from './vector-db.service';
 
 /**
  * Default RAG configuration
@@ -298,18 +294,16 @@ export async function retrieveContext(
     // Step 4: Re-rank results using RRF (Reciprocal Rank Fusion)
     const rerankedResults = rerankResults(searchResults, query, topK);
 
-    // Step 5: Apply quality scoring (usage-based boosting)
-    const qualityScoredResults = await applyQualityScoring(rerankedResults);
+    // Step 5: Filter by minimum score
+    // Quality scoring is now handled in vector-db.service via quality_score column
+    const filteredResults = rerankedResults.filter(r => r.score >= adjustedMinScore);
 
-    // Step 6: Filter by minimum score
-    const filteredResults = qualityScoredResults.filter(r => r.score >= adjustedMinScore);
-
-    // Step 7: Record retrievals for analytics (fire and forget)
+    // Step 6: Record retrievals for analytics (fire and forget)
     const knowledgeIds = filteredResults
       .filter(r => r.sourceType === 'knowledge')
       .map(r => r.id);
     if (knowledgeIds.length > 0) {
-      recordBatchRetrievals(knowledgeIds);
+      recordBatchRetrievals(knowledgeIds).catch(() => {});
     }
 
     // Step 8: Build context string for LLM

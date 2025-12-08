@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, JWTPayload } from '@/lib/auth'
-
-const CHANNEL_SERVICE_URL = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3001'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || ''
+import { livechat } from '@/lib/api-client'
 
 async function getAuthUser(request: NextRequest): Promise<JWTPayload | null> {
   const authHeader = request.headers.get('Authorization')
@@ -28,17 +26,7 @@ export async function GET(
     }
 
     const { wa_user_id } = await params
-
-    const response = await fetch(
-      `${CHANNEL_SERVICE_URL}/internal/takeover/${encodeURIComponent(wa_user_id)}/status`,
-      {
-        headers: {
-          'X-Internal-API-Key': INTERNAL_API_KEY,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
+    const response = await livechat.getTakeoverStatus(wa_user_id)
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
@@ -65,24 +53,11 @@ export async function POST(
     }
 
     const { wa_user_id } = await params
-    const body = await request.json()
 
-    const response = await fetch(
-      `${CHANNEL_SERVICE_URL}/internal/takeover/${encodeURIComponent(wa_user_id)}`,
-      {
-        method: 'POST',
-        headers: {
-          'X-Internal-API-Key': INTERNAL_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          admin_id: user.adminId,
-          admin_name: user.name,
-          reason: body.reason,
-        }),
-      }
-    )
-
+    const response = await livechat.startTakeover(wa_user_id, {
+      admin_id: user.adminId,
+      admin_name: user.name,
+    })
     const data = await response.json()
     return NextResponse.json(data, { status: response.status })
   } catch (error) {
@@ -109,18 +84,7 @@ export async function DELETE(
     }
 
     const { wa_user_id } = await params
-
-    const response = await fetch(
-      `${CHANNEL_SERVICE_URL}/internal/takeover/${encodeURIComponent(wa_user_id)}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'X-Internal-API-Key': INTERNAL_API_KEY,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
+    const response = await livechat.endTakeover(wa_user_id)
     const data = await response.json()
     return NextResponse.json(data, { status: response.status })
   } catch (error) {

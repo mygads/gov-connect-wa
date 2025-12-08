@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma'
 // Internal API for AI service to manage documents
 // Uses internal API key for authentication
 
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'shared-secret-key-12345'
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'govconnect-internal-2025-secret'
 
 /**
  * GET /api/internal/documents

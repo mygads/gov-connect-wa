@@ -1,0 +1,94 @@
+// Prisma schema for AI Service Vector Database
+// Handles all vector storage and semantic search operations
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("AI_DATABASE_URL")
+  schemas    = ["ai_vectors"]
+  extensions = [pgvector(map: "vector", schema: "ai_vectors")]
+}
+
+// ==================== KNOWLEDGE VECTORS ====================
+// Stores embeddings for knowledge base items
+// Source of truth for vector search on knowledge
+
+model knowledge_vectors {
+  id                String   @id // Same ID as dashboard.knowledge_base
+  title             String
+  content           String   @db.Text
+  category          String
+  keywords          String[]
+  
+  // Vector embedding
+  embedding         Unsupported("vector(768)")
+  embedding_model   String   @default("gemini-embedding-001")
+  
+  // Quality metrics (synced from dashboard or computed here)
+  quality_score     Float    @default(1.0)
+  usage_count       Int      @default(0)
+  retrieval_count   Int      @default(0)
+  last_retrieved    DateTime?
+  
+  // Timestamps
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  
+  @@index([category])
+  @@index([quality_score])
+  @@schema("ai_vectors")
+}
+
+// ==================== DOCUMENT VECTORS ====================
+// Stores embeddings for document chunks
+// Each document can have multiple chunks
+
+model document_vectors {
+  id                String   @id @default(cuid())
+  document_id       String   // Reference to dashboard.knowledge_documents
+  chunk_index       Int
+  content           String   @db.Text
+  
+  // Document metadata (denormalized for search)
+  document_title    String?
+  category          String?
+  page_number       Int?
+  section_title     String?
+  
+  // Vector embedding
+  embedding         Unsupported("vector(768)")
+  embedding_model   String   @default("gemini-embedding-001")
+  
+  // Timestamps
+  created_at        DateTime @default(now())
+  
+  @@unique([document_id, chunk_index])
+  @@index([document_id])
+  @@index([category])
+  @@schema("ai_vectors")
+}
+
+// ==================== EMBEDDING JOBS ====================
+// Track embedding generation jobs for async processing
+
+model embedding_jobs {
+  id            String   @id @default(cuid())
+  type          String   // "knowledge" | "document"
+  target_id     String   // ID of knowledge/document
+  status        String   @default("pending") // pending, processing, completed, failed
+  error_message String?  @db.Text
+  retry_count   Int      @default(0)
+  priority      Int      @default(0)
+  
+  created_at    DateTime @default(now())
+  started_at    DateTime?
+  completed_at  DateTime?
+  
+  @@index([status])
+  @@index([priority])
+  @@schema("ai_vectors")
+}

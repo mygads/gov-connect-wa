@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const CHANNEL_SERVICE_URL = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3001'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || ''
+import { livechat } from '@/lib/api-client'
 
 async function getAuthUser(request: NextRequest) {
   const authHeader = request.headers.get('Authorization')
@@ -27,16 +25,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') || 'all'
 
-    const response = await fetch(
-      `${CHANNEL_SERVICE_URL}/internal/conversations?status=${status}`,
-      {
-        headers: {
-          'X-Internal-API-Key': INTERNAL_API_KEY,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
+    const response = await livechat.getConversations(status)
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {

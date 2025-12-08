@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://ai-service:3002'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'govconnect_internal_secret_key_2025_change_in_production'
+import { ai } from '@/lib/api-client'
 
 // GET - Get intent distribution
 export async function GET(request: NextRequest) {
@@ -26,12 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Forward request to AI service
     try {
-      const response = await fetch(`${AI_SERVICE_URL}/stats/analytics/intents`, {
-        method: 'GET',
-        headers: {
-          'x-internal-api-key': INTERNAL_API_KEY,
-        },
-      })
+      const response = await ai.getAnalyticsIntents()
 
       if (response.ok) {
         const data = await response.json()

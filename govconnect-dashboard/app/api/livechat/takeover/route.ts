@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const CHANNEL_SERVICE_URL = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3001'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || ''
+import { livechat } from '@/lib/api-client'
 
 async function getAuthUser(request: NextRequest) {
   const authHeader = request.headers.get('Authorization')
@@ -24,13 +22,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const response = await fetch(`${CHANNEL_SERVICE_URL}/internal/takeover`, {
-      headers: {
-        'X-Internal-API-Key': INTERNAL_API_KEY,
-        'Content-Type': 'application/json',
-      },
-    })
-
+    const response = await livechat.getTakeovers()
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {

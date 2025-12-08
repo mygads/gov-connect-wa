@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const CASE_SERVICE_URL = process.env.CASE_SERVICE_URL || 'http://case-service:3003'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'shared-secret-key-12345'
+import { caseService } from '@/lib/api-client'
 
 export async function GET(
   request: NextRequest,
@@ -22,13 +20,7 @@ export async function GET(
     }
 
     const { id } = await params
-
-    const response = await fetch(`${CASE_SERVICE_URL}/laporan/${id}`, {
-      method: 'GET',
-      headers: {
-        'x-internal-api-key': INTERNAL_API_KEY,
-      },
-    })
+    const response = await caseService.getLaporanById(id)
 
     if (!response.ok) {
       const error = await response.json()

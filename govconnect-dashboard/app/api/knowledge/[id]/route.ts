@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { updateKnowledgeVector, deleteKnowledgeVector } from '@/lib/ai-service'
 
 // Knowledge categories
 const VALID_CATEGORIES = [
@@ -107,6 +108,16 @@ export async function PUT(request: NextRequest, { params }: Params) {
       },
     })
 
+    // Sync to AI Service - re-embed with new content
+    updateKnowledgeVector(id, {
+      title: knowledge.title,
+      content: knowledge.content,
+      category: knowledge.category,
+      keywords: knowledge.keywords,
+    }).catch(err => {
+      console.error('Failed to sync knowledge update to AI Service:', err)
+    })
+
     return NextResponse.json({
       status: 'success',
       data: knowledge,
@@ -148,6 +159,11 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     // Delete knowledge entry
     await prisma.knowledge_base.delete({
       where: { id },
+    })
+
+    // Delete from AI Service vector database
+    deleteKnowledgeVector(id).catch(err => {
+      console.error('Failed to delete knowledge from AI Service:', err)
     })
 
     return NextResponse.json({

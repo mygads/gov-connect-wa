@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { addKnowledgeVector } from '@/lib/ai-service'
 
 // Knowledge categories
 const VALID_CATEGORIES = [
@@ -133,6 +134,17 @@ export async function POST(request: NextRequest) {
         priority: priority ?? 0,
         admin_id: payload.adminId,
       },
+    })
+
+    // Sync to AI Service vector database (fire and forget)
+    addKnowledgeVector({
+      id: knowledge.id,
+      title: knowledge.title,
+      content: knowledge.content,
+      category: knowledge.category,
+      keywords: knowledge.keywords,
+    }).catch(err => {
+      console.error('Failed to sync knowledge to AI Service:', err)
     })
 
     return NextResponse.json({

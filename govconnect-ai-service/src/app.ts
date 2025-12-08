@@ -15,10 +15,13 @@ import { checkCaseServiceHealth } from './services/case-client.service';
 import { modelStatsService } from './services/model-stats.service';
 import { rateLimiterService } from './services/rate-limiter.service';
 import { aiAnalyticsService } from './services/ai-analytics.service';
-import { getEmbeddingStats } from './services/embedding.service';
-import { getVectorCacheStats } from './services/vector-store.service';
+import { getEmbeddingStats, getEmbeddingCacheStats } from './services/embedding.service';
+import { getVectorDbStats } from './services/vector-db.service';
 import { resilientHttp } from './services/circuit-breaker.service';
 import documentRoutes from './routes/document.routes';
+import knowledgeRoutes from './routes/knowledge.routes';
+import documentsRoutes from './routes/documents.routes';
+import searchRoutes from './routes/search.routes';
 import { swaggerSpec } from './config/swagger';
 import axios from 'axios';
 import { config } from './config/env';
@@ -499,17 +502,24 @@ app.post('/rate-limit/reset/:wa_user_id', (req: Request, res: Response) => {
 // Embedding & RAG Endpoints
 // ===========================================
 
-// Mount document processing routes
+// Mount document processing routes (legacy)
 app.use('/api/internal', documentRoutes);
 
-app.get('/stats/embeddings', (req: Request, res: Response) => {
+// Mount new vector API routes
+app.use('/api/knowledge', knowledgeRoutes);
+app.use('/api/documents', documentsRoutes);
+app.use('/api/search', searchRoutes);
+
+app.get('/stats/embeddings', async (req: Request, res: Response) => {
   try {
     const embeddingStats = getEmbeddingStats();
-    const vectorCacheStats = getVectorCacheStats();
+    const embeddingCacheStats = getEmbeddingCacheStats();
+    const vectorDbStats = await getVectorDbStats();
     
     res.json({
       embedding: embeddingStats,
-      vectorCache: vectorCacheStats,
+      embeddingCache: embeddingCacheStats,
+      vectorDb: vectorDbStats,
     });
   } catch (error: any) {
     res.status(500).json({
@@ -579,9 +589,13 @@ app.get('/', (req: Request, res: Response) => {
       rateLimit: '/rate-limit',
       rateLimitCheck: '/rate-limit/check/:wa_user_id',
       blacklist: '/rate-limit/blacklist',
+      // Vector API (new)
+      knowledgeVectors: '/api/knowledge',
+      documentVectors: '/api/documents',
+      vectorSearch: '/api/search',
+      // Legacy (deprecated)
       processDocument: '/api/internal/process-document',
       embedKnowledge: '/api/internal/embed-knowledge',
-      embedAllKnowledge: '/api/internal/embed-all-knowledge',
     },
   });
 });

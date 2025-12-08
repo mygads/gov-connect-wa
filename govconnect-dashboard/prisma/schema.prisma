@@ -13,7 +13,7 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
   schemas  = ["dashboard"]
-  extensions = [pgvector(map: "vector", schema: "dashboard")]
+  // Note: pgvector extension moved to AI Service database
 }
 
 model admin_users {
@@ -75,6 +75,8 @@ model system_settings {
 }
 
 // ==================== KNOWLEDGE BASE ====================
+// Note: Embeddings are now stored in AI Service vector database
+// Dashboard only stores metadata for admin management
 
 model knowledge_base {
   id          String   @id @default(cuid())
@@ -88,23 +90,9 @@ model knowledge_base {
   updated_at  DateTime @updatedAt
   created_at  DateTime @default(now())
   
-  // Embedding fields for semantic search (RAG)
-  embedding          Unsupported("vector(768)")? // 768 dimensions (Gemini recommended)
-  embedding_model    String?                      // e.g., "gemini-embedding-001"
-  last_embedded_at   DateTime?                    // When embedding was generated
-  
-  // Quality scoring fields for RAG optimization
-  quality_score    Float     @default(1.0)  // 0.0 - 1.0 (higher = more trustworthy)
-  usage_count      Int       @default(0)    // How often this is retrieved
-  last_retrieved   DateTime?               // When was this last used in RAG
-  feedback_score   Float?                  // User feedback if implemented (-1.0 to 1.0)
-  retrieval_count  Int       @default(0)   // Total times shown in search results
-  click_count      Int       @default(0)   // Times user selected this result
-  
   @@index([category])
   @@index([is_active])
   @@index([keywords])
-  @@index([quality_score])
   @@schema("dashboard")
 }
 
@@ -145,16 +133,14 @@ model knowledge_documents {
 }
 
 // ==================== DOCUMENT CHUNKS ====================
+// Note: Embeddings are now stored in AI Service vector database
+// Dashboard only stores chunk metadata for reference
 
 model document_chunks {
   id              String   @id @default(cuid())
   document_id     String
   chunk_index     Int      // Order in document (0-based)
   content         String   @db.Text
-  
-  // Embedding for semantic search
-  embedding       Unsupported("vector(768)")? // 768 dimensions
-  embedding_model String   @default("gemini-embedding-001")
   
   // Metadata for context
   page_number     Int?     // Page number if from PDF

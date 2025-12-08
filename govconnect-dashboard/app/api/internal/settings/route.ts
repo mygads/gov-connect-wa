@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma'
 // Internal API for AI service to check if chatbot is enabled
 // No auth required - uses internal API key
 
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'shared-secret-key-12345'
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'govconnect-internal-2025-secret'
 
 export async function GET(request: NextRequest) {
   try {

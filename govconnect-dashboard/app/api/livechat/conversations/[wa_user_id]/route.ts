@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const CHANNEL_SERVICE_URL = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3001'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || ''
+import { livechat } from '@/lib/api-client'
 
 async function getAuthUser(request: NextRequest) {
   const authHeader = request.headers.get('Authorization')
@@ -28,17 +26,7 @@ export async function GET(
     }
 
     const { wa_user_id } = await params
-
-    const response = await fetch(
-      `${CHANNEL_SERVICE_URL}/internal/conversations/${encodeURIComponent(wa_user_id)}`,
-      {
-        headers: {
-          'X-Internal-API-Key': INTERNAL_API_KEY,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
+    const response = await livechat.getConversation(wa_user_id)
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
@@ -65,18 +53,7 @@ export async function DELETE(
     }
 
     const { wa_user_id } = await params
-
-    const response = await fetch(
-      `${CHANNEL_SERVICE_URL}/internal/conversations/${encodeURIComponent(wa_user_id)}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'X-Internal-API-Key': INTERNAL_API_KEY,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
+    const response = await livechat.deleteConversation(wa_user_id)
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {

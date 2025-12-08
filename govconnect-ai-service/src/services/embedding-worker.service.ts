@@ -14,6 +14,7 @@
 import logger from '../utils/logger';
 import { config } from '../config/env';
 import { generateEmbedding, generateBatchEmbeddings } from './embedding.service';
+import { upsertKnowledgeVector, addDocumentChunks } from './vector-db.service';
 import axios from 'axios';
 
 /**
@@ -190,7 +191,7 @@ class EmbeddingJobQueue {
    * Generate embedding for a knowledge base item
    */
   private async processKnowledgeEmbedding(knowledgeId: string): Promise<void> {
-    // Fetch knowledge content
+    // Fetch knowledge content from Dashboard
     const response = await axios.get(
       `${config.dashboardServiceUrl}/api/internal/knowledge/${knowledgeId}`,
       {
@@ -199,7 +200,7 @@ class EmbeddingJobQueue {
       }
     );
 
-    const knowledge = response.data;
+    const knowledge = response.data?.data || response.data;
     if (!knowledge) {
       throw new Error(`Knowledge not found: ${knowledgeId}`);
     }
@@ -210,19 +211,16 @@ class EmbeddingJobQueue {
       outputDimensionality: 768,
     });
 
-    // Save embedding back to dashboard
-    await axios.put(
-      `${config.dashboardServiceUrl}/api/internal/knowledge/${knowledgeId}/embedding`,
-      {
-        embedding: embedding.values,
-        model: embedding.model,
-        dimensions: embedding.dimensions,
-      },
-      {
-        headers: { 'x-internal-api-key': config.internalApiKey },
-        timeout: 10000,
-      }
-    );
+    // Save embedding to local vector DB
+    await upsertKnowledgeVector({
+      id: knowledgeId,
+      title: knowledge.title || '',
+      content: knowledge.content,
+      category: knowledge.category || 'informasi_umum',
+      keywords: knowledge.keywords || [],
+      embedding: embedding.values,
+      embeddingModel: embedding.model,
+    });
 
     logger.info('Knowledge embedding generated', {
       knowledgeId,
@@ -234,7 +232,7 @@ class EmbeddingJobQueue {
    * Generate embeddings for all chunks of a document
    */
   private async processDocumentEmbedding(documentId: string): Promise<void> {
-    // Fetch document chunks
+    // Fetch document chunks from Dashboard
     const response = await axios.get(
       `${config.dashboardServiceUrl}/api/internal/documents/${documentId}/chunks`,
       {
@@ -243,7 +241,7 @@ class EmbeddingJobQueue {
       }
     );
 
-    const chunks = response.data.chunks || [];
+    const chunks = response.data.chunks || response.data.data || [];
     if (chunks.length === 0) {
       logger.warn('No chunks found for document', { documentId });
       return;
@@ -256,22 +254,18 @@ class EmbeddingJobQueue {
       outputDimensionality: 768,
     });
 
-    // Save embeddings back to dashboard
-    const embeddings = chunks.map((chunk: any, idx: number) => ({
-      chunkId: chunk.id,
+    // Save embeddings to local vector DB
+    await addDocumentChunks(chunks.map((chunk: any, idx: number) => ({
+      documentId,
+      chunkIndex: chunk.chunk_index ?? idx,
+      content: chunk.content,
       embedding: batchResult.embeddings[idx].values,
-      model: batchResult.embeddings[idx].model,
-      dimensions: batchResult.embeddings[idx].dimensions,
-    }));
-
-    await axios.put(
-      `${config.dashboardServiceUrl}/api/internal/documents/${documentId}/embeddings`,
-      { embeddings },
-      {
-        headers: { 'x-internal-api-key': config.internalApiKey },
-        timeout: 30000,
-      }
-    );
+      documentTitle: chunk.document_title,
+      category: chunk.category,
+      pageNumber: chunk.page_number,
+      sectionTitle: chunk.section_title,
+      embeddingModel: batchResult.embeddings[idx].model,
+    })));
 
     logger.info('Document embeddings generated', {
       documentId,
@@ -281,64 +275,32 @@ class EmbeddingJobQueue {
 
   /**
    * Generate embedding for a single chunk
+   * Note: This is rarely used - prefer processDocumentEmbedding for batch processing
    */
   private async processChunkEmbedding(chunkId: string): Promise<void> {
-    // Fetch chunk content
-    const response = await axios.get(
-      `${config.dashboardServiceUrl}/api/internal/chunks/${chunkId}`,
-      {
-        headers: { 'x-internal-api-key': config.internalApiKey },
-        timeout: 10000,
-      }
-    );
-
-    const chunk = response.data;
-    if (!chunk) {
-      throw new Error(`Chunk not found: ${chunkId}`);
-    }
-
-    // Generate embedding
-    const embedding = await generateEmbedding(chunk.content, {
-      taskType: 'RETRIEVAL_DOCUMENT',
-      outputDimensionality: 768,
-    });
-
-    // Save embedding
-    await axios.put(
-      `${config.dashboardServiceUrl}/api/internal/chunks/${chunkId}/embedding`,
-      {
-        embedding: embedding.values,
-        model: embedding.model,
-        dimensions: embedding.dimensions,
-      },
-      {
-        headers: { 'x-internal-api-key': config.internalApiKey },
-        timeout: 10000,
-      }
-    );
-
-    logger.info('Chunk embedding generated', {
-      chunkId,
-      dimensions: embedding.dimensions,
-    });
+    // For single chunk, we need document context
+    // This is a simplified version - in practice, use processDocumentEmbedding
+    logger.warn('Single chunk embedding not fully supported, use document embedding instead', { chunkId });
+    throw new Error('Single chunk embedding not supported. Use document embedding instead.');
   }
 
   /**
    * Regenerate all knowledge base embeddings
    */
   private async processBatchKnowledgeEmbedding(): Promise<void> {
-    // Fetch all knowledge items without embeddings or with stale embeddings
+    // Fetch all knowledge items from Dashboard
     const response = await axios.get(
-      `${config.dashboardServiceUrl}/api/internal/knowledge/needs-embedding`,
+      `${config.dashboardServiceUrl}/api/internal/knowledge`,
       {
+        params: { limit: 500 },
         headers: { 'x-internal-api-key': config.internalApiKey },
         timeout: 30000,
       }
     );
 
-    const items = response.data.items || [];
+    const items = response.data.data || [];
     if (items.length === 0) {
-      logger.info('No knowledge items need embedding regeneration');
+      logger.info('No knowledge items to process');
       return;
     }
 
@@ -357,21 +319,18 @@ class EmbeddingJobQueue {
         outputDimensionality: 768,
       });
 
-      // Save embeddings
-      const embeddings = batch.map((item: any, idx: number) => ({
-        id: item.id,
-        embedding: batchResult.embeddings[idx].values,
-        model: batchResult.embeddings[idx].model,
-      }));
-
-      await axios.put(
-        `${config.dashboardServiceUrl}/api/internal/knowledge/batch-embeddings`,
-        { embeddings },
-        {
-          headers: { 'x-internal-api-key': config.internalApiKey },
-          timeout: 30000,
-        }
-      );
+      // Save embeddings to local vector DB
+      for (let j = 0; j < batch.length; j++) {
+        await upsertKnowledgeVector({
+          id: batch[j].id,
+          title: batch[j].title || '',
+          content: batch[j].content,
+          category: batch[j].category || 'informasi_umum',
+          keywords: batch[j].keywords || [],
+          embedding: batchResult.embeddings[j].values,
+          embeddingModel: batchResult.embeddings[j].model,
+        });
+      }
 
       logger.info('Batch embedding progress', {
         processed: i + batch.length,

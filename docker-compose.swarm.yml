@@ -72,10 +72,14 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
+        # Channel API - strip /channel prefix
         - "traefik.http.routers.channel.rule=Host(`api.govconnect.my.id`) && PathPrefix(`/channel`)"
         - "traefik.http.routers.channel.entrypoints=websecure"
         - "traefik.http.routers.channel.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.channel.middlewares=channel-strip"
+        - "traefik.http.middlewares.channel-strip.stripprefix.prefixes=/channel"
         - "traefik.http.services.channel.loadbalancer.server.port=3001"
+        # Webhook - no strip (path expected by WhatsApp)
         - "traefik.http.routers.webhook.rule=Host(`api.govconnect.my.id`) && PathPrefix(`/webhook`)"
         - "traefik.http.routers.webhook.entrypoints=websecure"
         - "traefik.http.routers.webhook.tls.certresolver=letsencrypt"
@@ -88,7 +92,7 @@ services:
       start_period: 30s
 
   # ===================================================================================
-  # Service 2: AI Orchestrator (Stateless)
+  # Service 2: AI Orchestrator (with Vector Database)
   # ===================================================================================
   ai-service:
     image: ghcr.io/mygads/govconnect-ai-service:${IMAGE_TAG}
@@ -96,6 +100,8 @@ services:
       NODE_ENV: ${NODE_ENV}
       PORT: 3002
       SERVICE_NAME: ai-service
+      # AI Service has its own database for vector storage
+      AI_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_ai?schema=ai_vectors
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/govconnect
       CHANNEL_SERVICE_URL: http://channel-service:3001
       CASE_SERVICE_URL: http://case-service:3003
@@ -137,9 +143,12 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
+        # AI API - strip /ai prefix
         - "traefik.http.routers.ai.rule=Host(`api.govconnect.my.id`) && PathPrefix(`/ai`)"
         - "traefik.http.routers.ai.entrypoints=websecure"
         - "traefik.http.routers.ai.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.ai.middlewares=ai-strip"
+        - "traefik.http.middlewares.ai-strip.stripprefix.prefixes=/ai"
         - "traefik.http.services.ai.loadbalancer.server.port=3002"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/health"]
@@ -189,9 +198,12 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
+        # Case API - strip /case prefix
         - "traefik.http.routers.case.rule=Host(`api.govconnect.my.id`) && PathPrefix(`/case`)"
         - "traefik.http.routers.case.entrypoints=websecure"
         - "traefik.http.routers.case.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.case.middlewares=case-strip"
+        - "traefik.http.middlewares.case-strip.stripprefix.prefixes=/case"
         - "traefik.http.services.case.loadbalancer.server.port=3003"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/health"]
@@ -242,9 +254,12 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
+        # Notification API - strip /notification prefix
         - "traefik.http.routers.notification.rule=Host(`api.govconnect.my.id`) && PathPrefix(`/notification`)"
         - "traefik.http.routers.notification.entrypoints=websecure"
         - "traefik.http.routers.notification.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.notification.middlewares=notification-strip"
+        - "traefik.http.middlewares.notification-strip.stripprefix.prefixes=/notification"
         - "traefik.http.services.notification.loadbalancer.server.port=3004"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3004/health"]
@@ -262,9 +277,8 @@ services:
       NODE_ENV: ${NODE_ENV}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_dashboard?schema=public
       JWT_SECRET: ${JWT_SECRET}
-      CASE_SERVICE_URL: http://case-service:3003
-      CHANNEL_SERVICE_URL: http://channel-service:3001
-      AI_SERVICE_URL: http://ai-service:3002
+      # Single API endpoint via Traefik (internal Docker network)
+      API_BASE_URL: http://traefik
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       NEXT_PUBLIC_APP_NAME: "GovConnect Dashboard"
       NEXTAUTH_URL: ${NEXTAUTH_URL}

@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-// API to trigger embedding generation for knowledge base
-// Calls AI service to generate embeddings
-
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:3002'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'govconnect-internal-2025-secret'
+import { ai, API_BASE_URL } from '@/lib/api-client'
 
 /**
  * POST /api/knowledge/embed-all
@@ -13,13 +8,7 @@ const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'govconnect-internal-20
 export async function POST(request: NextRequest) {
   try {
     // Call AI service to embed all knowledge
-    const response = await fetch(`${AI_SERVICE_URL}/api/internal/embed-all-knowledge`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-internal-api-key': INTERNAL_API_KEY,
-      },
-    })
+    const response = await ai.embedAllKnowledge()
 
     if (!response.ok) {
       const error = await response.json()
@@ -43,7 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: 'AI Service is not running', 
-          details: `Cannot connect to AI Service at ${AI_SERVICE_URL}. Please start the AI Service first.`,
+          details: `Cannot connect to AI Service at ${API_BASE_URL}/ai. Please start the AI Service first.`,
           hint: 'Run: cd govconnect-ai-service && pnpm run dev'
         },
         { status: 503 }

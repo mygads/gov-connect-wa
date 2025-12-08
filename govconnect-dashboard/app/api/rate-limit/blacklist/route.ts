@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://ai-service:3002'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'shared-secret-key-12345'
+import { ai } from '@/lib/api-client'
 
 // GET - Get blacklist
 export async function GET(request: NextRequest) {
@@ -19,12 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const response = await fetch(`${AI_SERVICE_URL}/rate-limit/blacklist`, {
-        method: 'GET',
-        headers: {
-          'x-internal-api-key': INTERNAL_API_KEY,
-        },
-      })
+      const response = await ai.getBlacklist()
 
       if (response.ok) {
         const data = await response.json()
@@ -57,15 +50,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     try {
-      const response = await fetch(`${AI_SERVICE_URL}/rate-limit/blacklist`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-internal-api-key': INTERNAL_API_KEY,
-        },
-        body: JSON.stringify(body),
-      })
-
+      const response = await ai.addToBlacklist(body)
       const data = await response.json()
       return NextResponse.json(data, { status: response.ok ? 200 : response.status })
     } catch (error) {
@@ -99,13 +84,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     try {
-      const response = await fetch(`${AI_SERVICE_URL}/rate-limit/blacklist/${wa_user_id}`, {
-        method: 'DELETE',
-        headers: {
-          'x-internal-api-key': INTERNAL_API_KEY,
-        },
-      })
-
+      const response = await ai.removeFromBlacklist(wa_user_id)
       const data = await response.json()
       return NextResponse.json(data, { status: response.ok ? 200 : response.status })
     } catch (error) {

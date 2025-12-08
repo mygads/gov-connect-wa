@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const CHANNEL_SERVICE_URL = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3001'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || ''
+import { livechat } from '@/lib/api-client'
 
 async function getAuthUser(request: NextRequest) {
   const authHeader = request.headers.get('Authorization')
@@ -28,18 +26,9 @@ export async function POST(
     }
 
     const { wa_user_id } = await params
+    const body = await request.json().catch(() => ({}))
 
-    const response = await fetch(
-      `${CHANNEL_SERVICE_URL}/internal/conversations/${encodeURIComponent(wa_user_id)}/retry`,
-      {
-        method: 'POST',
-        headers: {
-          'X-Internal-API-Key': INTERNAL_API_KEY,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
+    const response = await livechat.retryMessage(wa_user_id, body)
     const data = await response.json()
     return NextResponse.json(data, { status: response.status })
   } catch (error) {

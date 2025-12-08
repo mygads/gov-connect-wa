@@ -17,7 +17,7 @@ import {
   semanticChunking,
   processDocumentSemanticChunking,
 } from '../services/document-processor.service';
-import { storeDocumentChunkEmbeddings } from '../services/vector-store.service';
+import { addDocumentChunks, upsertKnowledgeVector } from '../services/vector-db.service';
 import { config } from '../config/env';
 import axios from 'axios';
 import {
@@ -77,15 +77,24 @@ router.post('/process-document', verifyInternalKey, async (req: Request, res: Re
       return res.status(400).json({ error: 'No chunks generated from document' });
     }
     
-    // Store chunks with embeddings to Dashboard
-    const stored = await storeDocumentChunkEmbeddings(documentId, embeddedChunks);
-    
-    if (!stored) {
-      await updateDocumentStatus(documentId, 'failed', 'Failed to store chunks');
+    // Store chunks with embeddings to local vector DB
+    try {
+      await addDocumentChunks(embeddedChunks.map((chunk, idx) => ({
+        documentId,
+        chunkIndex: idx,
+        content: chunk.content,
+        embedding: chunk.embedding,
+        documentTitle: title,
+        category,
+        pageNumber: chunk.pageNumber,
+        sectionTitle: chunk.sectionTitle,
+      })));
+    } catch (storeError: any) {
+      await updateDocumentStatus(documentId, 'failed', 'Failed to store chunks: ' + storeError.message);
       return res.status(500).json({ error: 'Failed to store chunks' });
     }
     
-    // Update document status to completed
+    // Update document status to completed in Dashboard
     await updateDocumentStatus(documentId, 'completed', null, embeddedChunks.length);
     
     logger.info('Document processing completed', {
@@ -114,7 +123,7 @@ router.post('/process-document', verifyInternalKey, async (req: Request, res: Re
 });
 
 router.post('/embed-knowledge', verifyInternalKey, async (req: Request, res: Response) => {
-  const { knowledgeId, content, title } = req.body;
+  const { knowledgeId, content, title, category, keywords } = req.body;
   
   if (!knowledgeId || !content) {
     return res.status(400).json({ error: 'knowledgeId and content are required' });
@@ -136,13 +145,16 @@ router.post('/embed-knowledge', verifyInternalKey, async (req: Request, res: Res
       outputDimensionality: 768,
     });
     
-    // Store embedding to Dashboard
-    const { storeKnowledgeEmbedding } = await import('../services/vector-store.service');
-    const stored = await storeKnowledgeEmbedding(knowledgeId, embedding.values);
-    
-    if (!stored) {
-      return res.status(500).json({ error: 'Failed to store embedding' });
-    }
+    // Store embedding to local vector DB
+    await upsertKnowledgeVector({
+      id: knowledgeId,
+      title: title || '',
+      content,
+      category: category || 'informasi_umum',
+      keywords: keywords || [],
+      embedding: embedding.values,
+      embeddingModel: embedding.model,
+    });
     
     logger.info('Knowledge embedding generated and stored', {
       knowledgeId,
@@ -171,7 +183,7 @@ router.post('/embed-all-knowledge', verifyInternalKey, async (req: Request, res:
   logger.info('Starting bulk knowledge embedding');
   
   try {
-    // Fetch all knowledge without embeddings from Dashboard
+    // Fetch all knowledge from Dashboard
     const response = await axios.get(
       `${config.dashboardServiceUrl}/api/internal/knowledge`,
       {
@@ -192,7 +204,6 @@ router.post('/embed-all-knowledge', verifyInternalKey, async (req: Request, res:
     }
     
     const { generateBatchEmbeddings } = await import('../services/embedding.service');
-    const { storeKnowledgeEmbedding } = await import('../services/vector-store.service');
     
     let processed = 0;
     let failed = 0;
@@ -209,16 +220,20 @@ router.post('/embed-all-knowledge', verifyInternalKey, async (req: Request, res:
           outputDimensionality: 768,
         });
         
-        // Store each embedding
+        // Store each embedding to local vector DB
         for (let j = 0; j < batch.length; j++) {
-          const stored = await storeKnowledgeEmbedding(
-            batch[j].id,
-            embeddings.embeddings[j].values
-          );
-          
-          if (stored) {
+          try {
+            await upsertKnowledgeVector({
+              id: batch[j].id,
+              title: batch[j].title || '',
+              content: batch[j].content,
+              category: batch[j].category || 'informasi_umum',
+              keywords: batch[j].keywords || [],
+              embedding: embeddings.embeddings[j].values,
+              embeddingModel: embeddings.embeddings[j].model,
+            });
             processed++;
-          } else {
+          } catch (storeError) {
             failed++;
           }
         }
@@ -320,15 +335,24 @@ router.post('/process-document-semantic', verifyInternalKey, async (req: Request
       return res.status(400).json({ error: 'No chunks generated from document' });
     }
     
-    // Store chunks with embeddings to Dashboard
-    const stored = await storeDocumentChunkEmbeddings(documentId, embeddedChunks);
-    
-    if (!stored) {
-      await updateDocumentStatus(documentId, 'failed', 'Failed to store chunks');
+    // Store chunks with embeddings to local vector DB
+    try {
+      await addDocumentChunks(embeddedChunks.map((chunk, idx) => ({
+        documentId,
+        chunkIndex: idx,
+        content: chunk.content,
+        embedding: chunk.embedding,
+        documentTitle: title,
+        category,
+        pageNumber: chunk.pageNumber,
+        sectionTitle: chunk.sectionTitle,
+      })));
+    } catch (storeError: any) {
+      await updateDocumentStatus(documentId, 'failed', 'Failed to store chunks: ' + storeError.message);
       return res.status(500).json({ error: 'Failed to store chunks' });
     }
     
-    // Update document status to completed
+    // Update document status to completed in Dashboard
     await updateDocumentStatus(documentId, 'completed', null, embeddedChunks.length);
     
     logger.info('Semantic document processing completed', {

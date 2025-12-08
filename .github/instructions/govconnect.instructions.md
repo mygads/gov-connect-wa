@@ -377,7 +377,7 @@ WA_API_URL="https://api.whatsapp.com/v1"
 WA_API_TOKEN="xxx"
 
 # Internal API Keys (untuk inter-service auth)
-INTERNAL_API_KEY="shared-secret-key-12345"
+INTERNAL_API_KEY="govconnect-internal-2025-secret"
 ```
 
 ---

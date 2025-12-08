@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const CASE_SERVICE_URL = process.env.CASE_SERVICE_URL || 'http://localhost:3003'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'shared-secret-key-12345'
+import { caseService } from '@/lib/api-client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,24 +18,14 @@ export async function GET(request: NextRequest) {
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams
-    const jenis = searchParams.get('jenis')
+    const jenis = searchParams.get('jenis') || undefined
+    const status = searchParams.get('status') || undefined
     const limit = searchParams.get('limit') || '20'
     const offset = searchParams.get('offset') || '0'
 
-    // Build URL with query params
-    const url = new URL(`${CASE_SERVICE_URL}/tiket`)
-    if (jenis) url.searchParams.set('jenis', jenis)
-    url.searchParams.set('limit', limit)
-    url.searchParams.set('offset', offset)
-
     // Try to forward request to case service
     try {
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'x-internal-api-key': INTERNAL_API_KEY,
-        },
-      })
+      const response = await caseService.getTiket({ jenis, status, limit, offset })
 
       if (response.ok) {
         const data = await response.json()

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const CASE_SERVICE_URL = process.env.CASE_SERVICE_URL || 'http://case-service:3003'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'shared-secret-key-12345'
+import { caseService } from '@/lib/api-client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,18 +18,7 @@ export async function GET(request: NextRequest) {
 
     // Try to forward request to case service
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 25000) // 25 second timeout
-      
-      const response = await fetch(`${CASE_SERVICE_URL}/statistics/overview`, {
-        method: 'GET',
-        headers: {
-          'x-internal-api-key': INTERNAL_API_KEY,
-        },
-        signal: controller.signal,
-      })
-      
-      clearTimeout(timeoutId)
+      const response = await caseService.getOverview()
 
       if (response.ok) {
         const data = await response.json()

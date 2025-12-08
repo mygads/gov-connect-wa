@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const CHANNEL_SERVICE_URL = process.env.CHANNEL_SERVICE_URL || 'http://localhost:3001'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || ''
+import { channel } from '@/lib/api-client'
 
 async function getAuthUser(request: NextRequest) {
   const authHeader = request.headers.get('Authorization')
@@ -24,13 +22,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const response = await fetch(`${CHANNEL_SERVICE_URL}/internal/whatsapp/settings`, {
-      headers: {
-        'X-Internal-API-Key': INTERNAL_API_KEY,
-        'Content-Type': 'application/json',
-      },
-    })
-
+    const response = await channel.getSettings()
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {
@@ -54,16 +46,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-
-    const response = await fetch(`${CHANNEL_SERVICE_URL}/internal/whatsapp/settings`, {
-      method: 'PATCH',
-      headers: {
-        'X-Internal-API-Key': INTERNAL_API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    })
-
+    const response = await channel.updateSettings(body)
     const data = await response.json()
     return NextResponse.json(data)
   } catch (error) {

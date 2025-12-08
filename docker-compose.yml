@@ -57,7 +57,7 @@ services:
       start_period: 30s
 
   # ===================================================================================
-  # Service 2: AI Orchestrator (Stateless)
+  # Service 2: AI Orchestrator (with Vector Database)
   # ===================================================================================
   ai-service:
     build:
@@ -70,6 +70,8 @@ services:
       NODE_ENV: ${NODE_ENV}
       PORT: 3002
       SERVICE_NAME: ai-service
+      # AI Service has its own database for vector storage
+      AI_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_ai?schema=ai_vectors
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/govconnect
       CHANNEL_SERVICE_URL: http://channel-service:3001
       CASE_SERVICE_URL: http://case-service:3003
@@ -165,9 +167,8 @@ services:
       NODE_ENV: ${NODE_ENV}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_dashboard?schema=public
       JWT_SECRET: ${JWT_SECRET}
-      CASE_SERVICE_URL: http://case-service:3003
-      CHANNEL_SERVICE_URL: http://channel-service:3001
-      AI_SERVICE_URL: http://ai-service:3002
+      # Single API endpoint via Traefik (internal Docker network)
+      API_BASE_URL: http://traefik
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       NEXT_PUBLIC_APP_NAME: "GovConnect Dashboard"
       NEXTAUTH_URL: ${NEXTAUTH_URL}

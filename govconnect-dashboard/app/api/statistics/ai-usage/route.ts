@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
-
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://ai-service:3002'
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'shared-secret-key-12345'
+import { ai } from '@/lib/api-client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,12 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Try to forward request to AI service
     try {
-      const response = await fetch(`${AI_SERVICE_URL}/stats/models`, {
-        method: 'GET',
-        headers: {
-          'x-internal-api-key': INTERNAL_API_KEY,
-        },
-      })
+      const response = await ai.getModelsStats()
 
       if (response.ok) {
         const data = await response.json()
