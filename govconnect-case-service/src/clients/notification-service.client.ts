@@ -3,10 +3,10 @@
  */
 
 import { createHttpClient } from '../shared/http-client';
-import config from '../config/env';
+import { config } from '../config/env';
 
 const notificationServiceClient = createHttpClient('notification-service', {
-  baseURL: config.notificationServiceUrl || 'http://notification-service:3004',
+  baseURL: process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3004',
   timeout: 10000,
   retries: 3,
   headers: {

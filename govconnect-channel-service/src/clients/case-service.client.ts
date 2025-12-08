@@ -5,16 +5,16 @@
  */
 
 import { createHttpClient } from '../shared/http-client';
-import config from '../config/env';
+import { config } from '../config/env';
 
 // Create resilient HTTP client
 const caseServiceClient = createHttpClient('case-service', {
-  baseURL: config.caseServiceUrl,
+  baseURL: config.CASE_SERVICE_URL,
   timeout: 10000,
   retries: 3,
   retryDelay: 1000,
   headers: {
-    'X-API-Key': config.internalApiKey,
+    'X-API-Key': config.INTERNAL_API_KEY,
   },
   circuitBreakerOptions: {
     failureThreshold: 5,
