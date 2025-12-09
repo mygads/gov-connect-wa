@@ -8,7 +8,7 @@ Instruksi ini wajib diikuti saat bekerja dengan project GovConnect. Baca keselur
 
 ## 📋 OVERVIEW
 
-**GovConnect** adalah sistem layanan pemerintah berbasis WhatsApp dengan AI orchestrator untuk menangani laporan warga dan tiket pelayanan.
+**GovConnect** adalah sistem layanan pemerintah berbasis WhatsApp dengan AI orchestrator untuk menangani laporan warga dan reservasi layanan.
 
 ### Tech Stack
 - **Backend Services**: Express.js (Node.js)
@@ -44,7 +44,7 @@ Instruksi ini wajib diikuti saat bekerja dengan project GovConnect. Baca keselur
 │  - Consume: whatsapp.message.received                        │
 │  - Fetch 30 history dari Service 1                           │
 │  - Call LLM (structured JSON output)                         │
-│  - SYNC call ke Service 3 (laporan/tiket)                    │
+│  - SYNC call ke Service 3 (laporan/reservasi)                │
 │  - Publish: govconnect.ai.reply                              │
 │  DB: ❌ STATELESS (No DB)                                    │
 └────────────────┬────────────────────────────────────────────┘
@@ -53,7 +53,7 @@ Instruksi ini wajib diikuti saat bekerja dengan project GovConnect. Baca keselur
 ┌─────────────────────────────────────────────────────────────┐
 │  SERVICE 3: CASE SERVICE (Express.js)                        │
 │  - POST /laporan/create                                      │
-│  - POST /tiket/create                                        │
+│  - POST /reservasi/create                                    │
 │  - Validasi & simpan ke DB                                   │
 │  - Publish: govconnect.complaint.created                     │
 │  - API untuk Dashboard (GET/PATCH)                           │
@@ -74,7 +74,7 @@ Instruksi ini wajib diikuti saat bekerja dengan project GovConnect. Baca keselur
 ┌─────────────────────────────────────────────────────────────┐
 │  SERVICE 4: DASHBOARD (Next.js)                              │
 │  - Login admin (JWT/session)                                 │
-│  - View laporan/tiket (REST ke Service 3)                    │
+│  - View laporan/reservasi (REST ke Service 3)                │
 │  - Update status                                             │
 │  - Statistik & charts                                        │
 │  DB: gc_dashboard_db                                         │
@@ -107,7 +107,7 @@ Service 1 wajib maintain maksimal 30 pesan per user:
 LLM wajib return JSON dengan format:
 ```json
 {
-  "intent": "CREATE_COMPLAINT|CREATE_TICKET|QUESTION|UNKNOWN",
+  "intent": "CREATE_COMPLAINT|CREATE_RESERVATION|CHECK_STATUS|CANCEL_COMPLAINT|CANCEL_RESERVATION|HISTORY|KNOWLEDGE_QUERY|QUESTION|UNKNOWN",
   "fields": {
     "kategori": "...",
     "alamat": "...",
@@ -331,7 +331,8 @@ govconnect-dashboard/
 │   │   │   ├── laporan/
 │   │   │   │   ├── page.tsx      # List laporan
 │   │   │   │   └── [id]/page.tsx # Detail
-│   │   │   ├── tiket/
+│   │   │   ├── reservasi/
+│   │   │   ├── layanan/
 │   │   │   └── statistik/
 │   │   └── api/
 │   │       ├── auth/
@@ -967,7 +968,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
       - pgdata-case:/var/lib/postgresql/data
 

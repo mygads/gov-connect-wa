@@ -6,14 +6,11 @@
 
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["dashboard"]
-  // Note: pgvector extension moved to AI Service database
 }
 
 model admin_users {
@@ -27,8 +24,6 @@ model admin_users {
   
   sessions      admin_sessions[]
   activity_logs activity_logs[]
-  
-  @@schema("dashboard")
 }
 
 model admin_sessions {
@@ -42,7 +37,6 @@ model admin_sessions {
   
   @@index([admin_id])
   @@index([expires_at])
-  @@schema("dashboard")
 }
 
 model activity_logs {
@@ -58,7 +52,6 @@ model activity_logs {
   
   @@index([admin_id])
   @@index([timestamp])
-  @@schema("dashboard")
 }
 
 // ==================== SYSTEM SETTINGS ====================
@@ -70,8 +63,6 @@ model system_settings {
   description String?
   updated_at  DateTime @updatedAt
   created_at  DateTime @default(now())
-  
-  @@schema("dashboard")
 }
 
 // ==================== KNOWLEDGE BASE ====================
@@ -93,7 +84,6 @@ model knowledge_base {
   @@index([category])
   @@index([is_active])
   @@index([keywords])
-  @@schema("dashboard")
 }
 
 // ==================== KNOWLEDGE DOCUMENTS ====================
@@ -129,7 +119,6 @@ model knowledge_documents {
   @@index([status])
   @@index([category])
   @@index([created_at])
-  @@schema("dashboard")
 }
 
 // ==================== DOCUMENT CHUNKS ====================
@@ -153,5 +142,4 @@ model document_chunks {
   
   @@index([document_id])
   @@index([chunk_index])
-  @@schema("dashboard")
 }

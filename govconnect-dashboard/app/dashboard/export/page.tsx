@@ -37,7 +37,7 @@ import {
   XCircle,
   FileWarning,
 } from "lucide-react"
-import { apiClient } from "@/lib/api-client"
+import { laporan, tiket, statistics } from "@/lib/frontend-api"
 import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import {
@@ -109,7 +109,7 @@ export default function ExportLaporanPage() {
   const fetchComplaints = async () => {
     try {
       setLoading(true)
-      const data = await apiClient.getComplaints()
+      const data = await laporan.getAll()
       const complaintsData = data.data || []
       setComplaints(complaintsData)
 

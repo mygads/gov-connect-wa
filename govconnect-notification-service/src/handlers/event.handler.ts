@@ -3,13 +3,13 @@ import logger from '../utils/logger';
 import { sendNotification, sendAdminUrgentAlert } from '../services/notification.service';
 import {
   buildComplaintCreatedMessage,
-  buildTicketCreatedMessage,
+  buildReservationCreatedMessage,
   buildStatusUpdatedMessage,
   buildUrgentAlertMessage
 } from '../services/template.service';
 import {
   ComplaintCreatedEvent,
-  TicketCreatedEvent,
+  ReservationCreatedEvent,
   StatusUpdatedEvent,
   UrgentAlertEvent
 } from '../types/event.types';
@@ -23,8 +23,8 @@ export async function handleEvent(routingKey: string, data: any): Promise<void> 
       await handleComplaintCreated(data as ComplaintCreatedEvent);
       break;
 
-    case RABBITMQ_CONFIG.routingKeys.ticketCreated:
-      await handleTicketCreated(data as TicketCreatedEvent);
+    case RABBITMQ_CONFIG.routingKeys.reservationCreated:
+      await handleReservationCreated(data as ReservationCreatedEvent);
       break;
 
     case RABBITMQ_CONFIG.routingKeys.statusUpdated:
@@ -58,21 +58,23 @@ async function handleComplaintCreated(event: ComplaintCreatedEvent): Promise<voi
   });
 }
 
-async function handleTicketCreated(event: TicketCreatedEvent): Promise<void> {
-  logger.info('Handling ticket created event', {
+async function handleReservationCreated(event: ReservationCreatedEvent): Promise<void> {
+  logger.info('Handling reservation created event', {
     wa_user_id: event.wa_user_id,
-    ticket_id: event.ticket_id
+    reservation_id: event.reservation_id
   });
 
-  const message = buildTicketCreatedMessage({
-    ticket_id: event.ticket_id,
-    jenis: event.jenis
+  const message = buildReservationCreatedMessage({
+    reservation_id: event.reservation_id,
+    service_name: event.service_name,
+    reservation_date: event.reservation_date,
+    reservation_time: event.reservation_time
   });
 
   await sendNotification({
     wa_user_id: event.wa_user_id,
     message,
-    notificationType: 'ticket_created'
+    notificationType: 'reservation_created'
   });
 }
 
@@ -80,7 +82,7 @@ async function handleStatusUpdated(event: StatusUpdatedEvent): Promise<void> {
   logger.info('Handling status updated event', {
     wa_user_id: event.wa_user_id,
     complaint_id: event.complaint_id,
-    ticket_id: event.ticket_id,
+    reservation_id: event.reservation_id,
     status: event.status
   });
 
@@ -89,14 +91,14 @@ async function handleStatusUpdated(event: StatusUpdatedEvent): Promise<void> {
   if (event.status !== 'selesai') {
     logger.info('Skipping notification - only notify on completion', {
       status: event.status,
-      id: event.complaint_id || event.ticket_id
+      id: event.complaint_id || event.reservation_id
     });
     return;
   }
 
   const message = buildStatusUpdatedMessage({
     complaint_id: event.complaint_id,
-    ticket_id: event.ticket_id,
+    reservation_id: event.reservation_id,
     status: event.status,
     admin_notes: event.admin_notes
   });

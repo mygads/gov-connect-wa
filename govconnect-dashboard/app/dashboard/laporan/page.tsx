@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { AlertCircle, Eye, Search, ImageIcon } from "lucide-react"
-import { apiClient } from "@/lib/api-client"
+import { laporan } from "@/lib/frontend-api"
 import { formatDate, formatStatus, getStatusColor } from "@/lib/utils"
 
 interface Complaint {
@@ -45,7 +45,7 @@ export default function LaporanListPage() {
   const fetchComplaints = async () => {
     try {
       setLoading(true)
-      const data = await apiClient.getComplaints()
+      const data = await laporan.getAll()
       setComplaints(data.data || [])
       setError(null)
     } catch (err: any) {

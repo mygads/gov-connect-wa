@@ -26,7 +26,7 @@ const allMessages: Omit<Message, "id">[] = [
   { type: "user", text: "📷 Foto jalan berlubang", isImage: true },
   { type: "bot", text: "Foto diterima! ✅ Mohon jelaskan lokasi lebih detail (nama jalan, dekat landmark apa?)" },
   { type: "user", text: "Jl. Melati No. 15, depan warung Pak Ahmad" },
-  { type: "bot", text: "Laporan berhasil dikirim! 🎉\n\n📋 Nomor Tiket: #GC2024001\n📍 Lokasi: Jl. Melati No. 15\n⏱️ Estimasi: 2-3 hari kerja\n\nAnda akan mendapat notifikasi update status." },
+  { type: "bot", text: "Laporan berhasil dikirim! 🎉\n\n📋 Nomor Laporan: #LAP-20241208-001\n📍 Lokasi: Jl. Melati No. 15\n⏱️ Estimasi: 2-3 hari kerja\n\nAnda akan mendapat notifikasi update status." },
   
   // Conversation 2: Pengajuan Surat
   { type: "user", text: "Saya juga mau ajukan surat keterangan domisili" },

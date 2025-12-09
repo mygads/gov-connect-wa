@@ -8,7 +8,6 @@ import { useTheme } from "next-themes"
 import {
   LayoutDashboard,
   FileText,
-  Ticket,
   BarChart3,
   ChevronRight,
   Bot,
@@ -19,6 +18,8 @@ import {
   Shield,
   Brain,
   Activity,
+  Calendar,
+  Settings2,
 } from "lucide-react"
 
 import {
@@ -97,17 +98,21 @@ export function GovConnectSidebar() {
       ],
     },
     {
-      title: "Tiket Management",
+      title: "Reservasi & Layanan",
       items: [
         {
-          title: "List Tiket",
-          url: "/dashboard/tiket",
-          icon: Ticket,
+          title: "Daftar Reservasi",
+          url: "/dashboard/reservasi",
+          icon: Calendar,
+        },
+        {
+          title: "Kelola Layanan",
+          url: "/dashboard/layanan",
+          icon: Settings2,
         },
       ],
     },
-    // WhatsApp section - only for superadmin
-    ...(user?.role === 'superadmin' ? [{
+    {
       title: "WhatsApp",
       items: [
         {
@@ -121,9 +126,8 @@ export function GovConnectSidebar() {
           icon: MessageCircle,
         },
       ],
-    }] : []),
-    // AI Chatbot section - only for superadmin
-    ...(user?.role === 'superadmin' ? [{
+    },
+    {
       title: "AI Chatbot",
       items: [
         {
@@ -147,48 +151,34 @@ export function GovConnectSidebar() {
           icon: Shield,
         },
       ],
-    }] : []),
+    },
   ]
 
   const currentTheme = resolvedTheme || theme || "light"
-  const logoSrc = currentTheme === "dark" ? "/images/logo-dark.svg" : "/images/logo-light.svg"
+  const logoSrc = currentTheme === "dark" ? "/logo-dashboard-dark.png" : "/logo-dashboard.png"
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-white dark:bg-gray-950">
       <SidebarHeader className="border-b border-border p-4 bg-white dark:bg-gray-950">
         <Link href="/dashboard" className="flex items-center gap-2">
           {state === "expanded" ? (
-            <>
-              <div className="relative h-8 w-8 shrink-0">
-                <Image
-                  src={logoSrc}
-                  alt="GovConnect Logo"
-                  fill
-                  className="object-contain"
-                  priority
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = 'none'
-                  }}
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-bold text-foreground">GovConnect</span>
-                <span className="text-xs text-muted-foreground">Admin Dashboard</span>
-              </div>
-            </>
-          ) : (
-            <div className="relative h-8 w-8 mx-auto">
+            <div className="relative h-10 w-40 shrink-0">
               <Image
                 src={logoSrc}
                 alt="GovConnect Logo"
                 fill
+                className="object-contain object-left"
+                priority
+              />
+            </div>
+          ) : (
+            <div className="relative h-8 w-8 mx-auto">
+              <Image
+                src="/logo.png"
+                alt="GovConnect Logo"
+                fill
                 className="object-contain"
                 priority
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.style.display = 'none'
-                }}
               />
             </div>
           )}

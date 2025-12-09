@@ -1,5 +1,4 @@
 import prisma from '../config/database';
-import config from '../config/env';
 import logger from '../utils/logger';
 import { UrgentAlertEvent } from '../types/event.types';
 import { sendWhatsAppMessage } from '../clients/channel-service.client';
@@ -72,10 +71,9 @@ export async function sendNotification(params: SendNotificationParams): Promise<
   }
 
   if (status === 'failed') {
-    logger.error('Notification failed after all retries', {
+    logger.error('Notification failed', {
       wa_user_id,
       notificationType,
-      attempts: maxRetries,
       lastError: errorMsg
     });
   }

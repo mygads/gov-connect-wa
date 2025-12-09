@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { AlertCircle, ArrowLeft, CheckCircle, Loader2, MapPin, MessageSquare, Phone, Calendar, Image, Printer } from "lucide-react"
-import { apiClient } from "@/lib/api-client"
+import { laporan } from "@/lib/frontend-api"
 import { formatDate, formatStatus, getStatusColor } from "@/lib/utils"
 import { printTicket } from "@/lib/export-utils"
 
@@ -54,7 +54,7 @@ export default function LaporanDetailPage() {
   const fetchComplaintDetail = async (id: string) => {
     try {
       setLoading(true)
-      const data = await apiClient.getComplaintById(id)
+      const data = await laporan.getById(id)
       setComplaint(data)
       setNewStatus(data.status)
       setError(null)
@@ -70,7 +70,7 @@ export default function LaporanDetailPage() {
 
     try {
       setUpdating(true)
-      await apiClient.updateComplaintStatus(complaint.id, {
+      await laporan.updateStatus(complaint.id, {
         status: newStatus,
         admin_notes: adminNotes || undefined,
       })

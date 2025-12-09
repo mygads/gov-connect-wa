@@ -114,7 +114,7 @@ Database `gc_ai` dibuat otomatis oleh init script di `/database/init/01-init-dat
 2. Run migration (jika database sudah ada):
    ```bash
    cd govconnect-ai-service
-   psql -h localhost -p 5433 -U postgres -d gc_ai -f prisma/migrations/init_vector_db.sql
+   psql -h localhost -p 5432 -U postgres -d gc_ai -f prisma/migrations/init_vector_db.sql
    ```
 
 3. Generate Prisma client:
@@ -131,9 +131,9 @@ Database `gc_ai` dibuat otomatis oleh init script di `/database/init/01-init-dat
 
 ```env
 # AI Service database (separate database gc_ai)
-# Local Dev: localhost:5433 (mapped port)
+# Local Dev: localhost:5432 (mapped port)
 # Docker: postgres:5432
-AI_DATABASE_URL=postgresql://postgres:password@localhost:5433/gc_ai?schema=ai_vectors
+AI_DATABASE_URL=postgresql://postgres:password@localhost:5432/gc_ai?schema=ai_vectors
 ```
 
 ## Endpoint Summary

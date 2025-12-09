@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
-import { apiClient } from '@/lib/api-client'
+import { laporan, statistics } from '@/lib/frontend-api'
 import { 
   getNotificationSettings, 
   isUrgentCategory, 
@@ -40,12 +40,12 @@ interface RealtimeStats {
     ditolak: number
     urgent: number
   }
-  tickets: {
+  reservations?: {
     total: number
     pending: number
-    proses: number
-    selesai: number
-    ditolak: number
+    confirmed: number
+    completed: number
+    cancelled: number
   }
   todayCount: number
   lastHourCount: number
@@ -98,10 +98,10 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
   const fetchData = useCallback(async () => {
     try {
       // Fetch statistics
-      const statsData = await apiClient.getStatistics()
+      const statsData = await statistics.getOverview()
       
       // Fetch recent complaints
-      const complaintsData = await apiClient.getComplaints()
+      const complaintsData = await laporan.getAll()
       const allComplaints: Complaint[] = complaintsData.data || []
       
       // Filter urgent complaints
@@ -200,7 +200,7 @@ export function RealtimeProvider({ children }: RealtimeProviderProps) {
           ...statsData.complaints,
           urgent: urgent.length,
         },
-        tickets: statsData.tickets,
+        reservations: statsData.reservations,
         todayCount,
         lastHourCount,
       })

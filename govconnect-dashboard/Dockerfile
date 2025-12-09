@@ -47,9 +47,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install pnpm for prisma commands
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
@@ -59,8 +56,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy Prisma schema for migrations
+# Copy Prisma schema and generated client
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy entire .pnpm directory for Prisma CLI dependencies
+COPY --from=builder /app/node_modules/.pnpm ./node_modules/.pnpm
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
 # Set proper permissions
 RUN chown -R nextjs:nodejs /app
@@ -72,17 +74,8 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Copy package.json for prisma commands
-COPY --from=builder /app/package.json ./package.json
-
-# Install prisma CLI for migrations
-RUN pnpm add -D prisma@6.19.0
-
-# Create entrypoint script for auto migration
+# Create entrypoint script
 RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
-    echo 'echo "🔄 Running database migrations..."' >> /app/entrypoint.sh && \
-    echo 'cd /app && npx prisma db push --skip-generate --accept-data-loss || echo "⚠️  Migration failed, continuing..."' >> /app/entrypoint.sh && \
-    echo 'echo "✅ Database ready"' >> /app/entrypoint.sh && \
     echo 'echo "🚀 Starting Dashboard..."' >> /app/entrypoint.sh && \
     echo 'exec node server.js' >> /app/entrypoint.sh && \
     chmod +x /app/entrypoint.sh

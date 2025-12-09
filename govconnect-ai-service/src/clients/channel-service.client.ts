@@ -3,7 +3,7 @@
  */
 
 import { createHttpClient } from '../shared/http-client';
-import config from '../config/env';
+import { config } from '../config/env';
 
 const channelServiceClient = createHttpClient('channel-service', {
   baseURL: config.channelServiceUrl,

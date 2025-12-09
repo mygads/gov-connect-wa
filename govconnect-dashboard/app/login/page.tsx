@@ -24,23 +24,51 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { login, user } = useAuth();
+  const { login, user, isLoading } = useAuth();
   const router = useRouter();
   const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
-    if (user) {
+  }, []);
+
+  // Auto redirect to dashboard if already logged in
+  useEffect(() => {
+    if (!isLoading && user) {
       router.push("/dashboard");
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Memeriksa sesi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is logged in, show loading while redirecting
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Mengalihkan ke dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       await login(username, password);
@@ -49,7 +77,7 @@ export default function LoginPage() {
         err instanceof Error ? err.message : "Login gagal. Periksa username dan password Anda.";
       setError(errorMessage);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -179,7 +207,7 @@ export default function LoginPage() {
                     placeholder="Masukkan username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                     required
                     className="h-12 px-4"
                   />
@@ -195,7 +223,7 @@ export default function LoginPage() {
                       placeholder="Masukkan password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      disabled={isLoading}
+                      disabled={isSubmitting}
                       required
                       className="h-12 px-4 pr-12"
                     />
@@ -226,9 +254,9 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   className="w-full h-12 text-base font-semibold bg-secondary hover:bg-secondary/90"
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Memproses...

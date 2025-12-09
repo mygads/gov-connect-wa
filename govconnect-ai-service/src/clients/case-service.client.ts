@@ -3,7 +3,7 @@
  */
 
 import { createHttpClient } from '../shared/http-client';
-import config from '../config/env';
+import { config } from '../config/env';
 
 const caseServiceClient = createHttpClient('case-service', {
   baseURL: config.caseServiceUrl,
@@ -39,6 +39,9 @@ export async function getCaseById(caseId: string) {
 export function getCaseServiceMetrics() {
   return caseServiceClient.getMetrics();
 }
+
+// Export the client for direct use
+export { caseServiceClient };
 
 export default {
   getCaseById,

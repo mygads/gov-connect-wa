@@ -219,9 +219,10 @@ export default function AIAnalyticsPage() {
   const formatIntent = (intent: string) => {
     const map: Record<string, string> = {
       'CREATE_COMPLAINT': 'Buat Laporan',
-      'CREATE_TICKET': 'Buat Tiket',
+      'CREATE_RESERVATION': 'Buat Reservasi',
       'CHECK_STATUS': 'Cek Status',
-      'CANCEL_COMPLAINT': 'Batalkan',
+      'CANCEL_COMPLAINT': 'Batalkan Laporan',
+      'CANCEL_RESERVATION': 'Batalkan Reservasi',
       'HISTORY': 'Riwayat',
       'KNOWLEDGE_QUERY': 'Tanya Informasi',
       'QUESTION': 'Pertanyaan',

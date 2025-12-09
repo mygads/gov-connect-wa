@@ -28,7 +28,7 @@ services:
       NODE_ENV: ${NODE_ENV}
       PORT: 3001
       SERVICE_NAME: channel-service
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_channel?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_channel
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/govconnect
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       WA_WEBHOOK_VERIFY_TOKEN: ${WA_WEBHOOK_VERIFY_TOKEN}
@@ -101,7 +101,7 @@ services:
       PORT: 3002
       SERVICE_NAME: ai-service
       # AI Service has its own database for vector storage
-      AI_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_ai?schema=ai_vectors
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_ai
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/govconnect
       CHANNEL_SERVICE_URL: http://channel-service:3001
       CASE_SERVICE_URL: http://case-service:3003
@@ -166,7 +166,7 @@ services:
       NODE_ENV: ${NODE_ENV}
       PORT: 3003
       SERVICE_NAME: case-service
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_case?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_case
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/govconnect
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       LOG_LEVEL: ${LOG_LEVEL}
@@ -221,7 +221,7 @@ services:
       NODE_ENV: ${NODE_ENV}
       PORT: 3004
       SERVICE_NAME: notification-service
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_notification?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_notification
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/govconnect
       CHANNEL_SERVICE_URL: http://channel-service:3001
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
@@ -275,7 +275,7 @@ services:
     image: ghcr.io/mygads/govconnect-dashboard:${IMAGE_TAG}
     environment:
       NODE_ENV: ${NODE_ENV}
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_dashboard?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/gc_dashboard
       JWT_SECRET: ${JWT_SECRET}
       # Single API endpoint via Traefik (internal Docker network)
       API_BASE_URL: http://traefik

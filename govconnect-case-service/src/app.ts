@@ -2,13 +2,14 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import complaintRoutes from './routes/complaint.routes';
-import ticketRoutes from './routes/ticket.routes';
+import reservationRoutes from './routes/reservation.routes';
 import statisticsRoutes from './routes/statistics.routes';
 import healthRoutes from './routes/health.routes';
 import userRoutes from './routes/user.routes';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.middleware';
 import { swaggerSpec } from './config/swagger';
 import logger from './utils/logger';
+import { initializeServices } from './services/reservation.service';
 
 const app: Application = express();
 
@@ -29,9 +30,14 @@ app.use((req, res, next) => {
 // Register routes
 app.use('/health', healthRoutes);
 app.use('/laporan', complaintRoutes);
-app.use('/tiket', ticketRoutes);
+app.use('/reservasi', reservationRoutes);
 app.use('/statistics', statisticsRoutes);
 app.use('/user', userRoutes);
+
+// Initialize government services on startup
+initializeServices().catch(err => {
+  logger.error('Failed to initialize services', { error: err.message });
+});
 
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -56,13 +62,14 @@ app.get('/api-docs.json', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     service: 'GovConnect Case Service',
-    version: '1.0.0',
+    version: '2.0.0',
     status: 'running',
     docs: '/api-docs',
     endpoints: {
       health: '/health',
       complaints: '/laporan',
-      tickets: '/tiket',
+      reservations: '/reservasi',
+      services: '/reservasi/services',
       statistics: '/statistics',
       user: '/user/:wa_user_id/history'
     }

@@ -29,6 +29,88 @@ model Complaint {
   @@map("complaints")
 }
 
+// ==================== LAYANAN PEMERINTAHAN ====================
+// Daftar layanan tetap yang bisa diaktifkan/nonaktifkan oleh admin
+
+model Service {
+  id                  String   @id @default(cuid())
+  code                String   @unique // kode unik layanan
+  name                String   // nama layanan
+  description         String   @db.Text // deskripsi layanan
+  category            String   // kategori: administrasi, perizinan, kependudukan, sosial
+  
+  // Pengaturan layanan
+  is_active           Boolean  @default(true) // layanan aktif atau tidak
+  is_online_available Boolean  @default(true) // bisa reservasi online atau tidak
+  
+  // Persyaratan dan SOP
+  requirements        String[] // daftar persyaratan dokumen
+  sop_steps           String[] // langkah-langkah SOP
+  estimated_duration  Int      @default(30) // estimasi durasi layanan dalam menit
+  
+  // Jam operasional (JSON format)
+  operating_hours     Json?    // {"senin": {"open": "08:00", "close": "15:00"}, ...}
+  
+  // Kuota harian
+  daily_quota         Int      @default(20) // kuota reservasi per hari
+  
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  
+  reservations        Reservation[]
+  
+  @@index([code])
+  @@index([category])
+  @@index([is_active])
+  @@map("services")
+}
+
+// ==================== RESERVASI ====================
+// Pengganti model Ticket - untuk reservasi kedatangan warga
+
+model Reservation {
+  id               String   @id @default(cuid())
+  reservation_id   String   @unique // RSV-YYYYMMDD-XXX
+  wa_user_id       String
+  
+  // Relasi ke layanan
+  service_id       String
+  service          Service  @relation(fields: [service_id], references: [id])
+  
+  // Data umum warga (pertanyaan standar)
+  citizen_data     Json     // {nama, nik, alamat, no_hp, keperluan_detail}
+  
+  // Jadwal reservasi
+  reservation_date DateTime // tanggal reservasi
+  reservation_time String   // slot waktu: "08:00", "09:00", dst
+  queue_number     Int      // nomor antrian hari itu
+  
+  // Status reservasi
+  status           String   @default("pending") // pending, confirmed, arrived, completed, cancelled, no_show
+  
+  // Catatan
+  admin_notes      String?  @db.Text
+  cancel_reason    String?  @db.Text
+  
+  // Timestamps
+  confirmed_at     DateTime?
+  arrived_at       DateTime?
+  completed_at     DateTime?
+  cancelled_at     DateTime?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  
+  @@index([wa_user_id])
+  @@index([service_id])
+  @@index([status])
+  @@index([reservation_date])
+  @@index([created_at])
+  @@map("reservations")
+}
+
+// ==================== LEGACY: TICKET (untuk backward compatibility) ====================
+// Akan di-deprecate, data lama tetap tersimpan
+
 model Ticket {
   id          String   @id @default(cuid())
   ticket_id   String   @unique

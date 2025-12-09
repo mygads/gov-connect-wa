@@ -47,20 +47,20 @@ export async function createComplaint(data: {
 }
 
 /**
- * Create ticket case
+ * Create reservation
  */
-export async function createTicket(data: {
-  citizenPhone: string;
-  citizenName?: string;
-  serviceType: string;
-  description: string;
-  metadata?: any;
+export async function createReservation(data: {
+  wa_user_id: string;
+  service_code: string;
+  citizen_data: any;
+  reservation_date: string;
+  reservation_time: string;
 }) {
   try {
-    const response = await caseServiceClient.post('/internal/tickets', data);
+    const response = await caseServiceClient.post('/reservasi/create', data);
     return response.data;
   } catch (error: any) {
-    console.error('[CaseServiceClient] Failed to create ticket:', error.message);
+    console.error('[CaseServiceClient] Failed to create reservation:', error.message);
     throw error;
   }
 }
@@ -114,7 +114,7 @@ export function resetCaseServiceCircuitBreaker() {
 
 export default {
   createComplaint,
-  createTicket,
+  createReservation,
   getCaseById,
   updateCaseStatus,
   getCaseServiceMetrics,

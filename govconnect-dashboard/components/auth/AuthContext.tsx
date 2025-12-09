@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { apiClient } from '@/lib/api-client'
+// Token management is handled locally
 
 interface AdminUser {
   id: string
@@ -37,8 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // Set token in API client
-      apiClient.setAuthToken(token)
+      // Token is stored in localStorage
 
       const response = await fetch('/api/auth/me', {
         headers: {
@@ -50,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(data.user)
       } else {
         localStorage.removeItem('token')
-        apiClient.clearAuthToken()
+        // Token cleared from localStorage
       }
     } catch (error) {
       console.error('Auth check failed:', error)
@@ -74,8 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await response.json()
     localStorage.setItem('token', data.token)
     
-    // Set token in API client for subsequent requests
-    apiClient.setAuthToken(data.token)
+    // Token stored in localStorage for subsequent requests
     
     setUser(data.user)
     router.push('/dashboard')
@@ -83,7 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem('token')
-    apiClient.clearAuthToken()
     setUser(null)
     router.push('/login')
   }

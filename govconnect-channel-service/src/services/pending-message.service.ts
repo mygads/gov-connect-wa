@@ -179,7 +179,7 @@ export async function getPendingMessagesStats(): Promise<{
   
   const byUser = await prisma.$queryRaw<{ wa_user_id: string; count: bigint }[]>`
     SELECT wa_user_id, COUNT(*) as count 
-    FROM "channel"."pending_messages" 
+    FROM pending_messages 
     WHERE status = 'pending' 
     GROUP BY wa_user_id 
     ORDER BY count DESC 

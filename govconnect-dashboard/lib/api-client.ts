@@ -626,6 +626,88 @@ export const apiClient = {
     return response.json();
   },
   
+  // ==================== RESERVATION METHODS ====================
+  async getServices() {
+    const response = await apiFetch(buildUrl(ServicePath.CASE, '/reservasi/services'), {
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+  
+  async getActiveServices() {
+    const response = await apiFetch(buildUrl(ServicePath.CASE, '/reservasi/services/active'), {
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+  
+  async getServiceByCode(code: string) {
+    const response = await apiFetch(buildUrl(ServicePath.CASE, `/reservasi/services/${code}`), {
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+  
+  async toggleServiceActive(code: string, is_active: boolean) {
+    const response = await apiFetch(buildUrl(ServicePath.CASE, `/reservasi/services/${code}/toggle-active`), {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ is_active }),
+    });
+    return response.json();
+  },
+  
+  async toggleServiceOnline(code: string, is_online_available: boolean) {
+    const response = await apiFetch(buildUrl(ServicePath.CASE, `/reservasi/services/${code}/toggle-online`), {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ is_online_available }),
+    });
+    return response.json();
+  },
+  
+  async getAvailableSlots(code: string, date: string) {
+    const response = await apiFetch(buildUrl(ServicePath.CASE, `/reservasi/slots/${code}/${date}`), {
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+  
+  async getReservations(params?: { status?: string; date_from?: string; date_to?: string }) {
+    const url = new URL(buildUrl(ServicePath.CASE, '/reservasi'));
+    if (params?.status) url.searchParams.set('status', params.status);
+    if (params?.date_from) url.searchParams.set('date_from', params.date_from);
+    if (params?.date_to) url.searchParams.set('date_to', params.date_to);
+    
+    const response = await apiFetch(url.toString(), {
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+  
+  async getReservationById(id: string) {
+    const response = await apiFetch(buildUrl(ServicePath.CASE, `/reservasi/${id}`), {
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+  
+  async updateReservationStatus(id: string, data: { status: string; admin_notes?: string }) {
+    const response = await apiFetch(buildUrl(ServicePath.CASE, `/reservasi/${id}/status`), {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return response.json();
+  },
+  
+  async getReservationStatistics() {
+    const response = await apiFetch(buildUrl(ServicePath.CASE, '/reservasi/statistics'), {
+      headers: getHeaders(),
+    });
+    return response.json();
+  },
+  
   // Auth token management
   setAuthToken(token: string) {
     authToken = token;

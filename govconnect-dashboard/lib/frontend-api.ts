@@ -1,0 +1,464 @@
+/**
+ * Frontend API Client
+ * 
+ * Client-side API calls yang memanggil API routes dashboard (/api/*)
+ * API routes dashboard kemudian forward ke backend services via Traefik
+ * 
+ * Browser → Dashboard API Routes → Traefik → Backend Services
+ */
+
+// Get auth token from localStorage
+function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('token');
+}
+
+// Get headers with auth token
+function getAuthHeaders(): Record<string, string> {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  };
+}
+
+// Fetch wrapper with error handling
+async function fetchApi<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    throw new Error(error.error || error.message || 'Request failed');
+  }
+
+  return response.json();
+}
+
+// ==================== AUTH ====================
+export const auth = {
+  async login(username: string, password: string) {
+    const data = await fetchApi<{ success: boolean; token: string }>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+    return data;
+  },
+
+  async logout() {
+    const data = await fetchApi<{ success: boolean }>('/api/auth/logout', {
+      method: 'POST',
+    });
+    localStorage.removeItem('token');
+    return data;
+  },
+
+  async me() {
+    return fetchApi<{ admin: any }>('/api/auth/me');
+  },
+
+  async updateProfile(data: { name?: string }) {
+    return fetchApi<{ success: boolean }>('/api/auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async changePassword(data: { currentPassword: string; newPassword: string }) {
+    return fetchApi<{ success: boolean }>('/api/auth/password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// ==================== LAPORAN ====================
+export const laporan = {
+  async getAll(params?: { status?: string; limit?: string; offset?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.limit) searchParams.set('limit', params.limit);
+    if (params?.offset) searchParams.set('offset', params.offset);
+    
+    const query = searchParams.toString();
+    return fetchApi<{ data: any[]; pagination: any }>(`/api/laporan${query ? `?${query}` : ''}`);
+  },
+
+  async getById(id: string) {
+    return fetchApi<any>(`/api/laporan/${id}`);
+  },
+
+  async updateStatus(id: string, data: { status: string; admin_notes?: string }) {
+    return fetchApi<any>(`/api/laporan/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// ==================== TIKET ====================
+export const tiket = {
+  async getAll(params?: { jenis?: string; status?: string; limit?: string; offset?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params?.jenis) searchParams.set('jenis', params.jenis);
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.limit) searchParams.set('limit', params.limit);
+    if (params?.offset) searchParams.set('offset', params.offset);
+    
+    const query = searchParams.toString();
+    return fetchApi<{ data: any[]; pagination: any }>(`/api/tiket${query ? `?${query}` : ''}`);
+  },
+
+  async getById(id: string) {
+    return fetchApi<any>(`/api/tiket/${id}`);
+  },
+
+  async updateStatus(id: string, data: { status: string; admin_notes?: string }) {
+    return fetchApi<any>(`/api/tiket/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// ==================== STATISTICS ====================
+export const statistics = {
+  async getOverview() {
+    return fetchApi<any>('/api/statistics/overview');
+  },
+
+  async getTrends(period: string = 'week') {
+    return fetchApi<any>(`/api/statistics/trends?period=${period}`);
+  },
+
+  async getAiUsage() {
+    return fetchApi<any>('/api/statistics/ai-usage');
+  },
+
+  async getAiAnalytics() {
+    return fetchApi<any>('/api/statistics/ai-analytics');
+  },
+
+  async getAiAnalyticsFlow() {
+    return fetchApi<any>('/api/statistics/ai-analytics/flow');
+  },
+
+  async getAiAnalyticsIntents() {
+    return fetchApi<any>('/api/statistics/ai-analytics/intents');
+  },
+
+  async getAiAnalyticsTokens() {
+    return fetchApi<any>('/api/statistics/ai-analytics/tokens');
+  },
+};
+
+// ==================== WHATSAPP ====================
+export const whatsapp = {
+  async getStatus() {
+    return fetchApi<any>('/api/whatsapp/status');
+  },
+
+  async getQR() {
+    return fetchApi<any>('/api/whatsapp/qr');
+  },
+
+  async connect() {
+    return fetchApi<any>('/api/whatsapp/connect', { method: 'POST' });
+  },
+
+  async disconnect() {
+    return fetchApi<any>('/api/whatsapp/disconnect', { method: 'POST' });
+  },
+
+  async logout() {
+    return fetchApi<any>('/api/whatsapp/logout', { method: 'POST' });
+  },
+
+  async pairPhone(phoneNumber: string) {
+    return fetchApi<any>('/api/whatsapp/pairphone', {
+      method: 'POST',
+      body: JSON.stringify({ phoneNumber }),
+    });
+  },
+
+  async getSettings() {
+    return fetchApi<any>('/api/whatsapp/settings');
+  },
+
+  async updateSettings(settings: any) {
+    return fetchApi<any>('/api/whatsapp/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
+    });
+  },
+};
+
+// ==================== LIVECHAT ====================
+export const livechat = {
+  async getConversations(status: string = 'all') {
+    return fetchApi<any>(`/api/livechat/conversations?status=${status}`);
+  },
+
+  async getConversation(waUserId: string) {
+    return fetchApi<any>(`/api/livechat/conversations/${encodeURIComponent(waUserId)}`);
+  },
+
+  async deleteConversation(waUserId: string) {
+    return fetchApi<any>(`/api/livechat/conversations/${encodeURIComponent(waUserId)}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async sendMessage(waUserId: string, message: string) {
+    return fetchApi<any>(`/api/livechat/conversations/${encodeURIComponent(waUserId)}/send`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  },
+
+  async retryMessage(waUserId: string, messageId: string) {
+    return fetchApi<any>(`/api/livechat/conversations/${encodeURIComponent(waUserId)}/retry`, {
+      method: 'POST',
+      body: JSON.stringify({ messageId }),
+    });
+  },
+
+  async markAsRead(waUserId: string) {
+    return fetchApi<any>(`/api/livechat/conversations/${encodeURIComponent(waUserId)}/read`, {
+      method: 'POST',
+    });
+  },
+
+  async getTakeovers() {
+    return fetchApi<any>('/api/livechat/takeover');
+  },
+
+  async getTakeoverStatus(waUserId: string) {
+    return fetchApi<any>(`/api/livechat/takeover/${encodeURIComponent(waUserId)}/status`);
+  },
+
+  async startTakeover(waUserId: string, adminId: string, adminName: string) {
+    return fetchApi<any>(`/api/livechat/takeover/${encodeURIComponent(waUserId)}`, {
+      method: 'POST',
+      body: JSON.stringify({ admin_id: adminId, admin_name: adminName }),
+    });
+  },
+
+  async endTakeover(waUserId: string) {
+    return fetchApi<any>(`/api/livechat/takeover/${encodeURIComponent(waUserId)}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ==================== KNOWLEDGE ====================
+export const knowledge = {
+  async getAll() {
+    return fetchApi<any>('/api/knowledge');
+  },
+
+  async getById(id: string) {
+    return fetchApi<any>(`/api/knowledge/${id}`);
+  },
+
+  async create(data: any) {
+    return fetchApi<any>('/api/knowledge', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async update(id: string, data: any) {
+    return fetchApi<any>(`/api/knowledge/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async delete(id: string) {
+    return fetchApi<any>(`/api/knowledge/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async embedAll() {
+    return fetchApi<any>('/api/knowledge/embed-all', {
+      method: 'POST',
+    });
+  },
+};
+
+// ==================== DOCUMENTS ====================
+export const documents = {
+  async getAll() {
+    return fetchApi<any>('/api/documents');
+  },
+
+  async getById(id: string) {
+    return fetchApi<any>(`/api/documents/${id}`);
+  },
+
+  async upload(formData: FormData) {
+    const token = getAuthToken();
+    const response = await fetch('/api/documents', {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+      throw new Error(error.error || 'Upload failed');
+    }
+    return response.json();
+  },
+
+  async delete(id: string) {
+    return fetchApi<any>(`/api/documents/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async process(id: string) {
+    return fetchApi<any>(`/api/documents/${id}/process`, {
+      method: 'POST',
+    });
+  },
+};
+
+// ==================== RATE LIMIT ====================
+export const rateLimit = {
+  async getConfig() {
+    return fetchApi<any>('/api/rate-limit');
+  },
+
+  async getBlacklist() {
+    return fetchApi<any>('/api/rate-limit/blacklist');
+  },
+
+  async addToBlacklist(waUserId: string, reason: string) {
+    return fetchApi<any>('/api/rate-limit/blacklist', {
+      method: 'POST',
+      body: JSON.stringify({ wa_user_id: waUserId, reason }),
+    });
+  },
+
+  async removeFromBlacklist(waUserId: string) {
+    return fetchApi<any>(`/api/rate-limit/blacklist/${encodeURIComponent(waUserId)}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ==================== SETTINGS ====================
+export const settings = {
+  async get() {
+    return fetchApi<any>('/api/settings');
+  },
+
+  async update(data: any) {
+    return fetchApi<any>('/api/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getNotifications() {
+    return fetchApi<any>('/api/settings/notifications');
+  },
+
+  async updateNotifications(data: any) {
+    return fetchApi<any>('/api/settings/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+// ==================== RESERVASI ====================
+export const reservasi = {
+  async getAll(params?: { status?: string; date_from?: string; date_to?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.date_from) searchParams.set('date_from', params.date_from);
+    if (params?.date_to) searchParams.set('date_to', params.date_to);
+    
+    const query = searchParams.toString();
+    // Note: Reservasi API route belum ada, perlu dibuat
+    return fetchApi<any>(`/api/reservasi${query ? `?${query}` : ''}`);
+  },
+
+  async getById(id: string) {
+    return fetchApi<any>(`/api/reservasi/${id}`);
+  },
+
+  async updateStatus(id: string, data: { status: string; admin_notes?: string }) {
+    return fetchApi<any>(`/api/reservasi/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getServices() {
+    return fetchApi<any>('/api/layanan');
+  },
+
+  async getActiveServices() {
+    return fetchApi<any>('/api/layanan/active');
+  },
+};
+
+// ==================== BACKWARD COMPATIBLE EXPORTS ====================
+// Untuk kompatibilitas dengan kode yang sudah ada
+export const apiClient = {
+  // Auth
+  ...auth,
+  
+  // Laporan (complaints)
+  getComplaints: laporan.getAll,
+  getComplaintById: laporan.getById,
+  updateComplaintStatus: laporan.updateStatus,
+  
+  // Tiket
+  getTickets: tiket.getAll,
+  getTicketById: tiket.getById,
+  updateTicketStatus: tiket.updateStatus,
+  
+  // Statistics
+  getStatistics: statistics.getOverview,
+  getTrends: statistics.getTrends,
+  
+  // WhatsApp
+  whatsapp,
+  
+  // Livechat
+  livechat,
+  
+  // Knowledge
+  knowledge,
+  
+  // Documents
+  documents,
+  
+  // Rate Limit
+  rateLimit,
+  
+  // Settings
+  settings,
+  
+  // Reservasi
+  getReservations: reservasi.getAll,
+  getReservationById: reservasi.getById,
+  updateReservationStatus: reservasi.updateStatus,
+  getServices: reservasi.getServices,
+  getActiveServices: reservasi.getActiveServices,
+};
+
+export default apiClient;

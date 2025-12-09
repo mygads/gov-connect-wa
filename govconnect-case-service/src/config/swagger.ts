@@ -18,10 +18,10 @@ Case Service mengelola **Laporan Warga** dan **Tiket Layanan** dalam sistem GovC
 - Kategori: jalan_rusak, lampu_mati, sampah, drainase, pohon_tumbang, fasilitas_rusak
 - Status: baru → proses → selesai/ditolak
 
-### Tiket (Ticket)
-- Permohonan layanan administratif
-- Jenis: surat_keterangan, surat_pengantar, izin_keramaian
-- Status: pending → proses → selesai/ditolak
+### Reservasi (Reservation)
+- Reservasi kedatangan untuk layanan pemerintahan
+- 11 jenis layanan: SKD, SKU, SKTM, SKBM, IKR, SPKTP, SPKK, SPSKCK, SPAKTA, SKK, SPP
+- Status: pending → confirmed → arrived → completed/cancelled
 
 ## Authentication
 - Internal APIs: Header \`X-Internal-API-Key\`
@@ -37,7 +37,8 @@ Case Service mengelola **Laporan Warga** dan **Tiket Layanan** dalam sistem GovC
     ],
     tags: [
       { name: 'Laporan', description: 'Complaint/report management' },
-      { name: 'Tiket', description: 'Service ticket management' },
+      { name: 'Reservasi', description: 'Reservation management' },
+      { name: 'Layanan', description: 'Government services management' },
       { name: 'Statistics', description: 'Dashboard statistics' },
       { name: 'User', description: 'User history' },
       { name: 'Health', description: 'Health checks' },
@@ -115,75 +116,85 @@ Case Service mengelola **Laporan Warga** dan **Tiket Layanan** dalam sistem GovC
         },
       },
 
-      // ============ TIKET (TICKETS) ============
-      '/tiket/create': {
+      // ============ RESERVASI ============
+      '/reservasi/create': {
         post: {
-          tags: ['Tiket'],
-          summary: 'Create new ticket',
-          description: 'Create a new service ticket (from AI Service - internal only)',
+          tags: ['Reservasi'],
+          summary: 'Create new reservation',
+          description: 'Create a new reservation (from AI Service)',
           security: [{ InternalApiKey: [] }],
-          requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateTicketRequest' } } } },
+          requestBody: { required: true, content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateReservationRequest' } } } },
           responses: {
-            '201': { description: 'Ticket created', content: { 'application/json': { schema: { $ref: '#/components/schemas/Ticket' } } } },
+            '201': { description: 'Reservation created', content: { 'application/json': { schema: { $ref: '#/components/schemas/Reservation' } } } },
             '400': { description: 'Validation error' },
-            '401': { description: 'Unauthorized' },
           },
         },
       },
-      '/tiket': {
+      '/reservasi/list': {
         get: {
-          tags: ['Tiket'],
-          summary: 'Get tickets list',
-          description: 'Get paginated list of tickets with optional filters',
+          tags: ['Reservasi'],
+          summary: 'Get reservations list',
           parameters: [
-            { in: 'query', name: 'status', schema: { type: 'string', enum: ['pending', 'proses', 'selesai', 'ditolak'] }, description: 'Filter by status' },
-            { in: 'query', name: 'jenis', schema: { type: 'string' }, description: 'Filter by jenis' },
+            { in: 'query', name: 'status', schema: { type: 'string', enum: ['pending', 'confirmed', 'arrived', 'completed', 'cancelled', 'no_show'] } },
+            { in: 'query', name: 'service_code', schema: { type: 'string' } },
+            { in: 'query', name: 'date', schema: { type: 'string', format: 'date' } },
             { in: 'query', name: 'limit', schema: { type: 'integer', default: 20 } },
             { in: 'query', name: 'offset', schema: { type: 'integer', default: 0 } },
           ],
-          responses: { '200': { description: 'List of tickets', content: { 'application/json': { schema: { type: 'object', properties: { data: { type: 'array', items: { $ref: '#/components/schemas/Ticket' } }, pagination: { $ref: '#/components/schemas/Pagination' } } } } } } },
+          responses: { '200': { description: 'List of reservations' } },
         },
       },
-      '/tiket/statistics': {
+      '/reservasi/{id}': {
         get: {
-          tags: ['Tiket'],
-          summary: 'Get ticket statistics',
-          responses: { '200': { description: 'Statistics', content: { 'application/json': { schema: { type: 'object', properties: { total: { type: 'integer' }, byStatus: { type: 'object' }, byJenis: { type: 'object' } } } } } } },
+          tags: ['Reservasi'],
+          summary: 'Get reservation by ID',
+          parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
+          responses: { '200': { description: 'Reservation detail' }, '404': { description: 'Not found' } },
         },
       },
-      '/tiket/{id}': {
-        get: {
-          tags: ['Tiket'],
-          summary: 'Get ticket by ID',
-          parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' }, description: 'Ticket ID (TKT-YYYYMMDD-XXX or UUID)' }],
-          responses: { '200': { description: 'Ticket detail', content: { 'application/json': { schema: { $ref: '#/components/schemas/Ticket' } } } }, '404': { description: 'Not found' } },
-        },
-      },
-      '/tiket/{id}/status': {
+      '/reservasi/{id}/status': {
         patch: {
-          tags: ['Tiket'],
-          summary: 'Update ticket status',
-          description: 'Update status of a ticket (for Dashboard admin)',
+          tags: ['Reservasi'],
+          summary: 'Update reservation status',
           parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
           requestBody: {
             required: true,
-            content: { 'application/json': { schema: { type: 'object', required: ['status'], properties: { status: { type: 'string', enum: ['pending', 'proses', 'selesai', 'ditolak'] }, admin_notes: { type: 'string' } } } } },
+            content: { 'application/json': { schema: { type: 'object', required: ['status'], properties: { status: { type: 'string', enum: ['pending', 'confirmed', 'arrived', 'completed', 'cancelled', 'no_show'] }, admin_notes: { type: 'string' } } } } },
           },
           responses: { '200': { description: 'Status updated' }, '404': { description: 'Not found' } },
         },
       },
-      '/tiket/{id}/cancel': {
-        post: {
-          tags: ['Tiket'],
-          summary: 'Cancel ticket by user',
-          description: 'User cancels their own ticket (from AI Service)',
-          security: [{ InternalApiKey: [] }],
-          parameters: [{ in: 'path', name: 'id', required: true, schema: { type: 'string' } }],
-          requestBody: {
-            required: true,
-            content: { 'application/json': { schema: { type: 'object', required: ['wa_user_id'], properties: { wa_user_id: { type: 'string' }, cancel_reason: { type: 'string' } } } } },
-          },
-          responses: { '200': { description: 'Ticket cancelled' }, '404': { description: 'Not found' } },
+      '/reservasi/slots/{serviceCode}/{date}': {
+        get: {
+          tags: ['Reservasi'],
+          summary: 'Get available slots',
+          parameters: [
+            { in: 'path', name: 'serviceCode', required: true, schema: { type: 'string' } },
+            { in: 'path', name: 'date', required: true, schema: { type: 'string', format: 'date' } },
+          ],
+          responses: { '200': { description: 'Available slots' } },
+        },
+      },
+      '/reservasi/services': {
+        get: {
+          tags: ['Layanan'],
+          summary: 'Get all services',
+          responses: { '200': { description: 'List of all services' } },
+        },
+      },
+      '/reservasi/services/active': {
+        get: {
+          tags: ['Layanan'],
+          summary: 'Get active services',
+          responses: { '200': { description: 'List of active services' } },
+        },
+      },
+      '/reservasi/services/{code}/toggle': {
+        patch: {
+          tags: ['Layanan'],
+          summary: 'Toggle service active status',
+          parameters: [{ in: 'path', name: 'code', required: true, schema: { type: 'string' } }],
+          responses: { '200': { description: 'Service toggled' } },
         },
       },
 
@@ -353,22 +364,24 @@ Case Service mengelola **Laporan Warga** dan **Tiket Layanan** dalam sistem GovC
             foto_url: { type: 'string' },
           },
         },
-        CreateTicketRequest: {
+        CreateReservationRequest: {
           type: 'object',
-          required: ['wa_user_id', 'jenis', 'data_json'],
+          required: ['wa_user_id', 'service_code', 'citizen_data', 'reservation_date', 'reservation_time'],
           properties: {
             wa_user_id: { type: 'string' },
-            jenis: { type: 'string', enum: ['surat_keterangan', 'surat_pengantar', 'izin_keramaian'] },
-            data_json: { type: 'object' },
+            service_code: { type: 'string', enum: ['SKD', 'SKU', 'SKTM', 'SKBM', 'IKR', 'SPKTP', 'SPKK', 'SPSKCK', 'SPAKTA', 'SKK', 'SPP'] },
+            citizen_data: { type: 'object' },
+            reservation_date: { type: 'string', format: 'date' },
+            reservation_time: { type: 'string', example: '09:00' },
           },
         },
         Statistics: {
           type: 'object',
           properties: {
             totalLaporan: { type: 'integer' },
-            totalTiket: { type: 'integer' },
+            totalReservasi: { type: 'integer' },
             laporan: { type: 'object' },
-            tiket: { type: 'object' },
+            reservasi: { type: 'object' },
           },
         },
         Complaint: {
@@ -387,14 +400,17 @@ Case Service mengelola **Laporan Warga** dan **Tiket Layanan** dalam sistem GovC
             updated_at: { type: 'string', format: 'date-time' },
           },
         },
-        Ticket: {
+        Reservation: {
           type: 'object',
           properties: {
-            id: { type: 'string', example: 'TKT-20250125-001' },
+            id: { type: 'string', example: 'RSV-20251208-001' },
             wa_user_id: { type: 'string', example: '6281234567890' },
-            jenis: { type: 'string', enum: ['surat_keterangan', 'surat_pengantar', 'izin_keramaian'] },
-            data_json: { type: 'object' },
-            status: { type: 'string', enum: ['pending', 'proses', 'selesai', 'ditolak'] },
+            service_code: { type: 'string' },
+            citizen_data: { type: 'object' },
+            reservation_date: { type: 'string', format: 'date' },
+            reservation_time: { type: 'string' },
+            queue_number: { type: 'integer' },
+            status: { type: 'string', enum: ['pending', 'confirmed', 'arrived', 'completed', 'cancelled', 'no_show'] },
             admin_notes: { type: 'string', nullable: true },
             created_at: { type: 'string', format: 'date-time' },
             updated_at: { type: 'string', format: 'date-time' },

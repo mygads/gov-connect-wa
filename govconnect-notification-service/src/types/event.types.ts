@@ -9,16 +9,19 @@ export interface ComplaintCreatedEvent {
   kategori: string;
 }
 
-export interface TicketCreatedEvent {
+export interface ReservationCreatedEvent {
   wa_user_id: string;
-  ticket_id: string;
-  jenis: string;
+  reservation_id: string;
+  service_code: string;
+  service_name: string;
+  reservation_date: string;
+  reservation_time: string;
 }
 
 export interface StatusUpdatedEvent {
   wa_user_id: string;
   complaint_id?: string;
-  ticket_id?: string;
+  reservation_id?: string;
   status: string;
   admin_notes?: string;
 }

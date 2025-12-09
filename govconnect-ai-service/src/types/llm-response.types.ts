@@ -1,23 +1,51 @@
 import { z } from 'zod';
 
 export const LLMResponseSchema = z.object({
-  intent: z.enum(['CREATE_COMPLAINT', 'CREATE_TICKET', 'CHECK_STATUS', 'CANCEL_COMPLAINT', 'HISTORY', 'KNOWLEDGE_QUERY', 'QUESTION', 'UNKNOWN']),
+  intent: z.enum([
+    'CREATE_COMPLAINT', 
+    'CREATE_RESERVATION', 
+    'CHECK_STATUS', 
+    'CANCEL_COMPLAINT', 
+    'CANCEL_RESERVATION',
+    'HISTORY', 
+    'KNOWLEDGE_QUERY', 
+    'QUESTION', 
+    'UNKNOWN'
+  ]),
   fields: z.object({
+    // For CREATE_COMPLAINT
     kategori: z.string().optional(),
     alamat: z.string().optional(),
     deskripsi: z.string().optional(),
     rt_rw: z.string().optional(),
     jenis: z.string().optional(),
-    knowledge_category: z.string().optional(), // For knowledge queries
-    complaint_id: z.string().optional(), // For status check/cancel (LAP-XXXXXXXX-XXX)
-    ticket_id: z.string().optional(), // For status check/cancel (TIK-XXXXXXXX-XXX)
-    cancel_reason: z.string().optional(), // For cancellation reason
-    missing_info: z.array(z.string()).optional(), // What info is still missing
+    
+    // For CREATE_RESERVATION
+    service_code: z.string().optional(),
+    citizen_data: z.object({
+      nama_lengkap: z.string().optional(),
+      nik: z.string().optional(),
+      alamat: z.string().optional(),
+      no_hp: z.string().optional(),
+    }).passthrough().optional(), // passthrough allows additional fields per service
+    reservation_date: z.string().optional(),
+    reservation_time: z.string().optional(),
+    
+    // For KNOWLEDGE_QUERY
+    knowledge_category: z.string().optional(),
+    
+    // For CHECK_STATUS / CANCEL
+    complaint_id: z.string().optional(),
+    reservation_id: z.string().optional(),
+    cancel_reason: z.string().optional(),
+    
+    // Common
+    missing_info: z.array(z.string()).optional(),
   }),
   reply_text: z.string(),
-  needs_knowledge: z.boolean().optional(), // Flag if knowledge lookup is needed
-  guidance_text: z.string().optional(), // Optional follow-up guidance message (sent as separate bubble)
-  follow_up_questions: z.array(z.string()).optional(), // Suggested follow-up questions
+  needs_knowledge: z.boolean().optional(),
+  guidance_text: z.string().optional(),
+  follow_up_questions: z.array(z.string()).optional(),
 });
 
 export type LLMResponse = z.infer<typeof LLMResponseSchema>;

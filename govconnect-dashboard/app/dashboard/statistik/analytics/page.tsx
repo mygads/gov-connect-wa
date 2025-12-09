@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, TrendingUp, TrendingDown, Clock, Calendar, BarChart3, Activity, Zap } from "lucide-react"
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement, Filler } from "chart.js"
 import { Bar, Line, Doughnut } from "react-chartjs-2"
-import { apiClient } from "@/lib/api-client"
+import { statistics } from "@/lib/frontend-api"
 import { cn } from "@/lib/utils"
 
 // Register Chart.js components
@@ -51,7 +51,7 @@ export default function AnalyticsPage() {
   const fetchTrends = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await apiClient.getTrends(period)
+      const data = await statistics.getTrends(period)
       setTrendData(data)
       setError(null)
     } catch (err: any) {

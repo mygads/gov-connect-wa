@@ -16,28 +16,37 @@ Kategori: ${kategoriText}
 Kami akan segera menindaklanjuti. Anda akan dinotifikasi saat selesai.`;
 }
 
-export function buildTicketCreatedMessage(data: {
-  ticket_id: string;
-  jenis: string;
+export function buildReservationCreatedMessage(data: {
+  reservation_id: string;
+  service_name: string;
+  reservation_date: string;
+  reservation_time: string;
 }): string {
-  const jenisText = formatJenis(data.jenis).toLowerCase();
+  const dateFormatted = new Date(data.reservation_date).toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
   
-  return `✅ *Tiket Dibuat*
+  return `✅ *Reservasi Berhasil*
 
-No: *${data.ticket_id}*
-Jenis: ${jenisText}
+No: *${data.reservation_id}*
+Layanan: ${data.service_name}
+📅 ${dateFormatted}
+🕐 ${data.reservation_time} WIB
 
-Silakan datang ke kantor kelurahan dengan nomor tiket ini.
-📍 Senin-Jumat, 08:00-15:00`;
+Silakan datang ke kantor kelurahan sesuai jadwal.
+📍 Senin-Jumat, 08:00-16:00`;
 }
 
 export function buildStatusUpdatedMessage(data: {
   complaint_id?: string;
-  ticket_id?: string;
+  reservation_id?: string;
   status: string;
   admin_notes?: string;
 }): string {
-  const id = data.complaint_id || data.ticket_id;
+  const id = data.complaint_id || data.reservation_id;
   const isComplaint = !!data.complaint_id;
   
   return buildNaturalStatusMessage(id!, data.status, data.admin_notes, isComplaint);
@@ -49,7 +58,7 @@ function buildNaturalStatusMessage(
   adminNotes?: string,
   isComplaint: boolean = true
 ): string {
-  const type = isComplaint ? 'Laporan' : 'Tiket';
+  const type = isComplaint ? 'Laporan' : 'Reservasi';
   
   // Only 'selesai' will be sent as notification (other statuses are skipped)
   // But keep other cases for internal use / future changes
@@ -106,15 +115,6 @@ function formatKategori(kategori: string): string {
     lainnya: 'Lainnya'
   };
   return map[kategori] || kategori;
-}
-
-function formatJenis(jenis: string): string {
-  const map: Record<string, string> = {
-    surat_keterangan: 'Surat Keterangan',
-    surat_pengantar: 'Surat Pengantar',
-    izin_keramaian: 'Izin Keramaian'
-  };
-  return map[jenis] || jenis;
 }
 
 export function buildUrgentAlertMessage(data: {

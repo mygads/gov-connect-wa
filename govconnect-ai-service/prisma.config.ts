@@ -10,7 +10,6 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    // Use AI_DATABASE_URL for vector database
-    url: env("AI_DATABASE_URL"),
+    url: env("DATABASE_URL"),
   },
 });

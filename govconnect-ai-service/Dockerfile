@@ -15,7 +15,7 @@ RUN pnpm install
 COPY . .
 
 # Build TypeScript (provide dummy DATABASE_URL for prisma generate)
-ENV AI_DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 RUN pnpm run build
 
 # Production stage

@@ -232,10 +232,10 @@ export async function deleteConversationHistory(wa_user_id: string): Promise<voi
     });
 
     // Delete all takeover sessions for this user using raw query
-    await prisma.$executeRaw`DELETE FROM "channel"."takeover_sessions" WHERE wa_user_id = ${wa_user_id}`;
+    await prisma.$executeRaw`DELETE FROM takeover_sessions WHERE wa_user_id = ${wa_user_id}`;
 
     // Delete the conversation record using raw query
-    await prisma.$executeRaw`DELETE FROM "channel"."conversations" WHERE wa_user_id = ${wa_user_id}`;
+    await prisma.$executeRaw`DELETE FROM conversations WHERE wa_user_id = ${wa_user_id}`;
 
     logger.info('Deleted conversation history', { wa_user_id });
   } catch (error: any) {

@@ -8,9 +8,8 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
-  url        = env("AI_DATABASE_URL")
-  schemas    = ["ai_vectors"]
-  extensions = [pgvector(map: "vector", schema: "ai_vectors")]
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
 }
 
 // ==================== KNOWLEDGE VECTORS ====================
@@ -40,7 +39,6 @@ model knowledge_vectors {
   
   @@index([category])
   @@index([quality_score])
-  @@schema("ai_vectors")
 }
 
 // ==================== DOCUMENT VECTORS ====================
@@ -69,7 +67,6 @@ model document_vectors {
   @@unique([document_id, chunk_index])
   @@index([document_id])
   @@index([category])
-  @@schema("ai_vectors")
 }
 
 // ==================== EMBEDDING JOBS ====================
@@ -90,5 +87,4 @@ model embedding_jobs {
   
   @@index([status])
   @@index([priority])
-  @@schema("ai_vectors")
 }

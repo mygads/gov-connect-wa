@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { getChannelServiceMetrics } from '../clients/channel-service.client';
 
-const router = Router();
+const router: Router = Router();
 
-router.get('/', (req: Request, res: Response) => {
+router.get('/', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'notification-service',
@@ -14,7 +14,7 @@ router.get('/', (req: Request, res: Response) => {
 /**
  * Circuit breaker status endpoint
  */
-router.get('/circuit-breakers', (req: Request, res: Response) => {
+router.get('/circuit-breakers', (_req: Request, res: Response) => {
   try {
     const channelServiceMetrics = getChannelServiceMetrics();
 

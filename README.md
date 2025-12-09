@@ -61,7 +61,7 @@ GovConnect menggunakan **microservices architecture** dengan 5 services utama:
 ## ✅ Features Implemented
 
 - [x] **5 Microservices** - Channel, AI, Case, Notification, Dashboard
-- [x] **Schema-per-Service** - Single PostgreSQL with separate schemas
+- [x] **Database-per-Service** - Separate PostgreSQL databases for isolation
 - [x] **RabbitMQ** - Async message broker for events
 - [x] **REST APIs** - Sync communication between services
 - [x] **Traefik API Gateway** - SSL, routing, rate limiting
@@ -136,19 +136,31 @@ curl http://localhost:3000/api/health  # Dashboard
 
 ## 📊 Database
 
-**Separate PostgreSQL databases** for each service:
+**Separate PostgreSQL databases** for each service (no schema needed, uses `public` by default):
 
 | Service | Database | Description |
 |---------|----------|-------------|
 | Channel | `gc_channel` | Messages, send logs, conversations |
-| Case | `gc_case` | Complaints, tickets |
+| Case | `gc_case` | Complaints, tickets, reservations |
 | Notification | `gc_notification` | Notification logs, templates |
-| Dashboard | `gc_dashboard` | Admin users, settings, RAG embeddings |
+| Dashboard | `gc_dashboard` | Admin users, settings, knowledge base |
+| AI Service | `gc_ai` | Vector embeddings (pgvector), RAG data |
 
 Connection string format:
+```bash
+# Standard format (no schema parameter needed)
+DATABASE_URL=postgresql://postgres:password@postgres:5432/gc_{service}
+
+# Examples:
+DATABASE_URL=postgresql://postgres:postgres_secret_2025@postgres:5432/gc_channel
+DATABASE_URL=postgresql://postgres:postgres_secret_2025@postgres:5432/gc_ai
 ```
-postgresql://postgres:password@postgres:5432/gc_{service}?schema=public
-```
+
+**Important Notes:**
+- ✅ All services use `DATABASE_URL` environment variable
+- ✅ No schema parameter in connection string (uses `public` by default)
+- ✅ Each service has its own database for isolation and scalability
+- ✅ AI Service uses pgvector extension for vector embeddings
 
 ### 🔄 Database Migrations (CI/CD Auto-Migrate)
 
@@ -186,9 +198,11 @@ git push origin main
 
 ### pgvector Support
 
-Dashboard service menggunakan **pgvector** untuk RAG/embeddings:
-- Extension otomatis di-enable di database `gc_dashboard`
+AI Service menggunakan **pgvector** untuk RAG/embeddings:
+- Extension otomatis di-enable di database `gc_ai`
 - Schema Prisma menggunakan `extensions = [pgvector(map: "vector")]`
+- Stores vector embeddings for knowledge base and documents
+- Enables semantic search and RAG capabilities
 
 ## 🐰 RabbitMQ Events
 
@@ -263,7 +277,7 @@ pnpm dev
 | AI | 3002 |
 | Case | 3003 |
 | Notification | 3004 |
-| PostgreSQL | 5433 |
+| PostgreSQL | 5432 |
 | RabbitMQ | 5672, 15672 |
 
 ## 🌐 Network Architecture
@@ -350,6 +364,9 @@ GovConnect menggunakan **dual-layer networking**:
 - [API Documentation](./docs/openapi/openapi.yaml)
 - [Development Phases](./phases/DEVELOPMENT_PROGRESS.md)
 - [Instructions](./.github/instructions/govconnect.instructions.md)
+- **[Database Standardization](./DATABASE_STANDARDIZATION.md)** - Database configuration guide
+- **[Migration Notes](./MIGRATION_NOTES.md)** - Detailed migration instructions
+- **[Quick Reference](./QUICK_REFERENCE.md)** - Quick commands and troubleshooting
 
 ## 🔐 Security
 

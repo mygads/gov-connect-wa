@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle } from "lucide-react"
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement } from "chart.js"
 import { Bar, Pie, Line } from "react-chartjs-2"
-import { apiClient } from "@/lib/api-client"
+import { statistics } from "@/lib/frontend-api"
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement)
@@ -42,7 +42,7 @@ export default function StatistikPage() {
   const fetchStatistics = async () => {
     try {
       setLoading(true)
-      const data = await apiClient.getStatistics()
+      const data = await statistics.getOverview()
       setStats(data)
       setError(null)
     } catch (err: any) {

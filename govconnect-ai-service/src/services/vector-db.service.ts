@@ -53,7 +53,7 @@ export async function upsertKnowledgeVector(input: KnowledgeVectorInput): Promis
     const embeddingStr = `[${embedding.join(',')}]`;
 
     await prisma.$executeRaw`
-      INSERT INTO ai_vectors.knowledge_vectors (
+      INSERT INTO knowledge_vectors (
         id, title, content, category, keywords, 
         embedding, embedding_model, quality_score,
         created_at, updated_at
@@ -87,7 +87,7 @@ export async function upsertKnowledgeVector(input: KnowledgeVectorInput): Promis
 export async function deleteKnowledgeVector(id: string): Promise<boolean> {
   try {
     const result = await prisma.$executeRaw`
-      DELETE FROM ai_vectors.knowledge_vectors WHERE id = ${id}
+      DELETE FROM knowledge_vectors WHERE id = ${id}
     `;
     
     logger.info('Knowledge vector deleted', { id, deleted: result > 0 });
@@ -108,7 +108,7 @@ export async function getKnowledgeVector(id: string) {
              embedding::text as embedding_text, embedding_model,
              quality_score, usage_count, retrieval_count, last_retrieved,
              created_at, updated_at
-      FROM ai_vectors.knowledge_vectors
+      FROM knowledge_vectors
       WHERE id = ${id}
     `;
     
@@ -147,7 +147,7 @@ export async function addDocumentChunks(chunks: DocumentChunkInput[]): Promise<v
         const embeddingStr = `[${chunk.embedding.join(',')}]`;
         
         await tx.$executeRaw`
-          INSERT INTO ai_vectors.document_vectors (
+          INSERT INTO document_vectors (
             id, document_id, chunk_index, content,
             document_title, category, page_number, section_title,
             embedding, embedding_model, created_at
@@ -187,7 +187,7 @@ export async function addDocumentChunks(chunks: DocumentChunkInput[]): Promise<v
 export async function deleteDocumentVectors(documentId: string): Promise<boolean> {
   try {
     const result = await prisma.$executeRaw`
-      DELETE FROM ai_vectors.document_vectors WHERE document_id = ${documentId}
+      DELETE FROM document_vectors WHERE document_id = ${documentId}
     `;
     
     logger.info('Document vectors deleted', { documentId, chunksDeleted: result });
@@ -248,7 +248,7 @@ export async function searchVectors(
           1 - (embedding <=> ${embeddingStr}::vector) as similarity,
           'knowledge' as source_type,
           quality_score
-        FROM ai_vectors.knowledge_vectors
+        FROM knowledge_vectors
         WHERE 1 - (embedding <=> ${embeddingStr}::vector) >= ${minScore}
       `;
 
@@ -263,7 +263,7 @@ export async function searchVectors(
             1 - (embedding <=> ${embeddingStr}::vector) as similarity,
             'knowledge' as source_type,
             quality_score
-          FROM ai_vectors.knowledge_vectors
+          FROM knowledge_vectors
           WHERE 1 - (embedding <=> ${embeddingStr}::vector) >= ${minScore}
             AND category = ANY(${categories})
         `;
@@ -305,7 +305,7 @@ export async function searchVectors(
           section_title,
           1 - (embedding <=> ${embeddingStr}::vector) as similarity,
           'document' as source_type
-        FROM ai_vectors.document_vectors
+        FROM document_vectors
         WHERE 1 - (embedding <=> ${embeddingStr}::vector) >= ${minScore}
       `;
 
@@ -322,7 +322,7 @@ export async function searchVectors(
             section_title,
             1 - (embedding <=> ${embeddingStr}::vector) as similarity,
             'document' as source_type
-          FROM ai_vectors.document_vectors
+          FROM document_vectors
           WHERE 1 - (embedding <=> ${embeddingStr}::vector) >= ${minScore}
             AND category = ANY(${categories})
         `;
@@ -378,7 +378,7 @@ export async function searchVectors(
 export async function recordKnowledgeRetrieval(knowledgeId: string): Promise<void> {
   try {
     await prisma.$executeRaw`
-      UPDATE ai_vectors.knowledge_vectors
+      UPDATE knowledge_vectors
       SET 
         retrieval_count = retrieval_count + 1,
         last_retrieved = NOW()
@@ -397,7 +397,7 @@ export async function recordBatchRetrievals(knowledgeIds: string[]): Promise<voi
   
   try {
     await prisma.$executeRaw`
-      UPDATE ai_vectors.knowledge_vectors
+      UPDATE knowledge_vectors
       SET 
         retrieval_count = retrieval_count + 1,
         last_retrieved = NOW()
@@ -414,7 +414,7 @@ export async function recordBatchRetrievals(knowledgeIds: string[]): Promise<voi
 export async function incrementKnowledgeUsage(knowledgeId: string): Promise<void> {
   try {
     await prisma.$executeRaw`
-      UPDATE ai_vectors.knowledge_vectors
+      UPDATE knowledge_vectors
       SET usage_count = usage_count + 1
       WHERE id = ${knowledgeId}
     `;
@@ -435,14 +435,14 @@ export async function getVectorDbStats(): Promise<{
 }> {
   try {
     const [knowledgeCount] = await prisma.$queryRaw<[{ count: bigint }]>`
-      SELECT COUNT(*) as count FROM ai_vectors.knowledge_vectors
+      SELECT COUNT(*) as count FROM knowledge_vectors
     `;
     
     const [documentStats] = await prisma.$queryRaw<[{ chunk_count: bigint; doc_count: bigint }]>`
       SELECT 
         COUNT(*) as chunk_count,
         COUNT(DISTINCT document_id) as doc_count
-      FROM ai_vectors.document_vectors
+      FROM document_vectors
     `;
 
     return {

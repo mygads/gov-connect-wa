@@ -28,7 +28,7 @@ export async function GET(
 
     // Get chunks count
     const chunksCount = await prisma.$queryRaw<[{ count: bigint }]>`
-      SELECT COUNT(*) as count FROM dashboard.document_chunks WHERE document_id = ${id}
+      SELECT COUNT(*) as count FROM document_chunks WHERE document_id = ${id}
     `
 
     return NextResponse.json({
@@ -107,7 +107,7 @@ export async function DELETE(
 
     // Delete chunks first
     await prisma.$executeRaw`
-      DELETE FROM dashboard.document_chunks WHERE document_id = ${id}
+      DELETE FROM document_chunks WHERE document_id = ${id}
     `
 
     // Delete document record
