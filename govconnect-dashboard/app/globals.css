@@ -174,3 +174,97 @@
 .animate-accordion-up {
   animation: accordion-up 0.2s ease-out;
 }
+
+/* Live Chat Widget Styles */
+.live-chat-widget {
+  font-family: var(--font-sans);
+}
+
+/* Custom scrollbar for chat messages */
+.live-chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.live-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.live-chat-messages::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+.live-chat-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground);
+  opacity: 0.7;
+}
+
+/* Chat bubble animations */
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chat-bubble-animate {
+  animation: message-in 0.2s ease-out;
+}
+
+/* Typing indicator animation */
+@keyframes typing-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.typing-dot {
+  animation: typing-bounce 0.6s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Chat button pulse animation */
+@keyframes chat-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--secondary), 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(var(--secondary), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--secondary), 0);
+  }
+}
+
+.chat-button-pulse {
+  animation: chat-pulse 2s infinite;
+}
+
+/* Notification badge bounce */
+@keyframes badge-bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.badge-bounce {
+  animation: badge-bounce 0.3s ease-out;
+}

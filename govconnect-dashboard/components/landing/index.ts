@@ -16,3 +16,4 @@ export {
   StepsLightingAnimation,
   PhoneServicesAnimation,
 } from "./BenefitAnimations";
+export { LiveChatWidget } from "./LiveChatWidget";

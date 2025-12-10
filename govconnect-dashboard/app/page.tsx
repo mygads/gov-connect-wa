@@ -42,6 +42,7 @@ import {
   StepsLightingAnimation,
   PhoneServicesAnimation,
   ProblemAnimation,
+  LiveChatWidget,
 } from "@/components/landing";
 import { generateWhatsAppLink } from "@/lib/whatsapp";
 
@@ -1012,7 +1013,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Floating WhatsApp Button */}
+      {/* Floating WhatsApp Button - Right Side */}
       <motion.div
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -1037,6 +1038,9 @@ export default function LandingPage() {
           </Button>
         </motion.div>
       </motion.div>
+
+      {/* Live Chat Widget - Left Side */}
+      <LiveChatWidget isDark={isDark} />
     </div>
   );
 }
