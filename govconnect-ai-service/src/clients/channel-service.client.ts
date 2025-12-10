@@ -44,7 +44,17 @@ export function getChannelServiceMetrics() {
   return channelServiceClient.getMetrics();
 }
 
+/**
+ * Reset circuit breaker manually
+ */
+export function resetChannelServiceCircuitBreaker() {
+  console.info('🔄 Resetting Channel Service circuit breaker manually');
+  channelServiceClient.resetCircuitBreaker();
+  return { success: true, message: 'Circuit breaker reset successfully' };
+}
+
 export default {
   sendWhatsAppMessage,
   getChannelServiceMetrics,
+  resetChannelServiceCircuitBreaker,
 };

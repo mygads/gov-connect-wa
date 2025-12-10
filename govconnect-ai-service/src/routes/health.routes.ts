@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { getChannelServiceMetrics } from '../clients/channel-service.client';
-import { getCaseServiceMetrics } from '../clients/case-service.client';
+import { getChannelServiceMetrics, resetChannelServiceCircuitBreaker } from '../clients/channel-service.client';
+import { getCaseServiceMetrics, resetCaseServiceCircuitBreaker } from '../clients/case-service.client';
 
 const router = Router();
 
@@ -50,6 +50,40 @@ router.get('/circuit-breakers', (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(500).json({
       error: 'Failed to get circuit breaker status',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * Reset circuit breakers endpoint
+ */
+router.post('/circuit-breakers/reset', (req: Request, res: Response) => {
+  try {
+    const { service } = req.body;
+    
+    if (service === 'case-service' || service === 'all') {
+      resetCaseServiceCircuitBreaker();
+    }
+    if (service === 'channel-service' || service === 'all') {
+      resetChannelServiceCircuitBreaker();
+    }
+    
+    if (!service) {
+      // Reset all by default
+      resetCaseServiceCircuitBreaker();
+      resetChannelServiceCircuitBreaker();
+    }
+    
+    res.json({
+      success: true,
+      message: `Circuit breaker(s) reset successfully`,
+      service: service || 'all',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Failed to reset circuit breaker',
       message: error.message,
     });
   }

@@ -6,6 +6,7 @@ import { GovConnectSidebar } from "@/components/dashboard/GovConnectSidebar"
 import { DashboardNavbar } from "@/components/dashboard/DashboardNavbar"
 import { RealtimeProvider } from "@/components/dashboard/RealtimeProvider"
 import { UrgentAlertBanner } from "@/components/dashboard/NotificationCenter"
+import { LiveChatWidget } from "@/components/landing/LiveChatWidget"
 
 interface DashboardLayoutClientProps {
   children: React.ReactNode
@@ -23,6 +24,8 @@ export default function DashboardLayoutClient({ children }: DashboardLayoutClien
             {children}
           </main>
         </SidebarInset>
+        {/* Live Chat Widget */}
+        <LiveChatWidget />
       </SidebarProvider>
     </RealtimeProvider>
   )

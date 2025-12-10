@@ -5,6 +5,7 @@ import { config } from './config/env';
 import { connectRabbitMQ, startConsuming, disconnectRabbitMQ } from './services/rabbitmq.service';
 import { processMessage } from './services/ai-orchestrator.service';
 import { processTwoLayerMessage } from './services/two-layer-orchestrator.service';
+import { initializeOptimizer } from './services/ai-optimizer.service';
 
 let server: any;
 
@@ -14,6 +15,9 @@ async function startServer() {
       env: config.nodeEnv,
       port: config.port,
     });
+    
+    // Initialize AI Optimizer (cache pre-warming, etc.)
+    initializeOptimizer();
     
     // Connect to RabbitMQ
     await connectRabbitMQ();

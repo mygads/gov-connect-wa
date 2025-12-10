@@ -299,41 +299,10 @@ export const ai = {
   },
 
   /**
-   * Add document vectors
+   * Delete document vectors from AI service
    */
-  async addDocument(data: {
-    documentId: string;
-    documentTitle?: string;
-    category?: string;
-    chunks: Array<{ chunkIndex: number; content: string; pageNumber?: number }>;
-  }) {
-    return apiFetch(buildUrl(ServicePath.AI, '/api/documents'), {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(data),
-    });
-  },
-
-  /**
-   * Update document vectors
-   */
-  async updateDocument(documentId: string, data: {
-    documentTitle?: string;
-    category?: string;
-    chunks: Array<{ chunkIndex: number; content: string; pageNumber?: number }>;
-  }) {
-    return apiFetch(buildUrl(ServicePath.AI, `/api/documents/${documentId}`), {
-      method: 'PUT',
-      headers: getHeaders(),
-      body: JSON.stringify(data),
-    });
-  },
-
-  /**
-   * Delete document vectors
-   */
-  async deleteDocument(documentId: string) {
-    return apiFetch(buildUrl(ServicePath.AI, `/api/documents/${documentId}`), {
+  async deleteDocumentVectors(documentId: string) {
+    return apiFetch(buildUrl(ServicePath.AI, `/api/upload/document/${documentId}`), {
       method: 'DELETE',
       headers: getHeaders(),
     });
@@ -343,7 +312,7 @@ export const ai = {
    * Embed all knowledge
    */
   async embedAllKnowledge() {
-    return apiFetch(buildUrl(ServicePath.AI, '/api/internal/embed-all-knowledge'), {
+    return apiFetch(buildUrl(ServicePath.AI, '/api/knowledge/embed-all'), {
       method: 'POST',
       headers: getHeaders(),
     });
@@ -360,16 +329,6 @@ export const ai = {
         'x-internal-api-key': INTERNAL_API_KEY,
       },
       body: formData,
-    });
-  },
-
-  /**
-   * Delete document vectors from AI service
-   */
-  async deleteDocumentVectors(documentId: string) {
-    return apiFetch(buildUrl(ServicePath.AI, `/api/upload/document/${documentId}`), {
-      method: 'DELETE',
-      headers: getHeaders(),
     });
   },
 
@@ -472,23 +431,6 @@ export const ai = {
     return apiFetch(buildUrl(ServicePath.AI, `/rate-limit/blacklist/${waUserId}`), {
       method: 'DELETE',
       headers: getHeaders(),
-    });
-  },
-
-  /**
-   * Process document (chunking and embedding)
-   */
-  async processDocument(data: {
-    documentId: string;
-    content: string;
-    mimeType: string;
-    title: string;
-    category: string;
-  }) {
-    return apiFetch(buildUrl(ServicePath.AI, '/api/internal/process-document'), {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(data),
     });
   },
 };

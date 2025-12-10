@@ -11,6 +11,11 @@
  * 
  * IMPORTANT: File ini berisi semua logic yang sudah di-test dan dilatih dengan baik.
  * Jangan ubah tanpa testing yang memadai.
+ * 
+ * OPTIMIZATIONS (December 2025):
+ * - Fast Intent Classification: Skip LLM untuk intent yang jelas
+ * - Response Caching: Cache response untuk pertanyaan berulang
+ * - Entity Pre-extraction: Ekstrak data sebelum LLM
  */
 
 import logger from '../utils/logger';
@@ -25,6 +30,18 @@ import { rateLimiterService } from './rate-limiter.service';
 import { aiAnalyticsService } from './ai-analytics.service';
 import { RAGContext } from '../types/embedding.types';
 import { caseServiceClient } from '../clients/case-service.client';
+
+// AI Optimization imports
+import { 
+  preProcessMessage, 
+  postProcessResponse, 
+  shouldUseFastPath, 
+  buildFastPathResponse,
+  enhanceLLMFields,
+  OptimizationResult,
+} from './ai-optimizer.service';
+import { fastClassifyIntent } from './fast-intent-classifier.service';
+import { extractAllEntities } from './entity-extractor.service';
 
 // ==================== TYPES ====================
 
@@ -348,6 +365,11 @@ export async function handleComplaintCreation(
     alamat = extractAddressFromMessage(currentMessage, userId);
   }
   
+  // FALLBACK: Extract alamat from complaint message using pattern matching
+  if (!alamat && currentMessage.length > 20) {
+    alamat = extractAddressFromComplaintMessage(currentMessage, userId);
+  }
+  
   // Fallback: if deskripsi is empty but we have kategori, generate default description
   if (!deskripsi && kategori) {
     const kategoriMap: Record<string, string> = {
@@ -433,12 +455,26 @@ export async function handleComplaintCreation(
 
 /**
  * Extract address from message using smart detection
+ * IMPROVED: More strict validation to avoid false positives
  */
 function extractAddressFromMessage(currentMessage: string, userId: string): string {
   const complaintKeywords = /menumpuk|tumpukan|rusak|berlubang|mati|padam|tersumbat|banjir|tumbang|roboh|sampah|limbah|genangan|menghalangi/i;
-  const isJustAddress = !complaintKeywords.test(currentMessage) && currentMessage.length < 100;
   
-  if (isJustAddress) {
+  // Clean message: remove common prefixes like "alamatnya", "alamat saya", etc.
+  let cleanedMessage = currentMessage.trim()
+    .replace(/^(alamatnya|alamat\s*nya|alamat\s*saya|alamat\s*di|itu\s*alamat|ini\s*alamat)\s*/i, '')
+    .replace(/^(di|ke)\s+/i, '')
+    .trim();
+  
+  const isJustAddress = !complaintKeywords.test(cleanedMessage) && cleanedMessage.length < 100;
+  
+  // IMPROVED: Reject ONLY if the entire message is just these words (no address content)
+  const pureNonAddressPhrases = /^(itu|ini|ya|iya|yak|yup|oke|ok|siap|sudah|cukup|proses|lanjut|hadeh|aduh|wah|ah|oh|hm|hmm|tolol|bodoh|goblok|bego|tidak|bukan|bener|benar|salah|gimana|bagaimana|apa|kenapa|mengapa|kapan|dimana|siapa|mana|sini|situ|sana|gitu|gini|dong|deh|sih|nih|tuh|lah|kan|kah|pun|juga|jadi|terus|lalu|kemudian|makanya|soalnya|karena|sebab)$/i;
+  if (pureNonAddressPhrases.test(cleanedMessage)) {
+    return '';
+  }
+  
+  if (isJustAddress && cleanedMessage.length >= 5) {
     const addressPatterns = [
       /jalan/i, /jln/i, /jl\./i,
       /\bno\b/i, /nomor/i,
@@ -447,32 +483,54 @@ function extractAddressFromMessage(currentMessage: string, userId: string): stri
       /komplek/i, /perumahan/i, /blok/i,
     ];
     
-    const looksLikeFormalAddress = addressPatterns.some(pattern => pattern.test(currentMessage));
+    const looksLikeFormalAddress = addressPatterns.some(pattern => pattern.test(cleanedMessage));
     
     if (looksLikeFormalAddress) {
-      logger.info('Smart alamat detection: formal address detected', { userId, detectedAlamat: currentMessage.trim() });
-      return currentMessage.trim();
+      logger.info('Smart alamat detection: formal address detected', { userId, detectedAlamat: cleanedMessage });
+      return cleanedMessage;
     }
     
     const informalAddressPatterns = [
-      /^di\s+/i,
-      /dekat|depan|belakang|samping/i,
+      /dekat\s+\w{3,}|depan\s+\w{3,}|belakang\s+\w{3,}|samping\s+\w{3,}/i,
       /margahayu|cimahi|bandung|jakarta|surabaya|semarang/i,
-      /masjid|mushola|sekolah|kantor|warung|toko/i,
+      /masjid\s+\w+|mushola\s+\w+|sekolah\s+\w+|kantor\s+\w+|warung\s+\w+|toko\s+\w+/i,
     ];
     
-    const looksLikeInformalAddress = informalAddressPatterns.some(pattern => pattern.test(currentMessage));
-    const confirmationWords = /^(ya|iya|yak|yup|oke|ok|siap|sudah|cukup|proses|lanjut)$/i;
-    const isNotConfirmation = !confirmationWords.test(currentMessage.trim());
+    const looksLikeInformalAddress = informalAddressPatterns.some(pattern => pattern.test(cleanedMessage));
     
-    if ((looksLikeInformalAddress || (isJustAddress && currentMessage.length >= 5)) && isNotConfirmation) {
-      let alamat = currentMessage.trim()
-        .replace(/^(di|ke)\s+/i, '')
-        .replace(/kak$/i, '')
-        .trim();
+    if (looksLikeInformalAddress && cleanedMessage.length >= 10) {
+      let alamat = cleanedMessage.replace(/kak$/i, '').trim();
       
-      if (alamat.length >= 3) {
+      if (alamat.length >= 5 && /[a-zA-Z]/.test(alamat)) {
         logger.info('Smart alamat detection: informal address/location detected', { userId, detectedAlamat: alamat });
+        return alamat;
+      }
+    }
+  }
+  
+  return '';
+}
+
+/**
+ * Extract address from complaint message that contains both complaint and address
+ * Example: "lampu mati di jalan sudirman no 10 bandung"
+ */
+function extractAddressFromComplaintMessage(message: string, userId: string): string {
+  // Pattern: "di [alamat]" or "lokasi [alamat]" or after complaint keywords
+  const patterns = [
+    /(?:di|lokasi|alamat|tempat)\s+((?:jalan|jln|jl\.?)\s+[^,]+(?:no\.?\s*\d+)?(?:\s+\w+)?)/i,
+    /(?:di|lokasi|alamat|tempat)\s+(\w+(?:\s+\w+){1,5}(?:\s+(?:no\.?\s*\d+|rt\s*\d+|rw\s*\d+))?)/i,
+    // Match city names with preceding address
+    /(?:di|lokasi)\s+([\w\s]+(?:bandung|jakarta|surabaya|semarang|cimahi|margahayu))/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      const alamat = match[1].trim();
+      // Validate: must be at least 10 chars and contain letters
+      if (alamat.length >= 10 && /[a-zA-Z]/.test(alamat)) {
+        logger.info('Smart alamat detection: extracted from complaint message', { userId, detectedAlamat: alamat });
         return alamat;
       }
     }
@@ -1040,6 +1098,15 @@ export function setPendingAddressConfirmation(userId: string, data: {
 /**
  * Process message from any channel
  * This is the SINGLE SOURCE OF TRUTH for message processing
+ * 
+ * OPTIMIZATION FLOW:
+ * 1. Spam check
+ * 2. Pending state check
+ * 3. Fast intent classification (NEW)
+ * 4. Response cache check (NEW)
+ * 5. Entity pre-extraction (NEW)
+ * 6. If fast path available → return cached/quick response
+ * 7. Otherwise → full LLM processing
  */
 export async function processUnifiedMessage(input: ProcessMessageInput): Promise<ProcessMessageResult> {
   const startTime = Date.now();
@@ -1077,6 +1144,24 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
           intent: 'CREATE_COMPLAINT',
           metadata: { processingTimeMs: Date.now() - startTime, hasKnowledge: false },
         };
+      }
+    }
+    
+    // Step 2.5: AI Optimization - Pre-process message
+    const historyString = conversationHistory?.map(m => `${m.role}: ${m.content}`).join('\n') || '';
+    const optimization = preProcessMessage(message, userId, historyString);
+    
+    // Step 2.6: Check if we can use fast path (skip LLM)
+    if (shouldUseFastPath(optimization, !!pendingConfirm)) {
+      const fastResult = buildFastPathResponse(optimization, startTime);
+      if (fastResult) {
+        logger.info('⚡ [UnifiedProcessor] Using fast path', {
+          userId,
+          intent: fastResult.intent,
+          usedCache: fastResult.optimization?.usedCache,
+          processingTimeMs: fastResult.metadata.processingTimeMs,
+        });
+        return fastResult;
       }
     }
     
@@ -1224,6 +1309,11 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
     const validatedReply = validateResponse(finalReplyText);
     const validatedGuidance = guidanceText ? validateResponse(guidanceText) : undefined;
     
+    // Step 10.5: Post-process - Cache response for future use (only for cacheable intents)
+    if (['KNOWLEDGE_QUERY', 'GREETING', 'QUESTION'].includes(llmResponse.intent)) {
+      postProcessResponse(message, validatedReply, llmResponse.intent, validatedGuidance);
+    }
+    
     const processingTimeMs = Date.now() - startTime;
     
     logger.info('✅ [UnifiedProcessor] Message processed', {
@@ -1231,6 +1321,7 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
       channel,
       intent: llmResponse.intent,
       processingTimeMs,
+      fastClassified: !!optimization?.fastIntent,
     });
     
     return {

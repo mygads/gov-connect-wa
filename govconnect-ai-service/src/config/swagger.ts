@@ -296,91 +296,13 @@ AI Service adalah **otak AI** untuk sistem GovConnect.
           responses: { '200': { description: 'Violations reset' } },
         },
       },
-      '/api/internal/process-document': {
+      '/api/knowledge/embed-all': {
         post: {
-          tags: ['Document Processing'],
-          summary: 'Process document with embeddings',
-          security: [{ InternalApiKey: [] }],
-          requestBody: {
-            required: true,
-            content: { 'application/json': { schema: { type: 'object', properties: { documentId: { type: 'string' }, content: { type: 'string' } } } } },
-          },
-          responses: { '200': { description: 'Document processed' }, '403': { description: 'Unauthorized' } },
-        },
-      },
-      '/api/internal/embed-knowledge': {
-        post: {
-          tags: ['Document Processing'],
-          summary: 'Embed single knowledge item',
-          security: [{ InternalApiKey: [] }],
-          requestBody: {
-            required: true,
-            content: { 'application/json': { schema: { type: 'object', properties: { knowledgeId: { type: 'string' }, content: { type: 'string' } } } } },
-          },
-          responses: { '200': { description: 'Embedding generated' }, '403': { description: 'Unauthorized' } },
-        },
-      },
-      '/api/internal/embed-all-knowledge': {
-        post: {
-          tags: ['Document Processing'],
+          tags: ['Knowledge'],
           summary: 'Embed all knowledge items',
+          description: 'Bulk embed all knowledge items from Dashboard',
           security: [{ InternalApiKey: [] }],
           responses: { '200': { description: 'Batch embedding completed' }, '403': { description: 'Unauthorized' } },
-        },
-      },
-      '/api/internal/embedding-jobs/knowledge': {
-        post: {
-          tags: ['Document Processing'],
-          summary: 'Queue knowledge embedding job',
-          security: [{ InternalApiKey: [] }],
-          responses: { '200': { description: 'Job queued' } },
-        },
-      },
-      '/api/internal/embedding-jobs/document': {
-        post: {
-          tags: ['Document Processing'],
-          summary: 'Queue document embedding job',
-          security: [{ InternalApiKey: [] }],
-          responses: { '200': { description: 'Job queued' } },
-        },
-      },
-      '/api/internal/embedding-jobs/{jobId}': {
-        get: {
-          tags: ['Document Processing'],
-          summary: 'Get embedding job status',
-          security: [{ InternalApiKey: [] }],
-          parameters: [{ in: 'path', name: 'jobId', required: true, schema: { type: 'string' } }],
-          responses: { '200': { description: 'Job status' }, '404': { description: 'Job not found' } },
-        },
-      },
-      '/api/internal/embedding-jobs-stats': {
-        get: {
-          tags: ['Document Processing'],
-          summary: 'Get embedding job queue stats',
-          security: [{ InternalApiKey: [] }],
-          responses: { '200': { description: 'Queue statistics' } },
-        },
-      },
-      '/api/internal/process-document-semantic': {
-        post: {
-          tags: ['Document Processing'],
-          summary: 'Process document with semantic chunking',
-          description: 'Process document using paragraph-aware semantic chunking',
-          security: [{ InternalApiKey: [] }],
-          requestBody: {
-            required: true,
-            content: { 'application/json': { schema: { type: 'object', required: ['documentId', 'content'], properties: { documentId: { type: 'string' }, content: { type: 'string' }, mimeType: { type: 'string' }, title: { type: 'string' }, category: { type: 'string' }, maxChunkSize: { type: 'integer', default: 1500 } } } } },
-          },
-          responses: { '200': { description: 'Document processed with semantic chunking' }, '400': { description: 'Invalid request' }, '403': { description: 'Unauthorized' } },
-        },
-      },
-      '/api/internal/embedding-jobs/batch-knowledge': {
-        post: {
-          tags: ['Document Processing'],
-          summary: 'Queue batch knowledge embedding',
-          description: 'Queue batch embedding regeneration for all knowledge items',
-          security: [{ InternalApiKey: [] }],
-          responses: { '200': { description: 'Batch job queued' }, '403': { description: 'Unauthorized' } },
         },
       },
     },

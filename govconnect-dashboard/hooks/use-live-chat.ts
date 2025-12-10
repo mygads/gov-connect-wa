@@ -202,8 +202,8 @@ export function useLiveChat() {
       // Update user message status to sent
       updateMessageStatus(userMessage.id, 'sent');
 
-      // Call API
-      const response = await fetch('/api/livechat', {
+      // Call API - menggunakan webchat endpoint
+      const response = await fetch('/api/webchat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

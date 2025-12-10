@@ -231,4 +231,98 @@ router.get('/stats', async (_req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/knowledge/embed-all
+ * Bulk embed all knowledge items from Dashboard
+ * Migrated from /api/internal/embed-all-knowledge
+ */
+router.post('/embed-all', async (_req: Request, res: Response) => {
+  logger.info('Starting bulk knowledge embedding');
+  
+  try {
+    const axios = (await import('axios')).default;
+    const { generateBatchEmbeddings } = await import('../services/embedding.service');
+    
+    // Fetch all knowledge from Dashboard
+    const response = await axios.get(
+      `${config.dashboardServiceUrl}/api/internal/knowledge`,
+      {
+        params: { limit: 500 },
+        headers: { 'x-internal-api-key': config.internalApiKey },
+        timeout: 30000,
+      }
+    );
+    
+    const knowledgeItems = response.data.data || [];
+    
+    if (knowledgeItems.length === 0) {
+      return res.json({
+        success: true,
+        processed: 0,
+        message: 'No knowledge items to process',
+      });
+    }
+    
+    let processed = 0;
+    let failed = 0;
+    
+    // Process in batches of 10
+    const batchSize = 10;
+    for (let i = 0; i < knowledgeItems.length; i += batchSize) {
+      const batch = knowledgeItems.slice(i, i + batchSize);
+      const texts = batch.map((k: any) => k.title ? `${k.title}\n\n${k.content}` : k.content);
+      
+      try {
+        const embeddings = await generateBatchEmbeddings(texts, {
+          taskType: 'RETRIEVAL_DOCUMENT',
+          outputDimensionality: 768,
+        });
+        
+        // Store each embedding to local vector DB
+        for (let j = 0; j < batch.length; j++) {
+          try {
+            await upsertKnowledgeVector({
+              id: batch[j].id,
+              title: batch[j].title || '',
+              content: batch[j].content,
+              category: batch[j].category || 'informasi_umum',
+              keywords: batch[j].keywords || [],
+              embedding: embeddings.embeddings[j].values,
+              embeddingModel: embeddings.embeddings[j].model,
+            });
+            processed++;
+          } catch (storeError) {
+            failed++;
+          }
+        }
+      } catch (batchError: any) {
+        logger.error('Batch embedding failed', { error: batchError.message });
+        failed += batch.length;
+      }
+    }
+    
+    logger.info('Bulk knowledge embedding completed', {
+      processed,
+      failed,
+      total: knowledgeItems.length,
+    });
+    
+    return res.json({
+      success: true,
+      processed,
+      failed,
+      total: knowledgeItems.length,
+    });
+  } catch (error: any) {
+    logger.error('Bulk knowledge embedding failed', {
+      error: error.message,
+    });
+    
+    return res.status(500).json({
+      error: 'Bulk embedding failed',
+      details: error.message,
+    });
+  }
+});
+
 export default router;

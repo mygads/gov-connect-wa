@@ -48,10 +48,10 @@ const caseServiceClient = {
   },
   
   // Other methods pass through
-  put: originalCaseServiceClient.put,
-  delete: originalCaseServiceClient.delete,
-  patch: originalCaseServiceClient.patch,
-  getMetrics: originalCaseServiceClient.getMetrics,
+  put: originalCaseServiceClient.put.bind(originalCaseServiceClient),
+  delete: originalCaseServiceClient.delete.bind(originalCaseServiceClient),
+  patch: originalCaseServiceClient.patch.bind(originalCaseServiceClient),
+  getMetrics: () => originalCaseServiceClient.getMetrics(),
 };
 
 /**
@@ -74,10 +74,20 @@ export function getCaseServiceMetrics() {
   return caseServiceClient.getMetrics();
 }
 
+/**
+ * Reset circuit breaker manually
+ */
+export function resetCaseServiceCircuitBreaker() {
+  logger.info('🔄 Resetting Case Service circuit breaker manually');
+  originalCaseServiceClient.resetCircuitBreaker();
+  return { success: true, message: 'Circuit breaker reset successfully' };
+}
+
 // Export the wrapper client
 export { caseServiceClient };
 
 export default {
   getCaseById,
   getCaseServiceMetrics,
+  resetCaseServiceCircuitBreaker,
 };

@@ -86,7 +86,8 @@ router.post(
   '/create',
   internalAuth,
   [
-    body('wa_user_id').matches(/^628\d{8,12}$/).withMessage('Invalid phone number'),
+    // Accept WhatsApp phone (628xxx) or webchat session (web_xxx)
+    body('wa_user_id').matches(/^(628\d{8,12}|web_[a-z0-9_]+)$/i).withMessage('Invalid user ID format'),
     body('service_code').isString().withMessage('service_code is required'),
     body('citizen_data').isObject().withMessage('citizen_data must be an object'),
     body('citizen_data.nama_lengkap').isString().withMessage('nama_lengkap is required'),
@@ -130,7 +131,8 @@ router.post(
   '/:id/cancel',
   internalAuth,
   [
-    body('wa_user_id').matches(/^628\d{8,12}$/).withMessage('Invalid phone number'),
+    // Accept WhatsApp phone (628xxx) or webchat session (web_xxx)
+    body('wa_user_id').matches(/^(628\d{8,12}|web_[a-z0-9_]+)$/i).withMessage('Invalid user ID format'),
     body('cancel_reason').optional().isString(),
   ],
   validate,

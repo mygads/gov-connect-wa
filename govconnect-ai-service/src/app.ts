@@ -18,9 +18,9 @@ import { aiAnalyticsService } from './services/ai-analytics.service';
 import { getEmbeddingStats, getEmbeddingCacheStats } from './services/embedding.service';
 import { getVectorDbStats } from './services/vector-db.service';
 import { resilientHttp } from './services/circuit-breaker.service';
-import documentRoutes from './routes/document.routes';
+import { getTopCachedQueries, getCacheStats } from './services/response-cache.service';
+import { getFSMStats, getAllActiveContexts } from './services/conversation-fsm.service';
 import knowledgeRoutes from './routes/knowledge.routes';
-import documentsRoutes from './routes/documents.routes';
 import searchRoutes from './routes/search.routes';
 import uploadRoutes from './routes/upload.routes';
 import webchatRoutes from './routes/webchat.routes';
@@ -528,12 +528,8 @@ app.use('/uploads/documents', express.static(uploadsDir, {
   }
 }));
 
-// Mount document processing routes (legacy)
-app.use('/api/internal', documentRoutes);
-
-// Mount new vector API routes
+// Mount API routes
 app.use('/api/knowledge', knowledgeRoutes);
-app.use('/api/documents', documentsRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/webchat', webchatRoutes);
@@ -558,10 +554,69 @@ app.get('/stats/embeddings', async (req: Request, res: Response) => {
 });
 
 // ===========================================
+// AI Optimization Stats Endpoints
+// ===========================================
+app.get('/stats/optimization', (req: Request, res: Response) => {
+  try {
+    const cacheStats = getCacheStats();
+    const topQueries = getTopCachedQueries(10);
+    const fsmStats = getFSMStats();
+    
+    res.json({
+      cache: {
+        ...cacheStats,
+        hitRatePercent: `${(cacheStats.hitRate * 100).toFixed(1)}%`,
+      },
+      topCachedQueries: topQueries,
+      conversationFSM: fsmStats,
+      architecture: process.env.USE_2_LAYER_ARCHITECTURE === 'true' ? '2-Layer LLM' : 'Single Layer',
+      description: 'AI optimization stats including response caching, fast intent classification, and conversation FSM',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Failed to get optimization stats',
+      message: error.message,
+    });
+  }
+});
+
+// Conversation FSM Stats
+app.get('/stats/conversation-fsm', (req: Request, res: Response) => {
+  try {
+    const stats = getFSMStats();
+    const activeContexts = getAllActiveContexts();
+    
+    res.json({
+      stats,
+      activeContexts: activeContexts.map(ctx => ({
+        userId: ctx.userId.substring(0, 8) + '...', // Mask user ID
+        state: ctx.state,
+        messageCount: ctx.messageCount,
+        lastIntent: ctx.lastIntent,
+        missingFields: ctx.missingFields,
+        createdAt: new Date(ctx.createdAt).toISOString(),
+        updatedAt: new Date(ctx.updatedAt).toISOString(),
+      })),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Failed to get FSM stats',
+      message: error.message,
+    });
+  }
+});
+
+// ===========================================
 // Circuit Breaker Endpoints
+import { getCaseServiceMetrics, resetCaseServiceCircuitBreaker } from './clients/case-service.client';
+import { getChannelServiceMetrics, resetChannelServiceCircuitBreaker } from './clients/channel-service.client';
+
 app.get('/stats/circuit-breaker', (req: Request, res: Response) => {
   try {
     const stats = resilientHttp.getStats();
+    const caseMetrics = getCaseServiceMetrics();
+    const channelMetrics = getChannelServiceMetrics();
+    
     res.json({
       status: stats.state,
       description: getCircuitBreakerDescription(stats.state),
@@ -574,10 +629,51 @@ app.get('/stats/circuit-breaker', (req: Request, res: Response) => {
         cacheHits: stats.stats.cacheHits,
         cacheMisses: stats.stats.cacheMisses,
       },
+      services: {
+        caseService: {
+          state: caseMetrics.state,
+          failures: caseMetrics.failures,
+          totalRequests: caseMetrics.totalRequests,
+        },
+        channelService: {
+          state: channelMetrics.state,
+          failures: channelMetrics.failures,
+          totalRequests: channelMetrics.totalRequests,
+        },
+      },
     });
   } catch (error: any) {
     res.status(500).json({
       error: 'Failed to get circuit breaker stats',
+      message: error.message,
+    });
+  }
+});
+
+// Reset circuit breakers
+app.post('/stats/circuit-breaker/reset', (req: Request, res: Response) => {
+  try {
+    const { service } = req.body;
+    
+    // Reset main resilientHttp circuit breaker (used by case-client.service.ts)
+    resilientHttp.reset();
+    
+    if (service === 'case-service' || service === 'all' || !service) {
+      resetCaseServiceCircuitBreaker();
+    }
+    if (service === 'channel-service' || service === 'all' || !service) {
+      resetChannelServiceCircuitBreaker();
+    }
+    
+    res.json({
+      success: true,
+      message: `Circuit breaker(s) reset successfully`,
+      service: service || 'all',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Failed to reset circuit breaker',
       message: error.message,
     });
   }
@@ -614,18 +710,18 @@ app.get('/', (req: Request, res: Response) => {
       analyticsFlow: '/stats/analytics/flow',
       analyticsTokens: '/stats/analytics/tokens',
       embeddingStats: '/stats/embeddings',
+      optimizationStats: '/stats/optimization',
+      conversationFSM: '/stats/conversation-fsm',
       rateLimit: '/rate-limit',
       rateLimitCheck: '/rate-limit/check/:wa_user_id',
       blacklist: '/rate-limit/blacklist',
-      // Vector API (new)
+      // Vector API
       knowledgeVectors: '/api/knowledge',
-      documentVectors: '/api/documents',
+      knowledgeEmbedAll: '/api/knowledge/embed-all',
       vectorSearch: '/api/search',
+      documentUpload: '/api/upload',
       // Web Chat API
       webchat: '/api/webchat',
-      // Legacy (deprecated)
-      processDocument: '/api/internal/process-document',
-      embedKnowledge: '/api/internal/embed-knowledge',
     },
   });
 });

@@ -81,6 +81,39 @@ interface AnalyticsSummary {
   tokenUsageLast7Days: Array<{ date: string; tokens: number; cost: number }>
 }
 
+// AI Optimization Stats (NEW)
+interface OptimizationStats {
+  cache: {
+    totalHits: number
+    totalMisses: number
+    hitRate: number
+    cacheSize: number
+    avgHitCount: number
+  }
+  topCachedQueries: Array<{ key: string; hitCount: number; intent: string }>
+}
+
+// Conversation FSM Stats (NEW)
+interface FSMStats {
+  activeContexts: number
+  stateDistribution: Record<string, number>
+  avgMessageCount: number
+}
+
+// 2-Layer Architecture Stats (NEW)
+interface ArchitectureStats {
+  architecture: string
+  layer1Stats?: {
+    totalCalls: number
+    avgConfidence: number
+    avgProcessingTimeMs: number
+  }
+  layer2Stats?: {
+    totalCalls: number
+    avgProcessingTimeMs: number
+  }
+}
+
 interface IntentDistribution {
   intents: Record<string, { total: number; success: number; failure: number }>
   total: number
@@ -161,6 +194,8 @@ export default function AIAnalyticsPage() {
   const [flow, setFlow] = useState<ConversationFlow | null>(null)
   const [modelUsage, setModelUsage] = useState<ModelUsageStats | null>(null)
   const [selectedModel, setSelectedModel] = useState<ModelDetailStats | null>(null)
+  const [optimization, setOptimization] = useState<OptimizationStats | null>(null)
+  const [fsmStats, setFsmStats] = useState<FSMStats | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -180,12 +215,13 @@ export default function AIAnalyticsPage() {
       const token = localStorage.getItem('token')
       const headers = { 'Authorization': `Bearer ${token}` }
 
-      const [summaryRes, intentsRes, tokensRes, flowRes, modelUsageRes] = await Promise.all([
+      const [summaryRes, intentsRes, tokensRes, flowRes, modelUsageRes, optimizationRes] = await Promise.all([
         fetch('/api/statistics/ai-analytics', { headers }),
         fetch('/api/statistics/ai-analytics/intents', { headers }),
         fetch('/api/statistics/ai-analytics/tokens', { headers }),
         fetch('/api/statistics/ai-analytics/flow', { headers }),
         fetch('/api/statistics/ai-usage', { headers }),
+        fetch('/api/statistics/ai-optimization', { headers }),
       ])
 
       if (summaryRes.ok) setSummary(await summaryRes.json())
@@ -193,6 +229,7 @@ export default function AIAnalyticsPage() {
       if (tokensRes.ok) setTokens(await tokensRes.json())
       if (flowRes.ok) setFlow(await flowRes.json())
       if (modelUsageRes.ok) setModelUsage(await modelUsageRes.json())
+      if (optimizationRes.ok) setOptimization(await optimizationRes.json())
     } catch (err: any) {
       setError(err.message || 'Failed to load data')
     } finally {
@@ -464,6 +501,85 @@ export default function AIAnalyticsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Optimization Stats (NEW) */}
+      {optimization && (
+        <Card className="border-2 border-dashed border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-yellow-500" />
+              AI Optimization Performance
+              <Badge variant="secondary" className="ml-2">NEW</Badge>
+            </CardTitle>
+            <CardDescription>
+              Fast Intent Classification & Response Caching untuk mengurangi latency dan cost
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-4">
+              <div className="p-4 bg-background rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm font-medium text-muted-foreground">Cache Hit Rate</span>
+                </div>
+                <p className="text-2xl font-bold text-green-600">
+                  {((optimization.cache?.hitRate || 0) * 100).toFixed(1)}%
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {optimization.cache?.totalHits || 0} hits / {(optimization.cache?.totalHits || 0) + (optimization.cache?.totalMisses || 0)} total
+                </p>
+              </div>
+              
+              <div className="p-4 bg-background rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm font-medium text-muted-foreground">Cache Size</span>
+                </div>
+                <p className="text-2xl font-bold">{optimization.cache?.cacheSize || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">cached responses</p>
+              </div>
+              
+              <div className="p-4 bg-background rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="h-4 w-4 text-purple-500" />
+                  <span className="text-sm font-medium text-muted-foreground">Avg Hit Count</span>
+                </div>
+                <p className="text-2xl font-bold">{(optimization.cache?.avgHitCount || 0).toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground mt-1">per cached query</p>
+              </div>
+              
+              <div className="p-4 bg-background rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Coins className="h-4 w-4 text-yellow-500" />
+                  <span className="text-sm font-medium text-muted-foreground">Est. Savings</span>
+                </div>
+                <p className="text-2xl font-bold text-green-600">
+                  ~{((optimization.cache?.hitRate || 0) * 30).toFixed(0)}%
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">LLM cost reduction</p>
+              </div>
+            </div>
+            
+            {/* Top Cached Queries */}
+            {optimization.topCachedQueries && optimization.topCachedQueries.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2">Top Cached Queries</h4>
+                <div className="space-y-2">
+                  {optimization.topCachedQueries.slice(0, 5).map((q, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-muted rounded text-sm">
+                      <span className="truncate flex-1 font-mono text-xs">{q.key}</span>
+                      <div className="flex items-center gap-2 ml-2">
+                        <Badge variant="outline" className="text-xs">{q.intent}</Badge>
+                        <span className="text-muted-foreground">{q.hitCount} hits</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Token Usage Stats */}
       <div className="grid gap-4 md:grid-cols-3">

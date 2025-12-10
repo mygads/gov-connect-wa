@@ -206,6 +206,14 @@ export const resilientHttp = {
       (response as FallbackResponse).data.circuit_breaker === true
     );
   },
+
+  /**
+   * Reset circuit breaker (close it manually)
+   */
+  reset(): void {
+    breaker.close();
+    logger.info('🔄 Circuit breaker manually reset (closed)');
+  },
 };
 
 // Export the breaker instance for advanced usage
