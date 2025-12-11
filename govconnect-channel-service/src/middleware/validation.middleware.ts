@@ -64,12 +64,22 @@ export const validateWebhookPayload = [
 
 /**
  * Validate send message request
+ * Accepts both Indonesian phone numbers (628xxx) and webchat session IDs (web_xxx)
  */
 export const validateSendMessage = [
   body('wa_user_id')
     .isString()
-    .matches(/^628\d{8,12}$/)
-    .withMessage('wa_user_id must be valid Indonesian phone number'),
+    .custom((value) => {
+      // Accept Indonesian phone number format
+      if (/^628\d{8,12}$/.test(value)) {
+        return true;
+      }
+      // Accept webchat session ID format (web_xxx)
+      if (/^web_[a-z0-9_]+$/i.test(value)) {
+        return true;
+      }
+      throw new Error('wa_user_id must be valid Indonesian phone number or webchat session ID');
+    }),
   body('message')
     .isString()
     .isLength({ min: 1, max: 4096 })
@@ -79,12 +89,22 @@ export const validateSendMessage = [
 
 /**
  * Validate get messages query
+ * Accepts both Indonesian phone numbers (628xxx) and webchat session IDs (web_xxx)
  */
 export const validateGetMessages = [
   query('wa_user_id')
     .isString()
-    .matches(/^628\d{8,12}$/)
-    .withMessage('wa_user_id must be valid Indonesian phone number'),
+    .custom((value) => {
+      // Accept Indonesian phone number format
+      if (/^628\d{8,12}$/.test(value)) {
+        return true;
+      }
+      // Accept webchat session ID format (web_xxx)
+      if (/^web_[a-z0-9_]+$/i.test(value)) {
+        return true;
+      }
+      throw new Error('wa_user_id must be valid Indonesian phone number or webchat session ID');
+    }),
   query('limit')
     .optional()
     .isInt({ min: 1, max: 100 })

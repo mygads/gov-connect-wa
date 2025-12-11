@@ -47,17 +47,19 @@ const THANKS_PATTERNS = [
 ];
 
 const CREATE_COMPLAINT_PATTERNS = [
-  // Direct complaint keywords
-  /\b(mau\s+)?lapor(kan)?\b/i,
-  /\b(ada\s+)?(masalah|keluhan|aduan|komplain)\b/i,
+  // Direct complaint keywords - must have explicit intent to report
+  /\b(mau\s+)?lapor(kan)?\s+/i,
+  /\b(ada\s+)?(masalah|keluhan|aduan|komplain)\s+(di|dengan|tentang)/i,
   
-  // Specific complaint types
+  // Specific complaint types - must have action/state words
   /\b(jalan|aspal)\s+(rusak|berlubang|retak|hancur|jelek)\b/i,
   /\b(lampu|penerangan)\s+(jalan\s+)?(mati|padam|rusak|tidak\s+menyala)\b/i,
   /\b(sampah)\s+(menumpuk|berserakan|banyak|tidak\s+diangkut)\b/i,
   /\b(saluran|got|selokan|drainase)\s+(tersumbat|mampet|macet|buntu)\b/i,
   /\b(pohon)\s+(tumbang|roboh|patah|miring)\b/i,
-  /\b(banjir|genangan)\b/i,
+  // Banjir - only match if it's clearly a report (with location or "ada")
+  /\b(ada\s+)?banjir\s+(di|besar|parah)/i,
+  /\b(mau\s+lapor\s+)?banjir\b/i,
   /\b(fasilitas|taman|pagar)\s+(rusak|jelek)\b/i,
 ];
 

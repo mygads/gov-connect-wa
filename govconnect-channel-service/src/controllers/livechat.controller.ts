@@ -197,8 +197,8 @@ export async function handleAdminSendMessage(req: Request, res: Response): Promi
         source: 'ADMIN',
       });
 
-      // Update conversation summary
-      await updateConversation(wa_user_id, message, undefined, false);
+      // Update conversation summary and reset unread count (admin has responded)
+      await updateConversation(wa_user_id, message, undefined, 'reset');
 
       logger.info('Admin sent webchat message', {
         wa_user_id,
@@ -231,8 +231,8 @@ export async function handleAdminSendMessage(req: Request, res: Response): Promi
           source: 'ADMIN',
         });
 
-        // Update conversation summary
-        await updateConversation(wa_user_id, message, undefined, false);
+        // Update conversation summary and reset unread count (admin has responded)
+        await updateConversation(wa_user_id, message, undefined, 'reset');
 
         logger.info('Admin sent WhatsApp message', {
           wa_user_id,

@@ -18,6 +18,16 @@ export async function getMessages(req: Request, res: Response): Promise<void> {
     const wa_user_id = req.query.wa_user_id as string;
     const limit = parseInt(req.query.limit as string) || 30;
 
+    // Validate wa_user_id
+    if (!wa_user_id) {
+      res.status(400).json({ 
+        error: 'wa_user_id query parameter is required',
+        messages: [],
+        total: 0,
+      });
+      return;
+    }
+
     const messages = await getMessageHistory(wa_user_id, limit);
 
     res.json({
@@ -158,11 +168,14 @@ export async function storeMessage(req: Request, res: Response): Promise<void> {
     
     // Update conversation
     const userName = metadata?.channel === 'webchat' ? `Web User ${wa_user_id.substring(4, 12)}` : undefined;
+    // For incoming messages: increment unread count
+    // For outgoing messages (AI/admin reply): reset unread count to 0 (message processed)
+    const unreadAction = direction === 'IN' ? true : 'reset';
     await updateConversation(
       wa_user_id,
       message_text.substring(0, 100),
       userName,
-      direction === 'IN' // incrementUnread only for incoming messages
+      unreadAction
     );
     
     logger.info('Message stored in database', { 

@@ -346,9 +346,8 @@ export async function startConsumingAIReply(): Promise<void> {
             }
           }
 
-          // Update conversation summary with AI response and mark as read (AI handled it)
-          await updateConversation(payload.wa_user_id, replyText, undefined, false);
-          await markConversationAsRead(payload.wa_user_id);
+          // Update conversation summary with AI response and reset unread count (AI handled it)
+          await updateConversation(payload.wa_user_id, replyText, undefined, 'reset');
           await clearAIStatus(payload.wa_user_id);
           
           // Mark messages as completed - handle both single and batched messages

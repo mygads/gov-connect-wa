@@ -47,45 +47,32 @@ interface ProcessingStatus {
   progress: number;
 }
 
-// Typing indicator component with optional status message
-function TypingIndicator({ status }: { status?: ProcessingStatus | null }) {
+// Typing indicator component - simple dots animation for all cases
+function TypingIndicator() {
   return (
     <div className="flex items-center gap-2 px-4 py-3">
       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-secondary to-primary flex items-center justify-center">
         <Bot className="w-4 h-4 text-white" />
       </div>
       <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-2.5">
-        {status?.message ? (
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground font-medium">{status.message}</p>
-            <div className="w-24 h-1 bg-muted-foreground/20 rounded-full overflow-hidden">
-              <motion.div 
-                className="h-full bg-secondary rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${status.progress}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-1">
-            <motion.span
-              className="w-2 h-2 bg-muted-foreground/50 rounded-full"
-              animate={{ y: [0, -4, 0] }}
-              transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
-            />
-            <motion.span
-              className="w-2 h-2 bg-muted-foreground/50 rounded-full"
-              animate={{ y: [0, -4, 0] }}
-              transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
-            />
-            <motion.span
-              className="w-2 h-2 bg-muted-foreground/50 rounded-full"
-              animate={{ y: [0, -4, 0] }}
-              transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
-            />
-          </div>
-        )}
+        {/* Tampilan sederhana - user tidak perlu tau AI atau admin yang balas */}
+        <div className="flex gap-1">
+          <motion.span
+            className="w-2 h-2 bg-muted-foreground/50 rounded-full"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+          />
+          <motion.span
+            className="w-2 h-2 bg-muted-foreground/50 rounded-full"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+          />
+          <motion.span
+            className="w-2 h-2 bg-muted-foreground/50 rounded-full"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -411,7 +398,7 @@ export function LiveChatWidget({ isDark }: { isDark?: boolean }) {
                   {messages.map((message) => (
                     <ChatBubble key={message.id} message={message} />
                   ))}
-                  {isTyping && <TypingIndicator status={processingStatus} />}
+                  {isTyping && <TypingIndicator />}
                   <div ref={messagesEndRef} />
                 </>
               )}

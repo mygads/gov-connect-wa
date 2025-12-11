@@ -558,24 +558,73 @@ function extractAddressFromMessage(currentMessage: string, userId: string): stri
 /**
  * Extract address from complaint message that contains both complaint and address
  * Example: "lampu mati di jalan sudirman no 10 bandung"
+ * Example: "banjir di depan sman 1 margahayu"
+ * 
+ * IMPROVED: Better detection for landmarks like schools, mosques, etc.
  */
 function extractAddressFromComplaintMessage(message: string, userId: string): string {
-  // Pattern: "di [alamat]" or "lokasi [alamat]" or after complaint keywords
-  const patterns = [
-    /(?:di|lokasi|alamat|tempat)\s+((?:jalan|jln|jl\.?)\s+[^,]+(?:no\.?\s*\d+)?(?:\s+\w+)?)/i,
-    /(?:di|lokasi|alamat|tempat)\s+(\w+(?:\s+\w+){1,5}(?:\s+(?:no\.?\s*\d+|rt\s*\d+|rw\s*\d+))?)/i,
-    // Match city names with preceding address
-    /(?:di|lokasi)\s+([\w\s]+(?:bandung|jakarta|surabaya|semarang|cimahi|margahayu))/i,
+  const lowerMessage = message.toLowerCase();
+  
+  // Pattern 1: "di depan/dekat/belakang/samping [landmark]"
+  // This catches: "di depan sman 1 margahayu", "di dekat masjid al-ikhlas"
+  const landmarkPatterns = [
+    /(?:di\s+)?(?:depan|dekat|belakang|samping|sekitar)\s+((?:sman?|smpn?|sdn?|smkn?|sd|smp|sma|smk)\s*\d*\s*\w+(?:\s+\w+)?)/i,
+    /(?:di\s+)?(?:depan|dekat|belakang|samping|sekitar)\s+(masjid\s+[\w\s]+)/i,
+    /(?:di\s+)?(?:depan|dekat|belakang|samping|sekitar)\s+(gereja\s+[\w\s]+)/i,
+    /(?:di\s+)?(?:depan|dekat|belakang|samping|sekitar)\s+(kantor\s+[\w\s]+)/i,
+    /(?:di\s+)?(?:depan|dekat|belakang|samping|sekitar)\s+(pasar\s+[\w\s]+)/i,
+    /(?:di\s+)?(?:depan|dekat|belakang|samping|sekitar)\s+(terminal\s+[\w\s]+)/i,
+    /(?:di\s+)?(?:depan|dekat|belakang|samping|sekitar)\s+(stasiun\s+[\w\s]+)/i,
+    /(?:di\s+)?(?:depan|dekat|belakang|samping|sekitar)\s+(puskesmas\s*[\w\s]*)/i,
+    /(?:di\s+)?(?:depan|dekat|belakang|samping|sekitar)\s+([\w\s]+(?:margahayu|bandung|cimahi|jakarta|surabaya|semarang))/i,
   ];
   
-  for (const pattern of patterns) {
+  for (const pattern of landmarkPatterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      // Include the preposition (depan/dekat/etc) for context
+      const fullMatch = message.match(new RegExp(`((?:depan|dekat|belakang|samping|sekitar)\\s+${match[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i'));
+      const alamat = fullMatch ? fullMatch[1].trim() : match[1].trim();
+      
+      if (alamat.length >= 5) {
+        logger.info('Smart alamat detection: landmark address extracted', { userId, detectedAlamat: alamat });
+        return alamat;
+      }
+    }
+  }
+  
+  // Pattern 2: "di [jalan/jln/jl] [nama jalan]"
+  const streetPatterns = [
+    /(?:di|lokasi|alamat|tempat)\s+((?:jalan|jln|jl\.?)\s+[^,]+(?:no\.?\s*\d+)?(?:\s+\w+)?)/i,
+  ];
+  
+  for (const pattern of streetPatterns) {
     const match = message.match(pattern);
     if (match && match[1]) {
       const alamat = match[1].trim();
-      // Validate: must be at least 10 chars and contain letters
       if (alamat.length >= 10 && /[a-zA-Z]/.test(alamat)) {
-        logger.info('Smart alamat detection: extracted from complaint message', { userId, detectedAlamat: alamat });
+        logger.info('Smart alamat detection: street address extracted', { userId, detectedAlamat: alamat });
         return alamat;
+      }
+    }
+  }
+  
+  // Pattern 3: Generic "di [location]" with city names
+  const cityPatterns = [
+    /(?:di|lokasi)\s+([\w\s]+(?:bandung|jakarta|surabaya|semarang|cimahi|margahayu))/i,
+  ];
+  
+  for (const pattern of cityPatterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      const alamat = match[1].trim();
+      // Filter out complaint keywords from the extracted address
+      const complaintKeywords = /menumpuk|tumpukan|rusak|berlubang|mati|padam|tersumbat|banjir|tumbang|roboh|sampah|limbah|genangan|menghalangi|macet|kendala/gi;
+      const cleanAlamat = alamat.replace(complaintKeywords, '').trim();
+      
+      if (cleanAlamat.length >= 5 && /[a-zA-Z]/.test(cleanAlamat)) {
+        logger.info('Smart alamat detection: city-based address extracted', { userId, detectedAlamat: cleanAlamat });
+        return cleanAlamat;
       }
     }
   }

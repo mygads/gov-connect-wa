@@ -71,11 +71,13 @@ export async function updateWebchatConversation(data: {
   session_id: string;
   last_message?: string;
   unread_count?: number;
+  resetUnread?: boolean;
 }): Promise<boolean> {
   // Conversation is automatically updated when messages are stored via /internal/messages
   // This function is now a no-op but kept for API compatibility
   logger.debug('Webchat conversation update (handled by message storage)', {
     session_id: data.session_id,
+    resetUnread: data.resetUnread,
   });
   return true;
 }
@@ -134,7 +136,7 @@ export async function getAdminMessages(session_id: string, since?: Date): Promis
       {
         params: {
           wa_user_id: session_id,
-          limit: 10,
+          limit: 20, // Increase limit to get more messages
         },
         headers: {
           'x-internal-api-key': INTERNAL_API_KEY,
@@ -143,15 +145,29 @@ export async function getAdminMessages(session_id: string, since?: Date): Promis
       }
     );
     
-    // Filter for admin messages only
+    // Filter for admin messages only (direction OUT and source ADMIN)
     const messages = response.data.messages || [];
+    const sinceTime = since ? since.getTime() : 0;
+    
     return messages
-      .filter((m: any) => m.source === 'ADMIN' && (!since || new Date(m.timestamp) > since))
+      .filter((m: any) => {
+        // Must be outgoing message from ADMIN
+        if (m.direction !== 'OUT' || m.source !== 'ADMIN') {
+          return false;
+        }
+        // Must be after 'since' timestamp if provided
+        if (since) {
+          const msgTime = new Date(m.timestamp).getTime();
+          return msgTime > sinceTime;
+        }
+        return true;
+      })
       .map((m: any) => ({
         message: m.message_text,
         admin_name: m.admin_name,
         timestamp: new Date(m.timestamp),
-      }));
+      }))
+      .sort((a: any, b: any) => a.timestamp.getTime() - b.timestamp.getTime()); // Sort oldest first
   } catch (error: any) {
     logger.warn('Failed to get admin messages', {
       session_id,

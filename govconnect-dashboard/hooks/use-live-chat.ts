@@ -83,9 +83,25 @@ export function useLiveChat() {
     
     // Also scroll after a short delay to handle any rendering delays
     const timeoutId = setTimeout(scrollToBottom, 100);
+    // Additional scroll after longer delay for initial load
+    const timeoutId2 = setTimeout(scrollToBottom, 300);
     
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(timeoutId2);
+    };
   }, [state.session?.messages, state.session?.messages?.length]);
+
+  // Auto scroll when chat is opened or maximized
+  useEffect(() => {
+    if (state.isOpen && !state.isMinimized && messagesEndRef.current) {
+      // Delay to ensure DOM is ready
+      const timeoutId = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      }, 150);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [state.isOpen, state.isMinimized]);
 
 
   // Initialize new session
@@ -334,10 +350,11 @@ export function useLiveChat() {
   const [isTakeover, setIsTakeover] = useState(false);
   const [adminName, setAdminName] = useState<string | null>(null);
   const lastPollRef = useRef<Date>(new Date());
+  const processedMessagesRef = useRef<Set<string>>(new Set());
 
-  // Poll for admin messages when takeover is active
+  // Poll for admin messages - always poll when session exists
   useEffect(() => {
-    if (!state.session?.sessionId || !state.isOpen) return;
+    if (!state.session?.sessionId) return;
 
     const pollInterval = setInterval(async () => {
       try {
@@ -355,30 +372,70 @@ export function useLiveChat() {
         
         // Add new admin messages
         if (data.messages && data.messages.length > 0) {
+          let hasNewMessages = false;
+          
           for (const msg of data.messages) {
-            // Check if message already exists
+            // Create unique key for message deduplication
+            const msgKey = `${msg.content}_${msg.timestamp}`;
+            
+            // Check if message already processed
+            if (processedMessagesRef.current.has(msgKey)) {
+              continue;
+            }
+            
+            // Check if message already exists in session
             const exists = state.session?.messages.some(
               m => m.role === 'assistant' && m.content === msg.content
             );
             
             if (!exists) {
-              addMessage({
-                content: msg.content,
-                role: 'assistant',
-                status: 'delivered',
+              processedMessagesRef.current.add(msgKey);
+              hasNewMessages = true;
+              
+              // Add message directly to state to avoid dependency issues
+              setState(prev => {
+                if (!prev.session) return prev;
+                
+                const newMessage: ChatMessage = {
+                  id: generateMessageId(),
+                  content: msg.content,
+                  role: 'assistant',
+                  timestamp: new Date(msg.timestamp),
+                  status: 'delivered',
+                };
+                
+                const updatedSession: ChatSession = {
+                  ...prev.session,
+                  messages: [...prev.session.messages, newMessage],
+                  lastActivity: new Date(),
+                };
+
+                // Increment unread if minimized
+                const unreadCount = prev.isMinimized 
+                  ? prev.unreadCount + 1 
+                  : prev.unreadCount;
+
+                return { ...prev, session: updatedSession, unreadCount };
               });
             }
           }
-          lastPollRef.current = new Date();
+          
+          if (hasNewMessages) {
+            lastPollRef.current = new Date();
+            // Force scroll to bottom after new messages
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 100);
+          }
         }
       } catch (error) {
         // Silently fail - polling is best effort
         console.debug('Poll error:', error);
       }
-    }, 3000); // Poll every 3 seconds
+    }, 2000); // Poll every 2 seconds for faster response
 
     return () => clearInterval(pollInterval);
-  }, [state.session?.sessionId, state.isOpen, state.session?.messages, addMessage]);
+  }, [state.session?.sessionId]);
 
   return {
     // State

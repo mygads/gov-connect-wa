@@ -143,31 +143,47 @@ export async function getActiveTakeovers(): Promise<TakeoverSession[]> {
 
 /**
  * Update or create conversation summary
+ * @param incrementUnread - true to increment unread count (for incoming messages)
+ *                         - false to keep current count (for outgoing messages)
+ *                         - 'reset' to reset unread count to 0 (when AI/admin replies)
  */
 export async function updateConversation(
   wa_user_id: string,
   last_message: string,
   user_name?: string,
-  incrementUnread: boolean = true
+  incrementUnread: boolean | 'reset' = true
 ): Promise<void> {
   try {
     const existingConv = await prisma.conversation.findUnique({
       where: { wa_user_id },
     });
 
+    // Determine new unread count
+    let newUnreadCount: number;
+    if (incrementUnread === 'reset') {
+      // Reset to 0 when AI/admin replies - message has been processed
+      newUnreadCount = 0;
+    } else if (incrementUnread === true) {
+      // Increment for incoming messages
+      newUnreadCount = (existingConv?.unread_count || 0) + 1;
+    } else {
+      // Keep current count
+      newUnreadCount = existingConv?.unread_count || 0;
+    }
+
     await prisma.conversation.upsert({
       where: { wa_user_id },
       update: {
         last_message: last_message.substring(0, 500),
         last_message_at: new Date(),
-        unread_count: incrementUnread ? (existingConv?.unread_count || 0) + 1 : existingConv?.unread_count || 0,
+        unread_count: newUnreadCount,
         user_name: user_name || existingConv?.user_name,
       },
       create: {
         wa_user_id,
         user_name,
         last_message: last_message.substring(0, 500),
-        unread_count: incrementUnread ? 1 : 0,
+        unread_count: incrementUnread === true ? 1 : 0,
       },
     });
   } catch (error: any) {
