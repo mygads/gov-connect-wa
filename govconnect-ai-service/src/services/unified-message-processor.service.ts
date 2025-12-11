@@ -65,6 +65,15 @@ import {
   buildAdaptationContext,
 } from './response-adapter.service';
 
+// Cross-channel context imports
+import {
+  linkUserToPhone,
+  recordChannelActivity,
+  updateSharedData,
+  getCrossChannelContextForLLM,
+  extractPhoneNumber,
+} from './cross-channel-context.service';
+
 // ==================== TYPES ====================
 
 export type ChannelType = 'whatsapp' | 'webchat' | 'telegram' | 'other';
@@ -1147,6 +1156,10 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
   const startTime = Date.now();
   const { userId, message, channel, conversationHistory, mediaUrl } = input;
   
+  // Import processing status tracker
+  const { createProcessingTracker } = await import('./processing-status.service');
+  const tracker = createProcessingTracker(userId);
+  
   logger.info('🎯 [UnifiedProcessor] Processing message', {
     userId,
     channel,
@@ -1156,6 +1169,9 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
   });
   
   try {
+    // Update status: reading message
+    tracker.reading();
+    
     // Step 1: Spam check
     if (isSpamMessage(message)) {
       logger.warn('🚫 [UnifiedProcessor] Spam detected', { userId, channel });
@@ -1219,6 +1235,16 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
     // Learn from message (extract NIK, phone, detect style)
     learnFromMessage(userId, message);
     
+    // Step 5.6: Cross-channel context
+    // Record activity and try to link phone number
+    recordChannelActivity(userId);
+    const phoneFromMessage = message.match(/\b(08\d{8,11}|628\d{8,12})\b/)?.[1];
+    if (phoneFromMessage) {
+      linkUserToPhone(userId, phoneFromMessage);
+      updateSharedData(userId, { name: undefined }); // Will be filled by profile
+    }
+    const crossChannelContext = getCrossChannelContextForLLM(userId);
+    
     // Record interaction for profile
     recordInteraction(userId, sentiment.score, optimization?.fastIntent?.intent);
     
@@ -1243,7 +1269,11 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
     }
     
     // Step 6: Pre-fetch RAG context if needed
+    // Update status: searching knowledge
+    tracker.searching();
+    
     let preloadedRAGContext: RAGContext | string | undefined;
+    let graphContext = '';
     const isGreeting = /^(halo|hai|hi|hello|selamat\s+(pagi|siang|sore|malam)|assalamualaikum|permisi)/i.test(sanitizedMessage.trim());
     const looksLikeQuestion = shouldRetrieveContext(sanitizedMessage);
     
@@ -1263,6 +1293,33 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
       }
     }
     
+    // Step 6.5: Get knowledge graph context for service-related queries
+    if (optimization?.fastIntent?.intent) {
+      try {
+        const { getGraphContext, findNodeByKeyword } = await import('./knowledge-graph.service');
+        
+        // Try to find relevant service code from message
+        const serviceCodeMatch = sanitizedMessage.match(/\b(SKD|SKTM|SKU|SPKTP|SPKK|SPSKCK|SPAKTA|IKR)\b/i);
+        if (serviceCodeMatch) {
+          graphContext = getGraphContext(serviceCodeMatch[1].toUpperCase());
+        } else {
+          // Try keyword matching
+          const keywords = ['domisili', 'tidak mampu', 'usaha', 'ktp', 'kk', 'skck', 'akta', 'keramaian'];
+          for (const kw of keywords) {
+            if (sanitizedMessage.toLowerCase().includes(kw)) {
+              const node = findNodeByKeyword(kw);
+              if (node) {
+                graphContext = getGraphContext(node.code);
+                break;
+              }
+            }
+          }
+        }
+      } catch (error: any) {
+        logger.warn('[UnifiedProcessor] Knowledge graph lookup failed', { error: error.message });
+      }
+    }
+    
     // Step 7: Build context
     let systemPrompt: string;
     let messageCount: number;
@@ -1277,13 +1334,15 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
       messageCount = contextResult.messageCount;
     }
     
-    // Inject language, sentiment, profile, and conversation context
+    // Inject language, sentiment, profile, conversation, graph, and cross-channel context
     const allContexts = [
       languageContext,
       sentimentContext,
       profileContext,
       conversationContextStr,
       adaptationContext,
+      graphContext,
+      crossChannelContext,
     ].filter(Boolean).join('\n');
     
     if (allContexts) {
@@ -1294,6 +1353,8 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
     }
     
     // Step 8: Call LLM
+    // Update status: thinking
+    tracker.thinking();
     const llmResult = await callGemini(systemPrompt);
     
     if (!llmResult) {
@@ -1318,6 +1379,9 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
       intent: llmResponse.intent,
       durationMs: metrics.durationMs,
     });
+    
+    // Update status: preparing response
+    tracker.preparing();
     
     // Step 9: Handle intent
     let finalReplyText = llmResponse.reply_text;
@@ -1393,6 +1457,9 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
     
     const processingTimeMs = Date.now() - startTime;
     
+    // Update status: complete
+    tracker.complete();
+    
     logger.info('✅ [UnifiedProcessor] Message processed', {
       userId,
       channel,
@@ -1414,14 +1481,14 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
         knowledgeConfidence: typeof preloadedRAGContext === 'object' ? preloadedRAGContext.confidence?.level : undefined,
         sentiment: sentiment.level !== 'neutral' ? sentiment.level : undefined,
         language: languageDetection.primary !== 'indonesian' ? languageDetection.primary : undefined,
-        // New metadata
-        adaptationsApplied: adaptedResult.adaptationsApplied.length > 0 ? adaptedResult.adaptationsApplied : undefined,
-        shouldOfferHumanHelp: adaptedResult.shouldOfferHumanHelp || undefined,
       },
     };
     
   } catch (error: any) {
     const processingTimeMs = Date.now() - startTime;
+    
+    // Update status: error
+    tracker.error(error.message);
     
     logger.error('❌ [UnifiedProcessor] Processing failed', {
       userId,
@@ -1446,7 +1513,7 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
     // Get smart fallback - tries to continue conversation flow if possible
     const fallbackResponse = errorType 
       ? getErrorFallback(errorType)
-      : getSmartFallback(userId, optimization?.fastIntent?.intent, message);
+      : getSmartFallback(userId, undefined, message);
     
     return {
       success: false,

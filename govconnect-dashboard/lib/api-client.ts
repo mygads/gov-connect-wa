@@ -447,6 +447,33 @@ export const livechat = {
   },
 
   /**
+   * Get AI processing status for a user
+   */
+  async getProcessingStatus(userId: string) {
+    return apiFetch(buildUrl(ServicePath.AI, `/api/status/${encodeURIComponent(userId)}`), {
+      headers: getHeaders(),
+    });
+  },
+
+  /**
+   * Get all active AI processing statuses
+   */
+  async getActiveProcessingStatuses() {
+    return apiFetch(buildUrl(ServicePath.AI, '/api/status/active'), {
+      headers: getHeaders(),
+    });
+  },
+
+  /**
+   * Get AI processing summary
+   */
+  async getProcessingSummary() {
+    return apiFetch(buildUrl(ServicePath.AI, '/api/status/summary'), {
+      headers: getHeaders(),
+    });
+  },
+
+  /**
    * Get conversation by wa_user_id
    */
   async getConversation(waUserId: string) {

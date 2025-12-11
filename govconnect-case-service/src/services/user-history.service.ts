@@ -52,7 +52,7 @@ export async function getUserHistory(wa_user_id: string): Promise<UserHistoryRes
         select: {
           id: true,
           reservation_id: true,
-          service_code: true,
+          service_id: true,
           reservation_date: true,
           reservation_time: true,
           queue_number: true,
@@ -62,6 +62,7 @@ export async function getUserHistory(wa_user_id: string): Promise<UserHistoryRes
           service: {
             select: {
               name: true,
+              code: true,
             },
           },
         },
@@ -161,13 +162,13 @@ function getKategoriLabel(kategori: string): string {
  * Get reservation description
  */
 function getReservationDescription(reservation: {
-  service_code: string;
+  service_id: string;
   reservation_date: Date;
   reservation_time: string;
   queue_number: number | null;
-  service?: { name: string } | null;
+  service?: { name: string; code: string } | null;
 }): string {
-  const serviceName = reservation.service?.name || getServiceLabel(reservation.service_code);
+  const serviceName = reservation.service?.name || getServiceLabel(reservation.service?.code || '');
   const dateStr = reservation.reservation_date.toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'short',

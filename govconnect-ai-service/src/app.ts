@@ -24,6 +24,7 @@ import knowledgeRoutes from './routes/knowledge.routes';
 import searchRoutes from './routes/search.routes';
 import uploadRoutes from './routes/upload.routes';
 import webchatRoutes from './routes/webchat.routes';
+import statusRoutes from './routes/status.routes';
 import { swaggerSpec } from './config/swagger';
 import axios from 'axios';
 import { config } from './config/env';
@@ -533,6 +534,7 @@ app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/webchat', webchatRoutes);
+app.use('/api/status', statusRoutes);
 
 app.get('/stats/embeddings', async (req: Request, res: Response) => {
   try {
@@ -722,6 +724,11 @@ app.get('/', (req: Request, res: Response) => {
       documentUpload: '/api/upload',
       // Web Chat API
       webchat: '/api/webchat',
+      // Processing Status API
+      processingStatus: '/api/status/:userId',
+      processingStatusSummary: '/api/status/summary',
+      processingStatusActive: '/api/status/active',
+      processingStatusStream: '/api/status/stream/:userId',
     },
   });
 });

@@ -53,6 +53,12 @@ interface Conversation {
   pending_message_id: string | null
 }
 
+interface ProcessingStatus {
+  stage: 'receiving' | 'reading' | 'searching' | 'thinking' | 'preparing' | 'sending' | 'completed' | 'error'
+  message: string
+  progress: number
+}
+
 interface Message {
   id: string
   message_text: string
@@ -86,6 +92,9 @@ export default function LiveChatPage() {
   const [takeoverReasonTemplate, setTakeoverReasonTemplate] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
   const [isRetryingAI, setIsRetryingAI] = useState(false)
+  
+  // Processing status state
+  const [processingStatuses, setProcessingStatuses] = useState<Record<string, ProcessingStatus>>({})
   
   // Takeover reason templates
   const takeoverReasonTemplates = [
@@ -195,6 +204,35 @@ export default function LiveChatPage() {
     setNewMessageCount(0)
     isNearBottomRef.current = true
   }, [selectedConversation?.wa_user_id])
+
+  // Fetch processing statuses for all active conversations
+  const fetchProcessingStatuses = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token")
+      const response = await fetch('/api/livechat/processing-status', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) return
+
+      const data = await response.json()
+      if (data.success && data.data?.statuses) {
+        const statusMap: Record<string, ProcessingStatus> = {}
+        for (const status of data.data.statuses) {
+          statusMap[status.userId] = {
+            stage: status.stage,
+            message: status.message,
+            progress: status.progress,
+          }
+        }
+        setProcessingStatuses(statusMap)
+      }
+    } catch (error) {
+      console.error("Error fetching processing statuses:", error)
+    }
+  }, [])
 
   // Fetch conversations silently (no loading state)
   const fetchConversationsSilent = useCallback(async () => {
@@ -307,17 +345,18 @@ export default function LiveChatPage() {
     // Start new polling
     pollingRef.current = setInterval(() => {
       fetchConversationsSilent()
+      fetchProcessingStatuses() // Also fetch processing statuses
       if (selectedConversationRef.current) {
         fetchMessagesSilent(selectedConversationRef.current.wa_user_id)
       }
-    }, 3000) // Poll every 3 seconds
+    }, 2000) // Poll every 2 seconds for more responsive status updates
 
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current)
       }
     }
-  }, [fetchConversationsSilent, fetchMessagesSilent])
+  }, [fetchConversationsSilent, fetchMessagesSilent, fetchProcessingStatuses])
 
   // Re-fetch when tab changes and close current conversation
   useEffect(() => {
@@ -766,12 +805,17 @@ export default function LiveChatPage() {
                               <Hand className="h-3 w-3 mr-1" />
                               Takeover
                             </Badge>
+                          ) : processingStatuses[conv.wa_user_id] && processingStatuses[conv.wa_user_id].stage !== 'completed' && processingStatuses[conv.wa_user_id].stage !== 'error' ? (
+                            <Badge variant="outline" className="text-blue-600 border-blue-300 text-xs py-0 animate-pulse">
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              {processingStatuses[conv.wa_user_id].message}
+                            </Badge>
                           ) : conv.ai_status === 'processing' ? (
                             <Badge variant="outline" className="text-blue-600 border-blue-300 text-xs py-0 animate-pulse">
                               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                               AI Memproses...
                             </Badge>
-                          ) : conv.ai_status === 'error' ? (
+                          ) : conv.ai_status === 'error' || processingStatuses[conv.wa_user_id]?.stage === 'error' ? (
                             <div className="flex items-center gap-1">
                               <Badge variant="outline" className="text-red-600 border-red-300 text-xs py-0">
                                 <AlertTriangle className="h-3 w-3 mr-1" />
@@ -947,6 +991,26 @@ export default function LiveChatPage() {
                   </button>
                 )}
               </div>
+
+              {/* AI Processing Status Indicator */}
+              {selectedConversation && processingStatuses[selectedConversation.wa_user_id] && 
+               processingStatuses[selectedConversation.wa_user_id].stage !== 'completed' && 
+               processingStatuses[selectedConversation.wa_user_id].stage !== 'error' && (
+                <div className="px-3 py-2 border-t bg-blue-50 dark:bg-blue-950 shrink-0">
+                  <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm font-medium">
+                      {processingStatuses[selectedConversation.wa_user_id].message}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 bg-blue-200 dark:bg-blue-800 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${processingStatuses[selectedConversation.wa_user_id].progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Message Input - Fixed at Bottom */}
               <div className="p-3 border-t bg-card shrink-0">

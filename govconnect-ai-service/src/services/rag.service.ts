@@ -20,6 +20,7 @@ import {
 } from '../types/embedding.types';
 import { generateEmbedding } from './embedding.service';
 import { searchVectors, recordBatchRetrievals } from './vector-db.service';
+import { hybridSearch, HybridSearchResult } from './hybrid-search.service';
 
 /**
  * Default RAG configuration
@@ -229,7 +230,8 @@ export async function retrieveContext(
     categories,
     sourceTypes = ['knowledge', 'document'],
     useQueryExpansion = true,  // Enable query expansion by default
-  } = options as VectorSearchOptions & { useQueryExpansion?: boolean };
+    useHybridSearch = true,    // Enable hybrid search by default
+  } = options as VectorSearchOptions & { useQueryExpansion?: boolean; useHybridSearch?: boolean };
 
   // Step 0: Check query intent - skip RAG for greetings/simple responses
   const queryIntent = classifyQueryIntent(query);
@@ -257,34 +259,68 @@ export async function retrieveContext(
     minScore: adjustedMinScore,
     categories,
     useQueryExpansion,
+    useHybridSearch,
   });
 
   try {
     // Step 1: Expand query with synonyms for better recall
     const expandedQuery = useQueryExpansion ? expandQuery(query) : query;
     
-    // Step 2: Generate embedding for the query
-    // Use RETRIEVAL_QUERY task type for queries (asymmetric search)
-    const queryEmbedding = await generateEmbedding(expandedQuery, {
-      taskType: 'RETRIEVAL_QUERY',
-      outputDimensionality: 768,
-      useCache: true, // Use embedding cache
-    });
-
-    // Step 3: Search for similar vectors
-    const searchResults = await searchVectors(queryEmbedding.values, {
-      topK: topK * 2, // Fetch more for re-ranking
-      minScore: adjustedMinScore * 0.8, // Lower threshold, will filter after re-ranking
-      categories,
-      sourceTypes,
-    });
-
-    if (searchResults.length === 0) {
-      logger.info('No relevant results found for query', {
+    let filteredResults: VectorSearchResult[];
+    
+    // Step 2-4: Use Hybrid Search (Vector + Keyword) or pure Vector search
+    if (useHybridSearch) {
+      // NEW: Hybrid search combines vector + keyword for better accuracy
+      const hybridResults = await hybridSearch(expandedQuery, {
+        topK,
+        minScore: adjustedMinScore,
+        categories,
+        sourceTypes,
+        useQueryExpansion: false, // Already expanded
+      });
+      
+      filteredResults = hybridResults;
+      
+      logger.debug('Hybrid search completed', {
         query: query.substring(0, 50),
-        expandedQuery: expandedQuery !== query ? expandedQuery.substring(0, 100) : undefined,
+        resultCount: hybridResults.length,
+        matchTypes: hybridResults.map(r => (r as HybridSearchResult).matchType),
+      });
+    } else {
+      // Fallback: Pure vector search
+      const queryEmbedding = await generateEmbedding(expandedQuery, {
+        taskType: 'RETRIEVAL_QUERY',
+        outputDimensionality: 768,
+        useCache: true,
       });
 
+      const searchResults = await searchVectors(queryEmbedding.values, {
+        topK: topK * 2,
+        minScore: adjustedMinScore * 0.8,
+        categories,
+        sourceTypes,
+      });
+
+      if (searchResults.length === 0) {
+        logger.info('No relevant results found for query', {
+          query: query.substring(0, 50),
+          expandedQuery: expandedQuery !== query ? expandedQuery.substring(0, 100) : undefined,
+        });
+
+        return {
+          relevantChunks: [],
+          contextString: '',
+          totalResults: 0,
+          searchTimeMs: Date.now() - startTime,
+        };
+      }
+
+      // Re-rank and filter
+      const rerankedResults = rerankResults(searchResults, query, topK);
+      filteredResults = rerankedResults.filter(r => r.score >= adjustedMinScore);
+    }
+
+    if (filteredResults.length === 0) {
       return {
         relevantChunks: [],
         contextString: '',
@@ -293,14 +329,7 @@ export async function retrieveContext(
       };
     }
 
-    // Step 4: Re-rank results using RRF (Reciprocal Rank Fusion)
-    const rerankedResults = rerankResults(searchResults, query, topK);
-
-    // Step 5: Filter by minimum score
-    // Quality scoring is now handled in vector-db.service via quality_score column
-    const filteredResults = rerankedResults.filter(r => r.score >= adjustedMinScore);
-
-    // Step 6: Record retrievals for analytics (fire and forget)
+    // Step 5: Record retrievals for analytics (fire and forget)
     const knowledgeIds = filteredResults
       .filter(r => r.sourceType === 'knowledge')
       .map(r => r.id);
@@ -308,10 +337,10 @@ export async function retrieveContext(
       recordBatchRetrievals(knowledgeIds).catch(() => {});
     }
 
-    // Step 8: Build context string for LLM
+    // Step 6: Build context string for LLM
     const contextString = buildContextString(filteredResults);
 
-    // Step 9: Calculate confidence score
+    // Step 7: Calculate confidence score
     const confidence = calculateConfidence(filteredResults, query);
 
     const endTime = Date.now();
@@ -320,6 +349,7 @@ export async function retrieveContext(
       query: query.substring(0, 50),
       intent: queryIntent,
       expanded: expandedQuery !== query,
+      hybrid: useHybridSearch,
       totalResults: filteredResults.length,
       topScore: filteredResults[0]?.score.toFixed(4),
       confidence: confidence.level,

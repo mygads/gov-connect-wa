@@ -15,10 +15,17 @@ import logger from '../utils/logger';
 import { publishEvent, isConnected as isRabbitConnected } from './rabbitmq.service';
 import { rabbitmqConfig } from '../config/rabbitmq';
 import { getPendingMessagesForUser, markMessagesAsProcessing } from './pending-message.service';
+import { 
+  calculateAdaptiveDelay, 
+  recordMessage as recordAdaptiveMessage,
+  isLikelyStillTyping,
+  getUserStats,
+} from './adaptive-batcher.service';
 
 // Configuration
-const BATCH_DELAY_MS = parseInt(process.env.MESSAGE_BATCH_DELAY_MS || '3000', 10); // 3 seconds default
+const DEFAULT_BATCH_DELAY_MS = parseInt(process.env.MESSAGE_BATCH_DELAY_MS || '3000', 10); // 3 seconds default
 const MAX_BATCH_SIZE = parseInt(process.env.MAX_BATCH_SIZE || '10', 10); // Max messages per batch
+const USE_ADAPTIVE_BATCHING = process.env.USE_ADAPTIVE_BATCHING !== 'false'; // Enable by default
 
 interface BatchedMessage {
   message_id: string;
@@ -55,11 +62,31 @@ export function addMessageToBatch(
     media_url?: string;
     media_public_url?: string;
   }
-): { isNewBatch: boolean; batchSize: number } {
+): { isNewBatch: boolean; batchSize: number; adaptiveDelayMs?: number } {
   const now = Date.now();
   
   let batch = userBatches.get(wa_user_id);
   let isNewBatch = false;
+  
+  // Calculate adaptive delay based on user typing patterns
+  let batchDelayMs = DEFAULT_BATCH_DELAY_MS;
+  
+  if (USE_ADAPTIVE_BATCHING) {
+    batchDelayMs = calculateAdaptiveDelay(wa_user_id, message_text.length);
+    
+    // Record message for future adaptive calculations
+    recordAdaptiveMessage(wa_user_id, message_text.length);
+    
+    // Check if user is likely still typing
+    if (batch && isLikelyStillTyping(wa_user_id, message_text.length, now - batch.first_message_at)) {
+      // Extend delay slightly if user seems to be typing more
+      batchDelayMs = Math.min(batchDelayMs + 500, 5000);
+      logger.debug('⌨️ User likely still typing, extending delay', {
+        wa_user_id,
+        extendedDelayMs: batchDelayMs,
+      });
+    }
+  }
   
   if (!batch) {
     // Create new batch
@@ -75,7 +102,8 @@ export function addMessageToBatch(
     logger.info('📦 New message batch started', {
       wa_user_id,
       message_id,
-      batch_delay_ms: BATCH_DELAY_MS,
+      batch_delay_ms: batchDelayMs,
+      adaptive: USE_ADAPTIVE_BATCHING,
     });
   }
   
@@ -106,22 +134,23 @@ export function addMessageToBatch(
       batch_size: batch.messages.length,
     });
     processBatch(wa_user_id);
-    return { isNewBatch, batchSize: 0 }; // Batch was processed
+    return { isNewBatch, batchSize: 0, adaptiveDelayMs: batchDelayMs }; // Batch was processed
   }
   
-  // Set new timer
+  // Set new timer with adaptive delay
   batch.timer = setTimeout(() => {
     processBatch(wa_user_id);
-  }, BATCH_DELAY_MS);
+  }, batchDelayMs);
   
   logger.info('📨 Message added to batch', {
     wa_user_id,
     message_id,
     batch_size: batch.messages.length,
-    waiting_ms: BATCH_DELAY_MS,
+    waiting_ms: batchDelayMs,
+    adaptive: USE_ADAPTIVE_BATCHING,
   });
   
-  return { isNewBatch, batchSize: batch.messages.length };
+  return { isNewBatch, batchSize: batch.messages.length, adaptiveDelayMs: batchDelayMs };
 }
 
 /**
