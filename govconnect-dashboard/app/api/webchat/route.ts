@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { API_BASE_URL, ServicePath, INTERNAL_API_KEY } from '@/lib/api-client';
+import { buildUrl, ServicePath, INTERNAL_API_KEY } from '@/lib/api-client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Call AI Service webchat endpoint
-    const aiServiceUrl = `${API_BASE_URL}${ServicePath.AI}/api/webchat`;
+    const aiServiceUrl = buildUrl(ServicePath.AI, '/api/webchat');
     
     const aiResponse = await fetch(aiServiceUrl, {
       method: 'POST',

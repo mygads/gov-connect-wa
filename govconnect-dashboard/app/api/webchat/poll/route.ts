@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { API_BASE_URL, ServicePath, INTERNAL_API_KEY } from '@/lib/api-client';
+import { buildUrl, ServicePath, INTERNAL_API_KEY } from '@/lib/api-client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Call AI Service webchat poll endpoint
-    const pollUrl = new URL(`${API_BASE_URL}${ServicePath.AI}/api/webchat/${sessionId}/poll`);
+    const baseUrl = buildUrl(ServicePath.AI, `/api/webchat/${sessionId}/poll`);
+    const pollUrl = new URL(baseUrl);
     if (since) {
       pollUrl.searchParams.set('since', since);
     }
