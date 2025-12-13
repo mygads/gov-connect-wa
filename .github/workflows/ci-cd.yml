@@ -336,15 +336,34 @@ jobs:
             # Login to GHCR
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Pull all images
-            docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-dashboard:latest || true
-            docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-channel-service:latest || true
-            docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-ai-service:latest || true
-            docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-case-service:latest || true
-            docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-notification-service:latest || true
+            # Pull all images first (parallel)
+            docker compose -f docker-compose.prod.yml pull
             
-            # Restart services with new images (zero-downtime)
-            docker compose up -d --force-recreate
+            # Stop old containers gracefully
+            docker compose -f docker-compose.prod.yml down --remove-orphans || true
+            
+            # Start services sequentially to avoid memory spike
+            echo "Starting channel-service..."
+            docker compose -f docker-compose.prod.yml up -d channel-service
+            sleep 10
+            
+            echo "Starting case-service..."
+            docker compose -f docker-compose.prod.yml up -d case-service
+            sleep 5
+            
+            echo "Starting notification-service..."
+            docker compose -f docker-compose.prod.yml up -d notification-service
+            sleep 5
+            
+            echo "Starting ai-service..."
+            docker compose -f docker-compose.prod.yml up -d ai-service
+            sleep 10
+            
+            echo "Starting dashboard..."
+            docker compose -f docker-compose.prod.yml up -d dashboard
+            
+            # Cleanup old images
+            docker image prune -f
             
             echo "✅ Deployment complete!"
           ENDSSH
@@ -375,8 +394,14 @@ jobs:
             # Check Notification Service
             curl -sf http://localhost:3004/health && echo "✅ Notification OK" || echo "❌ Notification FAILED"
             
-            # Show container status
-            docker ps | grep govconnect
+            # Show container status and memory usage
+            echo ""
+            echo "Container Status:"
+            docker compose -f docker-compose.prod.yml ps
+            
+            echo ""
+            echo "Memory Usage:"
+            docker stats --no-stream --format "table {{.Name}}\t{{.MemUsage}}" | grep govconnect
           ENDSSH
 
       - name: Generate summary
