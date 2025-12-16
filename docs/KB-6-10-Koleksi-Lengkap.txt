@@ -1,519 +1,514 @@
-# KNOWLEDGE BASE SISTEM CHATBOT PELAYANAN PUBLIK
-## Dokumen 6-10: KOLEKSI LENGKAP (Surat Admin, Kelurahan, Reservasi, Keluhan, FAQ)
+# KNOWLEDGE BASE - KOLEKSI LENGKAP LAYANAN
+## Dokumen 6-10: Surat Administratif, Layanan Kelurahan, Reservasi, Pengaduan, FAQ
 
 ---
 
-## DOKUMEN 6: SOP SURAT-SURAT ADMINISTRATIF LAINNYA
+## SECTION 1: SURAT KETERANGAN DOMISILI (SKD)
 
-### A. SURAT KETERANGAN DOMISILI (SKD)
+### Definisi SKD
+Surat Keterangan Domisili adalah surat resmi dari kelurahan yang menyatakan seseorang bertempat tinggal di alamat tertentu.
 
-**Untuk Apa**: Bukti alamat tempat tinggal resmi  
-**Kebutuhan**: Pembukaan rekening bank, lamaran kerja, daftar sekolah, dll
+### Kegunaan SKD
+- Pembukaan rekening bank
+- Melamar pekerjaan
+- Mendaftar sekolah/kuliah
+- Mengurus BPJS/asuransi
+- Keperluan administrasi lainnya
 
-**Persyaratan**:
-- KTP (asli & fotokopi)
-- KK (fotokopi)
-- Surat pengantar RT/RW
-- Bukti sewa/milik rumah
+### Syarat SKD
+1. KTP asli dan fotokopi (2 lembar)
+2. Kartu Keluarga asli dan fotokopi
+3. Surat Pengantar dari RT/RW
+4. Pas foto 3x4 (2 lembar)
+5. Bukti tempat tinggal (sertifikat/surat sewa)
 
-**Proses**: Ambil di kelurahan langsung jadi (1-2 jam)  
-**Biaya**: GRATIS  
-**Berlaku**: Selamanya (sampai pindah)
+### Prosedur SKD
+1. Minta surat pengantar dari RT/RW
+2. Datang ke kelurahan dengan dokumen lengkap
+3. Isi formulir permohonan
+4. Tunggu verifikasi (15-30 menit)
+5. Ambil SKD yang sudah jadi
 
----
-
-### B. SURAT KETERANGAN TIDAK ADA TUNGGAKAN (SKAT)
-
-**Untuk Apa**: Bukti tidak punya hutang retribusi/iuran ke kelurahan  
-**Kebutuhan**: Saat akan pindah, melamar pekerjaan, membuat KTP baru
-
-**Persyaratan**: KTP (fotokopi)  
-**Proses**: Langsung jadi saat datang ke kelurahan  
-**Biaya**: GRATIS  
-**Berlaku**: Saat itu juga (untuk pindah harus yang terbaru)
-
----
-
-### C. SURAT KETERANGAN PINDAH DARI KEDUTAAN (SKPLN)
-
-**Untuk Apa**: Untuk penduduk Indonesia yang pindah dari luar negeri  
-**Kebutuhan**: Registrasi ulang di Indonesia
-
-**Persyaratan**:
-- Paspor RI (asli & fotokopi)
-- Surat dari Kedutaan/Konsulat
-- Akta Kelahiran
-- Surat keterangan pindah dari negara asal
-
-**Proses**: 5-7 hari kerja  
-**Biaya**: GRATIS  
-**Tempat**: Disdukcapil Kota Bandung
+### Biaya: GRATIS
+### Waktu: 1-2 jam (langsung jadi)
+### Berlaku: Selama masih berdomisili di alamat tersebut
 
 ---
 
-### D. SURAT KETERANGAN BELUM MENIKAH (SKBM)
+## SECTION 2: SURAT KETERANGAN TIDAK MAMPU (SKTM)
 
-**Untuk Apa**: Bukti status belum menikah untuk lamaran kerja/visa, dll  
-**Kebutuhan**: Saat melamar kerja internasional, visa, dll
+### Definisi SKTM
+Surat Keterangan Tidak Mampu adalah surat dari kelurahan yang menyatakan seseorang/keluarga termasuk kategori kurang mampu secara ekonomi.
 
-**Persyaratan**:
-- KTP (asli & fotokopi)
-- KK (fotokopi)
-- Akta Kelahiran atau Akta Perkawinan (jika pernah menikah)
+### Kegunaan SKTM
+- Keringanan biaya pendidikan (SPP, UKT)
+- Beasiswa pendidikan
+- Keringanan biaya rumah sakit
+- Bantuan sosial pemerintah
+- Program KIP dan KIS
 
-**Proses**: Langsung jadi saat datang ke kelurahan  
-**Biaya**: Rp 30.000 - 50.000 (mungkin berbeda per daerah)  
-**Berlaku**: 6 bulan
+### Syarat SKTM
+1. KTP asli dan fotokopi
+2. Kartu Keluarga asli dan fotokopi
+3. Surat Pengantar dari RT/RW (dengan keterangan kondisi ekonomi)
+4. Pas foto 3x4 (2 lembar)
+5. Surat pernyataan tidak mampu bermaterai
 
----
+### Prosedur SKTM
+1. Minta surat pengantar dari RT/RW
+2. Isi surat pernyataan tidak mampu
+3. Datang ke kelurahan dengan dokumen lengkap
+4. Tunggu verifikasi (petugas mungkin survey ke rumah)
+5. Ambil SKTM yang sudah jadi
 
-### E. SURAT KETERANGAN PENGHASILAN (SKP)
+### Biaya: GRATIS
+### Waktu: 1-3 hari kerja
+### Berlaku: 6 bulan
 
-**Untuk Apa**: Bukti penghasilan untuk pinjaman bank, visa, lamaran kerja  
-**Kebutuhan**: Cicilan rumah, pinjaman bank, visa luar negeri
-
-**Persyaratan**:
-- Surat pernyataan dari pemohon
-- KTP (fotokopi)
-- KK (fotokopi)
-- Bukti penghasilan (kwitansi, laporan usaha, slip gaji, dll)
-
-**Proses**: 1-3 hari kerja  
-**Biaya**: Rp 50.000 - 100.000 (atau gratis tergantung kebijakan lokal)  
-**Berlaku**: 6 bulan
-
----
-
-### F. SURAT KETERANGAN CERAI
-
-**Untuk Apa**: Bukti resmi perceraian sebelum ada Akta Perceraian  
-**Kebutuhan**: Menikah lagi, pengurusan warisan, dll
-
-**Persyaratan**:
-- Putusan Pengadilan (yang sudah tetap)
-- Bukti cerai dari Pengadilan
-- KTP + fotokopi
-- Buku Nikah lama
-
-**Proses**: Disdukcapil akan terbitkan Akta Cerai resmi  
-**Biaya**: GRATIS  
-**Berlaku**: Selamanya
+### Catatan Penting SKTM
+- Hanya untuk warga yang benar-benar tidak mampu
+- Penyalahgunaan dapat dikenakan sanksi
+- Petugas berhak melakukan verifikasi lapangan
 
 ---
 
-### G. SURAT KETERANGAN PERUBAHAN NAMA
+## SECTION 3: SURAT KETERANGAN USAHA (SKU)
 
-**Untuk Apa**: Surat transisi sebelum KTP baru dengan nama baru  
-**Kebutuhan**: Untuk keperluan administrasi dengan nama baru
+### Definisi SKU
+Surat Keterangan Usaha adalah surat dari kelurahan yang menyatakan seseorang memiliki usaha di wilayah kelurahan tersebut.
 
-**Persyaratan**:
-- Putusan Pengadilan Perubahan Nama
-- KTP lama (asli & fotokopi)
-- Surat pernyataan
+### Kegunaan SKU
+- Pengajuan pinjaman bank/koperasi
+- Pendaftaran BPJS Ketenagakerjaan
+- Mengurus NIB/IUMK
+- Keperluan administrasi usaha
 
-**Proses**: Disdukcapil terbitkan Akta Perubahan Nama  
-**Biaya**: GRATIS  
-**Berlaku**: Sampai KTP-el baru dibuat
+### Syarat SKU
+1. KTP asli dan fotokopi
+2. Kartu Keluarga fotokopi
+3. Surat Pengantar dari RT/RW
+4. Pas foto 3x4 (2 lembar)
+5. Foto tempat usaha
+6. Surat pernyataan memiliki usaha
 
----
+### Prosedur SKU
+1. Minta surat pengantar dari RT/RW
+2. Siapkan foto tempat usaha
+3. Datang ke kelurahan dengan dokumen lengkap
+4. Isi formulir permohonan
+5. Tunggu verifikasi (mungkin survey lokasi)
+6. Ambil SKU yang sudah jadi
 
-## DOKUMEN 7: SOP LAYANAN DI TINGKAT KECAMATAN & KELURAHAN
-
-### A. LAYANAN DI KELURAHAN
-
-**Layanan yang Tersedia**:
-1. Surat Keterangan Domisili (SKD)
-2. Surat Pindah Antar Kelurahan
-3. Perubahan Alamat/Data Penduduk
-4. Pencatatan Penduduk Baru
-5. Surat Pengantar untuk keperluan di Disdukcapil
-6. Surat Keterangan Tidak Ada Tunggakan
-7. SKPTI (untuk orang terlantar)
-8. Legalisir/Fotokopi sah dokumen
-
-**Jam Operasional Kelurahan**: Senin-Jumat 08:00-16:00 WIB (istirahat 12:00-13:00)
-
-**Biaya**: Semua GRATIS
+### Biaya: GRATIS
+### Waktu: 1-3 hari kerja
+### Berlaku: 1 tahun
 
 ---
 
-### B. LAYANAN DI KECAMATAN
+## SECTION 4: SURAT KETERANGAN BELUM MENIKAH (SKBM)
 
-**UPTD Disdukcapil Kecamatan Menyediakan**:
-1. Penerbitan Kartu Keluarga (KK)
-2. Penerbitan Kartu Tanda Penduduk Elektronik (KTP-el)
-3. Penerbitan Kartu Identitas Anak (KIA)
-4. Pencatatan Biodata Penduduk
-5. Surat Pengantar untuk Pencatatan Sipil
-6. Konsultasi administrasi kependudukan
+### Definisi SKBM
+Surat Keterangan Belum Menikah adalah surat dari kelurahan yang menyatakan seseorang belum pernah menikah atau saat ini berstatus belum menikah.
 
-**Jam Operasional**: Senin-Sabtu 08:00-16:00 WIB (Sabtu sampai 12:00)
+### Kegunaan SKBM
+- Melamar pekerjaan (terutama perusahaan asing)
+- Pengajuan visa ke luar negeri
+- Pendaftaran CPNS/TNI/Polri
+- Keperluan administrasi pernikahan
 
----
+### Syarat SKBM
+1. KTP asli dan fotokopi
+2. Kartu Keluarga asli dan fotokopi
+3. Surat Pengantar dari RT/RW
+4. Pas foto 3x4 (2 lembar)
+5. Akta Kelahiran fotokopi
 
-### C. STRUKTUR ORGANISASI KELURAHAN
+### Prosedur SKBM
+1. Minta surat pengantar dari RT/RW
+2. Datang ke kelurahan dengan dokumen lengkap
+3. Isi formulir permohonan
+4. Tunggu verifikasi
+5. Ambil SKBM yang sudah jadi
 
-```
-┌─ LURAH (Kepala Kelurahan)
-│  │
-│  ├─ SEKRETARIS KELURAHAN (TU Kel)
-│  │  └─ Menangani Administrasi Kelurahan
-│  │
-│  ├─ KASI PEMERINTAHAN
-│  │  └─ Menangani pendaftaran penduduk
-│  │
-│  ├─ KASI PEMBERDAYAAN MASYARAKAT
-│  │
-│  └─ KASI KESEJAHTERAAN SOSIAL
-│
-└─ PETUGAS REGISTRASI/TU KELURAHAN
-   └─ Menangani penerbitan surat & pencatatan data
-```
-
-**Orang yang Harus Dihubungi**:
-- **Untuk Surat Domisili & Pindah**: Petugas Registrasi Kelurahan
-- **Untuk Permohonan Umum**: Sekretaris Kelurahan
-- **Untuk Keluhan/Pengaduan**: Lurah
+### Biaya: Rp 30.000 - Rp 50.000 (tergantung daerah, beberapa GRATIS)
+### Waktu: 1-2 jam (langsung jadi)
+### Berlaku: 6 bulan
 
 ---
 
-## DOKUMEN 8: SISTEM RESERVASI & BOOKING ANTRIAN ONLINE
+## SECTION 5: SURAT KETERANGAN KEMATIAN (SKK)
 
-### A. RESERVASI ONLINE LAYANAN
+### Definisi SKK
+Surat Keterangan Kematian adalah surat dari kelurahan yang menyatakan seseorang telah meninggal dunia.
 
-**Layanan yang Bisa Direservasi**:
-- Pengurusan KTP-el
-- Pengurusan KK
-- Pengurusan KIA
-- Pengurusan Akta Kelahiran (untuk yang terlambat)
-- Perubahan data
-- Surat Pengantar
+### Kegunaan SKK
+- Pengurusan Akta Kematian di Disdukcapil
+- Klaim asuransi jiwa
+- Pengurusan warisan
+- Pencairan tabungan/deposito almarhum
+- Pengurusan pensiun
 
-**Platform Reservasi**:
-- Portal Bandung: portal.bandung.go.id
-- Aplikasi Mobile: Download "Bandung Kota Pintar"
-- Whatsapp: Chat ke nomor resmi Disdukcapil
+### Syarat SKK
+1. Surat keterangan kematian dari RS/Dokter/Bidan
+2. KTP almarhum asli
+3. Kartu Keluarga asli
+4. KTP pelapor (keluarga)
+5. Surat Pengantar dari RT/RW
 
-### B. CARA RESERVASI ONLINE
+### Prosedur SKK
+1. Dapatkan surat keterangan kematian dari RS/Dokter
+2. Minta surat pengantar dari RT/RW
+3. Datang ke kelurahan dengan dokumen lengkap
+4. Isi formulir permohonan
+5. Tunggu verifikasi
+6. Ambil SKK yang sudah jadi
 
-```
-LANGKAH 1: BUKA PORTAL BANDUNG
-├─ Kunjungi: portal.bandung.go.id
-├─ Atau buka aplikasi "Bandung Kota Pintar"
-└─ Cari menu "Reservasi Pelayanan"
+### Biaya: GRATIS
+### Waktu: 1-2 jam (langsung jadi)
 
-LANGKAH 2: PILIH LOKASI & LAYANAN
-├─ Pilih UPTD Disdukcapil atau Kelurahan
-├─ Pilih jenis layanan yang diinginkan
-├─ Pilih hari & tanggal (bisa dipilih 1-30 hari ke depan)
-└─ Pilih jam kunjungan
+### Catatan Penting SKK
+- Laporkan kematian dalam 30 hari
+- SKK diperlukan untuk mengurus Akta Kematian
+- Simpan SKK untuk keperluan administrasi
 
-LANGKAH 3: ISI DATA PRIBADI
-├─ Nama lengkap
-├─ NIK/KTP
-├─ Nomor telepon
-├─ Email
-└─ Rincian kebutuhan
-
-LANGKAH 4: KONFIRMASI RESERVASI
-├─ Review data yang sudah diisi
-├─ Pastikan tanggal & waktu sudah benar
-├─ Klik "KONFIRMASI RESERVASI"
-└─ Tunggu notifikasi konfirmasi
-
-LANGKAH 5: TERIMA NOTIFIKASI
-├─ Anda akan dapat SMS/WhatsApp konfirmasi
-├─ Catat nomor antrian yang diberikan
-├─ Screenshot bukti reservasi
-└─ Bersiaplah sesuai jadwal
-
-LANGKAH 6: DATANG TEPAT WAKTU
-├─ Datang 15 menit sebelum jadwal
-├─ Bawa dokumen yang dibutuhkan
-├─ Bawa bukti reservasi (print atau screenshot)
-├─ Tunjukkan ke petugas informasi
-└─ Tunggu dipanggil sesuai nomor antrian
-```
-
-### C. KEUNTUNGAN RESERVASI ONLINE
-
-✅ Hemat waktu antri (tidak perlu datang pagi-pagi)  
-✅ Tahu jadwal pasti kunjungan  
-✅ Tidak perlu ambil nomor urut di kantor  
-✅ Prioritas dibanding yang tidak reservasi  
-✅ Bisa pilih hari yang cocok  
-✅ Gratis
 
 ---
 
-## DOKUMEN 9: SOP PENANGANAN PENGADUAN & KELUHAN
+## SECTION 6: IZIN KERAMAIAN (IKR)
 
-### A. HAK MENGADUKAN LAYANAN
+### Definisi Izin Keramaian
+Izin Keramaian adalah surat izin resmi untuk mengadakan acara atau kegiatan yang melibatkan banyak orang.
 
-Anda berhak mengadukan jika:
-- Petugas tidak ramah/kasar/diskriminatif
+### Acara yang Memerlukan Izin Keramaian
+- Resepsi pernikahan
+- Acara ulang tahun besar
+- Pengajian/acara keagamaan
+- Acara komunitas/organisasi
+- Konser atau pertunjukan
+- Bazar atau pasar malam
+
+### Syarat Izin Keramaian
+1. KTP penanggungjawab acara (asli dan fotokopi)
+2. Surat Pengantar dari RT/RW
+3. Proposal acara (nama, tanggal, waktu, lokasi, jumlah tamu)
+4. Surat pernyataan kesanggupan menjaga ketertiban
+5. Denah lokasi acara
+6. Daftar panitia/penanggungjawab
+
+### Prosedur Izin Keramaian
+1. Siapkan proposal acara lengkap
+2. Minta surat pengantar dari RT/RW
+3. Datang ke kelurahan minimal 7 hari sebelum acara
+4. Isi formulir permohonan
+5. Tunggu persetujuan Lurah
+6. Ambil surat izin keramaian
+
+### Biaya: GRATIS
+### Waktu: 3-5 hari kerja
+
+### Catatan Penting Izin Keramaian
+- Ajukan minimal 7 hari sebelum acara
+- Acara besar (>500 orang) perlu izin tambahan dari Polsek
+- Batas waktu keramaian biasanya sampai jam 22:00
+- Jaga ketertiban dan kebersihan selama acara
+
+---
+
+## SECTION 7: SURAT PENGANTAR KTP (SPKTP)
+
+### Definisi SPKTP
+Surat Pengantar KTP adalah surat dari kelurahan untuk mengurus pembuatan atau perpanjangan KTP-el di Disdukcapil.
+
+### Kegunaan SPKTP
+- Pembuatan KTP-el baru (usia 17 tahun)
+- Perpanjangan KTP-el
+- Penggantian KTP-el hilang/rusak
+- Perubahan data KTP-el
+
+### Syarat SPKTP
+1. Kartu Keluarga asli dan fotokopi
+2. Surat Pengantar dari RT/RW
+3. Pas foto 3x4 latar merah (4 lembar)
+4. KTP lama (jika perpanjangan/penggantian)
+5. Surat keterangan hilang dari Polisi (jika KTP hilang)
+
+### Prosedur SPKTP
+1. Minta surat pengantar dari RT/RW
+2. Datang ke kelurahan dengan dokumen lengkap
+3. Isi formulir permohonan
+4. Tunggu proses (15-30 menit)
+5. Ambil surat pengantar KTP
+6. Lanjutkan ke Disdukcapil/UPTD Kecamatan
+
+### Biaya: GRATIS
+### Waktu: 1-2 jam (langsung jadi)
+
+---
+
+## SECTION 8: SURAT PENGANTAR KARTU KELUARGA (SPKK)
+
+### Definisi SPKK
+Surat Pengantar KK adalah surat dari kelurahan untuk mengurus pembuatan atau perubahan Kartu Keluarga di Disdukcapil.
+
+### Kegunaan SPKK
+- Pembuatan KK baru (keluarga baru)
+- Perubahan data KK (tambah/kurang anggota)
+- Penggantian KK hilang/rusak
+- Pecah KK (pisah dari KK orang tua)
+
+### Syarat SPKK
+1. KK lama asli dan fotokopi (jika ada)
+2. KTP semua anggota keluarga (fotokopi)
+3. Surat Pengantar dari RT/RW
+4. Akta Nikah (untuk KK baru)
+5. Akta Kelahiran anak (jika tambah anggota)
+6. Akta Kematian (jika ada anggota meninggal)
+
+### Prosedur SPKK
+1. Minta surat pengantar dari RT/RW
+2. Datang ke kelurahan dengan dokumen lengkap
+3. Isi formulir permohonan
+4. Tunggu proses verifikasi
+5. Ambil surat pengantar KK
+6. Lanjutkan ke Disdukcapil
+
+### Biaya: GRATIS
+### Waktu: 1-2 jam (langsung jadi)
+
+---
+
+## SECTION 9: SURAT PENGANTAR SKCK (SPSKCK)
+
+### Definisi SPSKCK
+Surat Pengantar SKCK adalah surat dari kelurahan untuk mengurus SKCK (Surat Keterangan Catatan Kepolisian) di Polsek/Polres.
+
+### Kegunaan SPSKCK
+- Syarat wajib membuat SKCK
+- Melamar pekerjaan
+- Pendaftaran CPNS/TNI/Polri
+- Pengajuan visa
+- Keperluan administrasi lainnya
+
+### Syarat SPSKCK
+1. KTP asli dan fotokopi (3 lembar)
+2. Kartu Keluarga fotokopi
+3. Surat Pengantar dari RT/RW
+4. Pas foto 4x6 latar merah (6 lembar)
+5. Akta Kelahiran fotokopi
+
+### Prosedur SPSKCK
+1. Minta surat pengantar dari RT/RW
+2. Datang ke kelurahan dengan dokumen lengkap
+3. Isi formulir permohonan
+4. Tunggu proses (15-30 menit)
+5. Ambil surat pengantar SKCK
+6. Lanjutkan ke Polsek/Polres untuk membuat SKCK
+
+### Biaya: GRATIS di kelurahan, Rp 30.000 di kepolisian
+### Waktu: 1-2 jam (langsung jadi)
+
+---
+
+## SECTION 10: SURAT PENGANTAR AKTA (SPAKTA)
+
+### Definisi SPAKTA
+Surat Pengantar Akta adalah surat dari kelurahan untuk mengurus Akta Kelahiran atau Akta Kematian di Disdukcapil.
+
+### Kegunaan SPAKTA
+- Pembuatan Akta Kelahiran
+- Pembuatan Akta Kematian
+- Perubahan data Akta
+
+### Syarat SPAKTA untuk Akta Kelahiran
+1. Surat keterangan lahir dari RS/Bidan
+2. KTP kedua orang tua (fotokopi)
+3. KK orang tua (fotokopi)
+4. Akta Nikah orang tua (fotokopi)
+5. Surat Pengantar dari RT/RW
+
+### Syarat SPAKTA untuk Akta Kematian
+1. Surat keterangan kematian dari RS/Dokter
+2. KTP almarhum (fotokopi)
+3. KK (fotokopi)
+4. Surat Pengantar dari RT/RW
+
+### Biaya: GRATIS
+### Waktu: 1-2 jam (langsung jadi)
+
+---
+
+## SECTION 11: SURAT PENGANTAR PINDAH (SPP)
+
+### Definisi SPP
+Surat Pengantar Pindah adalah surat dari kelurahan asal untuk warga yang akan pindah domisili ke alamat baru.
+
+### Kegunaan SPP
+- Pindah antar kelurahan
+- Pindah antar kecamatan
+- Pindah antar kota/kabupaten
+- Pindah antar provinsi
+
+### Syarat SPP
+1. KK asli dan fotokopi
+2. KTP semua anggota keluarga yang pindah (fotokopi)
+3. Surat Pengantar dari RT/RW
+4. Surat keterangan tidak ada tunggakan dari RT/RW
+5. Alasan pindah
+
+### Prosedur SPP
+1. Minta surat pengantar dari RT/RW
+2. Minta surat keterangan bebas tunggakan
+3. Datang ke kelurahan dengan dokumen lengkap
+4. Isi formulir permohonan pindah
+5. Tunggu proses verifikasi
+6. Ambil surat pengantar pindah
+7. Lanjutkan ke Disdukcapil untuk Surat Pindah resmi
+
+### Biaya: GRATIS
+### Waktu: 1-2 hari kerja
+
+
+---
+
+## SECTION 12: SISTEM RESERVASI ONLINE
+
+### Apa itu Reservasi Online?
+Reservasi online adalah layanan booking jadwal kedatangan ke kantor kelurahan melalui WhatsApp atau aplikasi, sehingga tidak perlu antri lama.
+
+### Layanan yang Bisa Direservasi
+- Surat Keterangan Domisili (SKD)
+- Surat Keterangan Tidak Mampu (SKTM)
+- Surat Keterangan Usaha (SKU)
+- Surat Keterangan Belum Menikah (SKBM)
+- Izin Keramaian (IKR)
+- Surat Pengantar KTP, KK, SKCK, Akta, Pindah
+
+### Cara Reservasi Online
+1. Chat ke nomor WhatsApp kelurahan
+2. Sebutkan jenis layanan yang dibutuhkan
+3. Berikan data diri (nama, NIK, alamat, no HP)
+4. Pilih tanggal dan jam kedatangan
+5. Tunggu konfirmasi nomor reservasi
+
+### Keuntungan Reservasi Online
+- Tidak perlu antri lama
+- Jadwal kedatangan pasti
+- Dokumen bisa disiapkan lebih awal
+- Prioritas dibanding yang tidak reservasi
+- Gratis
+
+### Catatan Penting Reservasi
+- Reservasi hanya untuk booking jadwal
+- Tetap harus datang ke kelurahan
+- Berkas TIDAK BISA dikirim via WhatsApp
+- Bawa dokumen lengkap saat datang
+- Datang 15 menit sebelum jadwal
+
+### Cara Cek Status Reservasi
+1. Simpan nomor reservasi (contoh: RSV-20251213-001)
+2. Tanyakan status via WhatsApp
+3. Atau datang ke kelurahan dengan nomor reservasi
+
+### Cara Batalkan/Ubah Reservasi
+1. Hubungi via WhatsApp
+2. Sebutkan nomor reservasi
+3. Sampaikan alasan pembatalan/perubahan
+4. Tunggu konfirmasi
+
+---
+
+## SECTION 13: PROSEDUR PENGADUAN LAYANAN
+
+### Hak Mengadukan Layanan
+Masyarakat berhak mengadukan jika:
+- Petugas tidak ramah/kasar
 - Layanan terlambat dari jadwal
 - Dokumen yang diterbitkan ada kesalahan
 - Petugas minta uang tambahan (KORUPSI)
-- Persyaratan yang diberikan tidak sesuai regulasi
+- Persyaratan tidak sesuai regulasi
 - Ada perlakuan tidak adil
 
-### B. CARA MENGADUKAN
+### Cara Mengadukan
 
-**Opsi 1: Pengaduan Langsung di Kantor**
-```
-1. Minta Formulir Pengaduan ke loket informasi
-2. Isi dengan jelas:
-   - Nama pengadu & nomor HP
-   - Tanggal kejadian
-   - Petugas yang terlibat (jika tahu namanya)
-   - Kronologi kejadian (apa yang terjadi)
-   - Bukti kejadian (foto, bukti pembayaran, dll)
-3. Tandatangani formulir
-4. Serahkan ke bagian Pengaduan/Kepala Kantor
-5. Dapatkan bukti terima pengaduan dengan nomor referensi
-6. Catat nomor referensi untuk follow-up
-```
+**Opsi 1: Langsung di Kantor**
+1. Minta formulir pengaduan di loket
+2. Isi dengan jelas (nama, tanggal, kronologi)
+3. Serahkan ke bagian pengaduan
+4. Dapatkan nomor referensi pengaduan
 
 **Opsi 2: Telepon/WhatsApp**
-```
-1. Hubungi Disdukcapil: (022) XXXX-XXXX
+1. Hubungi nomor kelurahan
 2. Jelaskan masalah dengan detail
 3. Minta nomor referensi pengaduan
-4. Catat untuk follow-up
-5. Biasanya direspon dalam 24 jam
-```
 
 **Opsi 3: Email**
-```
-Kirim email ke: pengaduan@disdukcapil.bandung.go.id
+1. Kirim email ke alamat kelurahan
+2. Subjek: "PENGADUAN PELAYANAN"
+3. Isi: Nama, tanggal kejadian, kronologi, bukti
 
-Subjek: "PENGADUAN PELAYANAN DISDUKCAPIL"
+**Opsi 4: Ombudsman**
+Untuk pengaduan berat yang tidak ditanggapi:
+- Website: ombudsman.go.id
+- Telepon: (021) 2351-3737
 
-Isi:
-- Nama lengkap & nomor HP
-- Tanggal kejadian
-- Lokasi layanan (Kantor pusat/Kecamatan mana)
-- Nama petugas (jika tahu)
-- Deskripsi masalah (detail & jelas)
-- Bukti (screenshot, foto, scan dokumen)
-- Yang diinginkan (solusi apa yang diharapkan)
-```
+### Batas Waktu Penyelesaian Pengaduan
+- Maksimal 30 hari sejak pengaduan diterima
+- Pengaduan mendesak dapat dipercepat
 
-**Opsi 4: Media Sosial**
-```
-Mention atau DM:
-- Instagram: @disdukcapilbdg
-- Twitter: @disdukcapilbdg
-- Facebook: Disdukcapil Kota Bandung
-
-Isi pesan:
-- Deskripsi masalah
-- Tanggal & lokasi
-- Bukti (foto/screenshot)
-- Tag petugas jika perlu
-```
-
-**Opsi 5: Ombudsman Jawa Barat** (Untuk pengaduan berat)
-```
-Alamat: Jl. Lombok No. 96, Bandung
-Telepon: (022) 4265-100
-Email: ombudsman.jabarprov@ombudsman.go.id
-Website: ombudsman.go.id
-```
-
-### C. BATAS WAKTU PENYELESAIAN
-
-- **Pengaduan Umum**: Maksimal **30 hari** sejak diterima
-- **Pengaduan Mendesak**: Dapat dipercepat
-- **Status Pengaduan**: Bisa dipantau via email atau portal
-
-### D. HASIL/RESPONS YANG BISA DIHARAPKAN
-
-1. **Verifikasi** - Tim mengecek kebenaran pengaduan (3-5 hari)
-2. **Investigasi** - Wawancara petugas yang terlibat (1-2 minggu)
-3. **Rekomendasi** - Tim memberikan solusi/tindakan (1-2 minggu)
-4. **Keputusan** - Pengadu diinformasikan hasil akhir
-5. **Tindakan Lanjutan** - Jika perlu, petugas diberi teguran/hukuman, atau layanan diperbaiki
+### Status Pengaduan
+- DITERIMA: Pengaduan sudah masuk
+- DIVERIFIKASI: Sedang dicek kebenarannya
+- DIPROSES: Sedang ditangani
+- SELESAI: Sudah ada solusi
+- DITOLAK: Tidak valid/bukan wewenang
 
 ---
 
-## DOKUMEN 10: FAQ DATASET UNTUK CHATBOT AI
+## SECTION 14: INFORMASI JAM OPERASIONAL
 
-### **KATEGORI: ADMINISTRASI KEPENDUDUKAN**
+### Jam Buka Kantor Kelurahan
+- Senin - Jumat: 08:00 - 15:00 WIB
+- Sabtu: 08:00 - 12:00 WIB
+- Minggu & Hari Libur: TUTUP
+- Jam Istirahat: 12:00 - 13:00 WIB
 
-**Q1: Berapa umur minimum untuk membuat KTP-el?**
-A: 17 tahun atau sudah menikah. Jika belum, bisa membuat Kartu Identitas Anak (KIA).
+### Waktu Terbaik Berkunjung
+- Pagi hari: 08:00 - 10:00 WIB (paling sepi)
+- Hindari: Senin pagi (biasanya ramai)
+- Hindari: Jumat siang (ada kegiatan keagamaan)
+- Hindari: Mendekati jam istirahat
 
-**Q2: Apa bedanya KTP-el dengan KIA?**
-A: KTP-el untuk usia 17+ tahun, berlaku 30 tahun. KIA untuk anak <17 tahun, berlaku sampai 6/12/17 tahun sesuai usia saat membuat.
-
-**Q3: Berapa lama proses penerbitan KTP-el?**
-A: 5-7 hari kerja jika dokumen lengkap. Bisa lebih cepat jika menggunakan layanan priority di Geulis (2-3 hari).
-
-**Q4: Apakah KTP lama masih berlaku setelah membuat KTP-el baru?**
-A: Ya, sampai masa berlakunya habis. Tapi sebaiknya gunakan KTP-el karena lebih aman & punya chip.
-
-**Q5: Apa itu NIK?**
-A: Nomor Induk Kependudukan, identitas unik setiap penduduk Indonesia. Berlaku seumur hidup, tidak akan berubah.
-
-**Q6: Bagaimana jika saya belum memiliki NIK?**
-A: Daftar ke Disdukcapil untuk pencatatan biodata penduduk. Setelah terdaftar, Anda akan diberi NIK.
+### Hari Libur Nasional
+Kelurahan tutup pada semua hari libur nasional.
 
 ---
 
-### **KATEGORI: SURAT-SURAT & PINDAH**
+## SECTION 15: FAQ UMUM LAYANAN KELURAHAN
 
-**Q7: Apa bedanya Surat Pindah dengan Surat Keterangan Pindah?**
-A: Sama. Kedua nama itu mengacu ke dokumen yang sama - bukti resmi Anda pindah dari satu alamat ke alamat lain.
+### Pertanyaan: Dokumen apa yang harus dibawa ke kelurahan?
+Jawaban: Dokumen dasar yang selalu diperlukan: KTP asli dan fotokopi, Kartu Keluarga fotokopi, Surat Pengantar dari RT/RW. Dokumen tambahan tergantung jenis layanan.
 
-**Q8: Berapa lama berlaku Surat Pindah?**
-A: Surat Pindah berlaku selamanya sebagai bukti resmi. Tapi untuk keperluan registrasi di alamat baru, proses harus selesai dalam 30 hari.
+### Pertanyaan: Apakah semua layanan di kelurahan gratis?
+Jawaban: Sebagian besar GRATIS. Beberapa layanan seperti SKBM mungkin berbayar (Rp 30.000-50.000) tergantung kebijakan daerah.
 
-**Q9: Bagaimana jika saya sudah pindah tapi lupa lapor?**
-A: Segera lapor ke Kelurahan baru. Tidak masalah walaupun terlambat, tapi proses verifikasi mungkin lebih ketat.
+### Pertanyaan: Berapa lama proses pembuatan surat?
+Jawaban: Surat yang langsung jadi (1-2 jam): SKD, SKBM, Surat Pengantar. Surat yang perlu verifikasi (1-3 hari): SKTM, SKU, SKK.
 
-**Q10: Apakah gratis untuk membuat Surat Pindah?**
-A: Ya, semua gratis. Jika diminta biaya, itu tidak sesuai prosedur.
+### Pertanyaan: Boleh diwakilkan orang lain?
+Jawaban: Bisa, dengan surat kuasa bermaterai dan fotokopi KTP pemberi kuasa serta KTP asli penerima kuasa.
 
-**Q11: Apakah Surat Pindah hanya untuk dalam kota atau bisa antar provinsi?**
-A: Bisa. Ada Surat Pindah Antar Kelurahan, Antar Kecamatan, Antar Daerah, dan bahkan keluar negeri.
+### Pertanyaan: Bagaimana jika KTP hilang?
+Jawaban: Buat laporan kehilangan di Polsek, lalu urus penggantian di Disdukcapil dengan membawa surat keterangan hilang.
 
----
+### Pertanyaan: Apakah bisa mengurus surat tanpa surat pengantar RT/RW?
+Jawaban: Tidak bisa. Surat pengantar RT/RW adalah syarat wajib untuk semua layanan di kelurahan.
 
-### **KATEGORI: PENCATATAN SIPIL**
-
-**Q12: Apa itu Akta Kelahiran?**
-A: Dokumen resmi yang membuktikan seseorang telah dilahirkan, berisi nama, tempat, tanggal lahir, nama orang tua.
-
-**Q13: Berapa lama harus pendaftaran kelahiran?**
-A: Maksimal 30 hari sejak lahir (gratis). Jika >30 hari, masih bisa tapi perlu verifikasi (gratis sampai 3 tahun, >3 tahun perlu pengadilan).
-
-**Q14: Apa jika anak saya sudah berumur 10 tahun tapi belum punya Akta Kelahiran?**
-A: Bisa, langsung daftar ke Disdukcapil. Minta surat keterangan dari rumah sakit/bidan/RT yang tahu waktu kelahiran anak Anda.
-
-**Q15: Berapa biaya pembuatan Akta Kelahiran?**
-A: Gratis jika dalam 30 hari. Gratis juga untuk pengajuan >30 hari tapi <3 tahun.
-
-**Q16: Apa itu Akta Perkawinan?**
-A: Dokumen resmi pencatatan perkawinan yang berisi nama suami-istri, tanggal perkawinan, tempat, nama orang tua.
-
-**Q17: Bagaimana jika perkawinan kami belum tercatat tapi sudah punya anak?**
-A: Anak bisa dicatat atas nama ibu dulu. Setelah orang tua menikah & melapor, bisa dilakukan Pengakuan Anak agar nama ayah tercantum.
-
-**Q18: Apa itu Akta Kematian?**
-A: Dokumen resmi yang membuktikan seseorang telah meninggal, berisi nama, TTL, hari meninggal, penyebab mati.
-
-**Q19: Apakah Akta Kematian penting untuk pengurusan waris?**
-A: Ya, sangat penting. Untuk pengurusan waris, pembagian warisan, dan banyak keperluan administrasi lainnya.
+### Pertanyaan: Bagaimana cara mendapat surat pengantar RT/RW?
+Jawaban: Hubungi Ketua RT atau RW di lingkungan Anda, sampaikan keperluan, bawa fotokopi KTP dan KK. Biasanya gratis atau iuran sukarela.
 
 ---
 
-### **KATEGORI: PERIZINAN USAHA**
-
-**Q20: Apa itu NIB?**
-A: Nomor Induk Berusaha, identitas resmi usaha Anda. Diberikan gratis & berlaku selamanya.
-
-**Q21: Bagaimana cara membuat NIB?**
-A: Melalui portal OSS (oss.go.id). Daftar akun, upload dokumen (KTP, KK, surat pernyataan), tunggu 1 hari kerja, download NIB digital.
-
-**Q22: Apakah harus membuat NIB sebelum usaha?**
-A: Tidak wajib, tapi sangat disarankan. NIB adalah legalitas usaha Anda.
-
-**Q23: Apa bedanya IUMK, SIUP, dan TDP?**
-A: IUMK untuk UMKM omset <Rp 4,8M. SIUP untuk usaha perdagangan. TDP untuk PT/CV/Koperasi. Semuanya diperoleh via OSS.
-
-**Q24: Berapa lama proses SIUP?**
-A: 1-3 hari kerja jika dokumen lengkap. Petugas mungkin survey ke lokasi usaha, maka butuh waktu.
-
-**Q25: Berapa biaya SIUP?**
-A: Tergantung jenis SIUP:
-- SIUP Kecil (omset <Rp 50M): Rp 100.000
-- SIUP Menengah (Rp 50-500M): Rp 250.000
-- SIUP Besar (>Rp 500M): Rp 500.000
-
-**Q26: Apakah izin digital OSS sudah sah?**
-A: Ya, izin digital OSS sudah sah & legal. Tidak perlu dicetak, tapi bisa jika diperlukan bukti fisik.
-
-**Q27: Berapa lama berlaku SIUP/IUMK/TDP?**
-A: 5 tahun. Harus diperpanjang sebelum habis.
-
-**Q28: Bagaimana jika saya lupa perpanjang izin?**
-A: Usaha Anda tidak legal. Segera perpanjang. Bisa ada denda/teguran dari Dinas.
-
----
-
-### **KATEGORI: SURAT ADMINISTRATIF**
-
-**Q29: Apa itu Surat Keterangan Domisili?**
-A: Surat yang membuktikan Anda tinggal/berdomisili di suatu alamat. Digunakan untuk membuka rekening bank, lamaran kerja, dll.
-
-**Q30: Apa itu Surat Belum Menikah?**
-A: Surat yang membuktikan Anda belum pernah menikah/belum menikah saat ini. Digunakan untuk lamaran kerja international, visa, dll.
-
-**Q31: Berapa lama berlaku Surat Belum Menikah?**
-A: 6 bulan. Setelah itu harus buat baru jika masih dibutuhkan.
-
-**Q32: Apa itu Surat Keterangan Penghasilan (SKP)?**
-A: Surat yang membuktikan penghasilan Anda per bulan/tahun. Untuk pinjaman bank, visa, lamaran kerja.
-
-**Q33: Apakah petugas kelurahan bisa membuat Surat Penghasilan jika saya pengusaha?**
-A: Ya, tapi harus ada bukti penghasilan (laporan usaha, kwitansi penjualan, atau pernyataan dari pembeli). Petugas akan mengestimasi penghasilan berdasarkan bukti.
-
----
-
-### **KATEGORI: KELUHAN & MASALAH**
-
-**Q34: Bagaimana jika dokumen saya hilang atau dicuri?**
-A: Lapor ke Polisi untuk membuat Surat Keterangan Hilang. Baru kemudian datang ke Disdukcapil untuk membuat pengganti dokumen (KTP, KK, dll).
-
-**Q35: Apakah bisa membuat KTP baru jika yang lama masih berlaku?**
-A: Bisa, jika ada alasan (ganti nama, perubahan data, dll). Jika hanya ingin update alamat, bisa perubahan data saja tanpa buat KTP baru.
-
-**Q36: Apa yang harus dilakukan jika ada kejanggalan di dokumen saya?**
-A: Lapor ke Disdukcapil/Kelurahan dengan membawa bukti. Minta koreksi data. Petugas akan proses perubahan/perbaikan.
-
-**Q37: Bagaimana jika petugas tidak ramah atau kasar?**
-A: Anda punya hak mengadukan. Hubungi nomor pengaduan Disdukcapil atau Ombudsman Jawa Barat.
-
-**Q38: Berapa lama pengaduan diproses?**
-A: Maksimal 30 hari sejak pengaduan diterima. Tim akan investigasi & memberikan solusi.
-
----
-
-### **KATEGORI: INFORMASI UMUM**
-
-**Q39: Berapa jam operasional Disdukcapil?**
-A: Senin-Jumat 08:00-16:00 WIB (istirahat 12:00-13:00). Sabtu 08:00-12:00. Minggu & libur tutup.
-
-**Q40: Bagaimana cara menghubungi Disdukcapil jika ada pertanyaan?**
-A: Telepon: (022) XXXX-XXXX, Email: disdukcapil@bandung.go.id, atau datang langsung ke kantor.
-
-**Q41: Apakah ada layanan online untuk Disdukcapil?**
-A: Ya, portal online bandung.go.id untuk reservasi, pengajuan online, tracking status.
-
-**Q42: Apakah ada layanan express/prioritas?**
-A: Ya, di Geulis (Gerai Layanan Istimewa) di mall/DPRD. Waktu lebih cepat (2-3 hari) tapi mungkin ada biaya tambahan.
-
-**Q43: Apakah semua layanan gratis?**
-A: Sebagian besar gratis (penerbitan KK, KTP-el, KIA, surat domisili, dll). Ada beberapa layanan yang berbayar (surat belum menikah, penghasilan, kutipan akta lebih dari 2 lembar, dll).
-
-**Q44: Bagaimana jika saya tidak bisa datang sendiri?**
-A: Bisa minta orang lain datang dengan surat kuasa dari Anda + fotokopi identitas kedua pihak.
-
-**Q45: Berapa lama dokumen yang saya ajukan tersimpan di Disdukcapil?**
-A: Dokumen asli disimpan selamanya. Jika Anda butuh minta kutipan, bisa kapan saja (Anda bayar untuk kutipan tambahan >2 lembar).
-
----
-
-**CATATAN PENTING UNTUK TRAINING CHATBOT**:
-- FAQ ini bisa digunakan untuk training dataset chatbot
-- Setiap Q&A harus di-tag dengan kategori agar mudah routing
-- Gunakan bahasa yang simpel & mudah dipahami
-- Jika ada pertanyaan yang tidak terjawab, arahkan user ke kontak resmi Disdukcapil
-
----
-
-**Document Version**: 1.0  
-**Last Updated**: Desember 2025  
+**Document Version**: 2.0
+**Last Updated**: Desember 2025
 **Status**: Valid & Aktif untuk RAG AI Training
+**Chunk Strategy**: Setiap SECTION adalah 1 chunk terpisah

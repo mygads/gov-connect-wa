@@ -70,13 +70,16 @@ export async function searchKnowledge(query: string, categories?: string[]): Pro
 
 /**
  * Search knowledge base using RAG (semantic search with embeddings)
+ * 
+ * NOTE: minScore tuned to 0.55 for better recall with Indonesian language
+ * Higher scores (0.65+) were too strict and missed relevant results
  */
 async function searchKnowledgeWithRAG(query: string, categories?: string[]): Promise<KnowledgeSearchResult> {
   const inferredCategories = categories || inferCategories(query);
   
   const ragContext = await retrieveContext(query, {
     topK: 5,
-    minScore: 0.65,
+    minScore: 0.55, // Lowered from 0.65 for better recall with Indonesian queries
     categories: inferredCategories.length > 0 ? inferredCategories : undefined,
     sourceTypes: ['knowledge', 'document'], // Search both knowledge and documents
   });
@@ -166,13 +169,15 @@ export async function getAllKnowledge(): Promise<KnowledgeItem[]> {
 /**
  * Get RAG context directly for a query
  * Use this when you need the full RAG context object
+ * 
+ * NOTE: minScore tuned to 0.55 for better recall with Indonesian language
  */
 export async function getRAGContext(query: string, categories?: string[]): Promise<RAGContext> {
   const inferredCategories = categories || inferCategories(query);
   
   return retrieveContext(query, {
     topK: 5,
-    minScore: 0.65,
+    minScore: 0.55, // Lowered from 0.65 for better recall with Indonesian queries
     categories: inferredCategories.length > 0 ? inferredCategories : undefined,
     sourceTypes: ['knowledge', 'document'],
   });
