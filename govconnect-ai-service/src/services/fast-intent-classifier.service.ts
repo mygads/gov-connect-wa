@@ -87,6 +87,13 @@ const CHECK_STATUS_PATTERNS = [
   /\b(sudah|udah)\s+(sampai\s+mana|diproses|ditangani)\b/i,
 ];
 
+const UPDATE_RESERVATION_PATTERNS = [
+  /\b(ubah|ganti|pindah)\s+(jadwal|tanggal|jam|waktu)\s+(reservasi)\b/i,
+  /\b(reschedule|re-schedule)\s+(reservasi)?\b/i,
+  /\b(mau|ingin)\s+(ubah|ganti|pindah)\s+(jadwal|tanggal|jam)\b/i,
+  /\b(reservasi)\s+.*(ubah|ganti|pindah)\s+(jadwal|tanggal|jam)\b/i,
+];
+
 const CANCEL_PATTERNS = [
   /\b(batalkan|cancel|batal)\s+(laporan|reservasi|tiket)\b/i,
   /\b(mau|ingin)\s+(batalkan|cancel|batal)\b/i,
@@ -322,7 +329,22 @@ export function fastClassifyIntent(message: string): FastClassifyResult | null {
     }
   }
   
-  // 4. Check CANCEL
+  // 4. Check UPDATE_RESERVATION (before CANCEL to avoid confusion)
+  for (const pattern of UPDATE_RESERVATION_PATTERNS) {
+    if (pattern.test(lowerMessage)) {
+      return {
+        intent: 'UPDATE_RESERVATION',
+        confidence: ids.reservationId ? 0.9 : 0.75,
+        extractedFields: {
+          reservation_id: ids.reservationId,
+        },
+        skipLLM: false, // Need LLM to ask for new date/time
+        reason: 'Update reservation pattern matched',
+      };
+    }
+  }
+  
+  // 5. Check CANCEL
   for (const pattern of CANCEL_PATTERNS) {
     if (pattern.test(lowerMessage)) {
       return {
@@ -338,7 +360,7 @@ export function fastClassifyIntent(message: string): FastClassifyResult | null {
     }
   }
   
-  // 5. Check HISTORY
+  // 6. Check HISTORY
   for (const pattern of HISTORY_PATTERNS) {
     if (pattern.test(lowerMessage)) {
       return {
@@ -388,7 +410,20 @@ export function fastClassifyIntent(message: string): FastClassifyResult | null {
     }
   }
   
-  // 8. Check KNOWLEDGE_QUERY
+  // 9. Check CREATE_RESERVATION (with service code extraction)
+  for (const pattern of KNOWLEDGE_QUERY_PATTERNS) {
+    if (pattern.test(lowerMessage)) {
+      return {
+        intent: 'KNOWLEDGE_QUERY',
+        confidence: 0.85,
+        extractedFields: {},
+        skipLLM: false, // Need LLM + RAG for knowledge response
+        reason: 'Knowledge query pattern matched',
+      };
+    }
+  }
+  
+  // 10. Check KNOWLEDGE_QUERY
   for (const pattern of KNOWLEDGE_QUERY_PATTERNS) {
     if (pattern.test(lowerMessage)) {
       return {

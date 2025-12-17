@@ -144,13 +144,26 @@ export async function processTwoLayerMessage(event: MessageReceivedEvent): Promi
     // Step 1: Start typing indicator
     await startTyping(wa_user_id);
     
-    // Step 2: LAYER 1 - Intent & Understanding
+    // Step 2: PRE-EXTRACTION - Extract entities before Layer 1
+    logger.info('🔍 Pre-extracting entities', { wa_user_id });
+    const conversationHistory = await getConversationHistory(wa_user_id);
+    const { extractAllEntities } = await import('./entity-extractor.service');
+    const preExtractedEntities = extractAllEntities(sanitizedMessage, conversationHistory);
+    
+    logger.debug('Pre-extraction completed', {
+      wa_user_id,
+      extractedCount: preExtractedEntities.extractedCount,
+      confidence: preExtractedEntities.confidence,
+    });
+    
+    // Step 3: LAYER 1 - Intent & Understanding (with pre-extracted data)
     logger.info('🔍 Starting Layer 1 - Intent & Understanding', { wa_user_id });
     
     const layer1Input = {
       message: sanitizedMessage,
       wa_user_id,
-      conversation_history: await getConversationHistory(wa_user_id),
+      conversation_history: conversationHistory,
+      pre_extracted_data: preExtractedEntities.entities,
     };
     
     const layer1Output = await callLayer1LLM(layer1Input);
@@ -169,10 +182,10 @@ export async function processTwoLayerMessage(event: MessageReceivedEvent): Promi
       needsClarification: layer1Output.needs_clarification.length,
     });
     
-    // Step 3: Data validation and enhancement
+    // Step 4: Data validation and enhancement
     const enhancedLayer1Output = await enhanceLayer1Output(layer1Output, wa_user_id);
     
-    // Step 4: LAYER 2 - Response Generation
+    // Step 5: LAYER 2 - Response Generation
     logger.info('💬 Starting Layer 2 - Response Generation', { wa_user_id });
     
     const layer2Input = {
@@ -197,10 +210,10 @@ export async function processTwoLayerMessage(event: MessageReceivedEvent): Promi
       confidence: layer2Output.confidence,
     });
     
-    // Step 5: Stop typing indicator
+    // Step 6: Stop typing indicator
     await stopTyping(wa_user_id);
     
-    // Step 6: Handle actions based on intent
+    // Step 7: Handle actions based on intent
     let finalReplyText = layer2Output.reply_text;
     let guidanceText = layer2Output.guidance_text || '';
     
@@ -215,13 +228,13 @@ export async function processTwoLayerMessage(event: MessageReceivedEvent): Promi
       );
     }
     
-    // Step 7: Validate and sanitize final response
+    // Step 8: Validate and sanitize final response
     finalReplyText = validateResponse(finalReplyText);
     if (guidanceText) {
       guidanceText = validateResponse(guidanceText);
     }
     
-    // Step 8: Record analytics
+    // Step 9: Record analytics
     const processingDurationMs = Date.now() - startTime;
     aiAnalyticsService.recordIntent(
       wa_user_id,
@@ -232,7 +245,7 @@ export async function processTwoLayerMessage(event: MessageReceivedEvent): Promi
       'two-layer-architecture'
     );
     
-    // Step 9: Publish AI reply
+    // Step 10: Publish AI reply
     await publishAIReply({
       wa_user_id,
       reply_text: finalReplyText,
