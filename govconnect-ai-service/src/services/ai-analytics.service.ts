@@ -222,7 +222,7 @@ class AIAnalyticsService {
   }
 
   /**
-   * Record an intent classification
+   * Record an intent classification oke
    */
   recordIntent(
     wa_user_id: string,
