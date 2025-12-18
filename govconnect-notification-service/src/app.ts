@@ -22,7 +22,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Prometheus Metrics endpoint
-app.get('/metrics', async (req: Request, res: Response) => {
+app.get('/metrics', async (_req: Request, res: Response) => {
   try {
     res.set('Content-Type', promClient.register.contentType);
     const metrics = await promClient.register.metrics();

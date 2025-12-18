@@ -323,15 +323,15 @@ export const defaultMetadata: Metadata = {
   // Manifest
   manifest: '/manifest.json',
   
-  // Verification - PENTING: Ganti dengan kode verifikasi asli
+  // Verification - Menggunakan environment variables atau fallback ke hardcoded
   verification: {
-    google: 'RDCMbbVmAgibeAL-LxyEZkEZXHRhXCsGkWUnw7q5cdk', // Dari Google Search Console
-    yandex: 'YOUR_YANDEX_VERIFICATION_CODE',
-    yahoo: 'YOUR_YAHOO_VERIFICATION_CODE',
+    google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION || 'RDCMbbVmAgibeAL-LxyEZkEZXHRhXCsGkWUnw7q5cdk',
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION || '',
+    yahoo: process.env.NEXT_PUBLIC_YAHOO_VERIFICATION || '',
     other: {
-      'msvalidate.01': 'YOUR_BING_VERIFICATION_CODE', // Dari Bing Webmaster
-      'facebook-domain-verification': 'YOUR_FACEBOOK_VERIFICATION_CODE',
-      'p:domain_verify': 'YOUR_PINTEREST_VERIFICATION_CODE',
+      'msvalidate.01': process.env.NEXT_PUBLIC_BING_VERIFICATION || '',
+      'facebook-domain-verification': process.env.NEXT_PUBLIC_FB_DOMAIN_VERIFICATION || '',
+      'p:domain_verify': process.env.NEXT_PUBLIC_PINTEREST_VERIFICATION || '',
     },
   },
   
@@ -352,7 +352,7 @@ export const defaultMetadata: Metadata = {
   
   // Other Meta Tags
   other: {
-    'google-site-verification': 'RDCMbbVmAgibeAL-LxyEZkEZXHRhXCsGkWUnw7q5cdk',
+    'google-site-verification': process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION || 'RDCMbbVmAgibeAL-LxyEZkEZXHRhXCsGkWUnw7q5cdk',
     'msapplication-TileColor': '#16a34a',
     'theme-color': '#16a34a',
     'apple-mobile-web-app-title': siteConfig.name,
