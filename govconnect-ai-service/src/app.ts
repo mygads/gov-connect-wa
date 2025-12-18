@@ -19,6 +19,7 @@ import { getEmbeddingStats, getEmbeddingCacheStats } from './services/embedding.
 import { getVectorDbStats } from './services/vector-db.service';
 import { resilientHttp } from './services/circuit-breaker.service';
 import { getTopCachedQueries, getCacheStats } from './services/response-cache.service';
+import { getRoutingStats, analyzeComplexity } from './services/smart-router.service';
 import { getFSMStats, getAllActiveContexts } from './services/conversation-fsm.service';
 import knowledgeRoutes from './routes/knowledge.routes';
 import searchRoutes from './routes/search.routes';
@@ -633,6 +634,94 @@ app.get('/stats/conversation-fsm', (req: Request, res: Response) => {
 });
 
 // ===========================================
+// Architecture Dashboard - Comprehensive Stats
+// ===========================================
+app.get('/stats/dashboard', async (req: Request, res: Response) => {
+  try {
+    const cacheStats = getCacheStats();
+    const routingStats = getRoutingStats();
+    const fsmStats = getFSMStats();
+    const modelStats = modelStatsService.getAllStats();
+    const analyticsData = aiAnalyticsService.getSummary();
+    
+    const architecture = process.env.USE_2_LAYER_ARCHITECTURE === 'true' ? '2-Layer LLM' : 'Single Layer';
+    
+    res.json({
+      architecture: {
+        current: architecture,
+        envVar: 'USE_2_LAYER_ARCHITECTURE',
+        appliesTo: ['WhatsApp', 'Webchat'],
+      },
+      performance: {
+        avgResponseTimeMs: analyticsData.avgResponseTime || 0,
+        totalRequests: analyticsData.totalRequests || 0,
+        successRate: modelStats.summary?.successRate || 'N/A',
+      },
+      cache: {
+        hitRate: `${(cacheStats.hitRate * 100).toFixed(1)}%`,
+        totalHits: cacheStats.totalHits,
+        totalMisses: cacheStats.totalMisses,
+        cacheSize: cacheStats.cacheSize,
+      },
+      routing: routingStats,
+      conversationFSM: {
+        activeConversations: fsmStats.activeConversations || 0,
+        totalTransitions: fsmStats.totalTransitions || 0,
+      },
+      intents: analyticsData.topIntents || [],
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Failed to get dashboard stats',
+      message: error.message,
+    });
+  }
+});
+
+// Analyze message complexity (for testing smart router)
+app.post('/stats/analyze-complexity', (req: Request, res: Response) => {
+  try {
+    const { message, conversationHistory } = req.body;
+    
+    if (!message) {
+      res.status(400).json({ error: 'message is required' });
+      return;
+    }
+    
+    const analysis = analyzeComplexity(message, conversationHistory);
+    
+    res.json({
+      message: message.substring(0, 100),
+      analysis,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Failed to analyze complexity',
+      message: error.message,
+    });
+  }
+});
+
+// Smart Routing Stats
+app.get('/stats/routing', (req: Request, res: Response) => {
+  try {
+    const stats = getRoutingStats();
+    
+    res.json({
+      description: 'Smart routing statistics - how messages are routed between architectures',
+      stats,
+      architecture: process.env.USE_2_LAYER_ARCHITECTURE === 'true' ? '2-Layer LLM' : 'Single Layer',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      error: 'Failed to get routing stats',
+      message: error.message,
+    });
+  }
+});
+
+// ===========================================
 // Circuit Breaker Endpoints
 import { getCaseServiceMetrics, resetCaseServiceCircuitBreaker } from './clients/case-service.client';
 import { getChannelServiceMetrics, resetChannelServiceCircuitBreaker } from './clients/channel-service.client';
@@ -728,6 +817,10 @@ app.get('/', (req: Request, res: Response) => {
     description: 'Stateless AI service for processing WhatsApp messages',
     endpoints: {
       health: '/health',
+      // Dashboard & Analytics
+      dashboard: '/stats/dashboard',
+      routing: '/stats/routing',
+      analyzeComplexity: 'POST /stats/analyze-complexity',
       circuitBreaker: '/stats/circuit-breaker',
       modelStats: '/stats/models',
       modelStatsDetail: '/stats/models/:modelName',

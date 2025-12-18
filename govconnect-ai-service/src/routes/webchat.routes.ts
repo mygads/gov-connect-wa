@@ -9,11 +9,18 @@
  * 
  * LIVE CHAT INTEGRATION: Messages are synced to Channel Service database
  * so they appear in Live Chat dashboard and admin can takeover.
+ * 
+ * ARCHITECTURE OPTIONS:
+ * - Single-Layer: Uses unified-message-processor (default)
+ * - 2-Layer: Uses two-layer-orchestrator (set USE_2_LAYER_ARCHITECTURE=true)
+ * 
+ * NOTE: USE_2_LAYER_ARCHITECTURE controls BOTH WhatsApp AND Webchat channels
  */
 
 import { Router, Request, Response } from 'express';
 import logger from '../utils/logger';
-import { processUnifiedMessage } from '../services/unified-message-processor.service';
+import { processUnifiedMessage, ProcessMessageResult } from '../services/unified-message-processor.service';
+import { processTwoLayerWebchat } from '../services/two-layer-webchat.service';
 import {
   saveWebchatMessage,
   updateWebchatConversation,
@@ -23,6 +30,47 @@ import {
   addWebchatMessageToBatch,
   cancelWebchatBatch,
 } from '../services/webchat-batcher.service';
+
+// Unified architecture flag - controls BOTH WhatsApp AND Webchat
+const USE_2_LAYER_ARCHITECTURE = process.env.USE_2_LAYER_ARCHITECTURE === 'true';
+
+logger.info('🏗️ Webchat architecture selected', {
+  architecture: USE_2_LAYER_ARCHITECTURE ? '2-Layer LLM' : 'Single Layer',
+  envVar: 'USE_2_LAYER_ARCHITECTURE',
+  note: 'Same architecture as WhatsApp channel',
+});
+
+/**
+ * Process webchat message with selected architecture
+ * Supports both Single-Layer and 2-Layer architectures
+ * Architecture is controlled by USE_2_LAYER_ARCHITECTURE env var (same as WhatsApp)
+ */
+async function processWebchatMessage(params: {
+  userId: string;
+  message: string;
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
+}): Promise<ProcessMessageResult> {
+  if (USE_2_LAYER_ARCHITECTURE) {
+    // Use 2-Layer architecture (same as WhatsApp)
+    logger.debug('Processing webchat with 2-Layer architecture', {
+      userId: params.userId,
+    });
+    
+    return processTwoLayerWebchat({
+      userId: params.userId,
+      message: params.message,
+      conversationHistory: params.conversationHistory,
+    });
+  }
+  
+  // Use unified processor (single-layer) for webchat
+  return processUnifiedMessage({
+    userId: params.userId,
+    message: params.message,
+    channel: 'webchat',
+    conversationHistory: params.conversationHistory,
+  });
+}
 
 const router = Router();
 
@@ -176,12 +224,11 @@ router.post('/', async (req: Request, res: Response) => {
       return;
     }
     
-    // Process batched message using UNIFIED processor (same as WhatsApp)
+    // Process batched message using selected architecture
     // This ensures consistent NLU, intent detection, RAG, prompts, etc.
-    const result = await processUnifiedMessage({
+    const result = await processWebchatMessage({
       userId: session_id,
       message: batchResult.combinedMessage, // Use combined message from batch
-      channel: 'webchat',
       conversationHistory: session.messages.map((m) => ({
         role: m.role,
         content: m.content,

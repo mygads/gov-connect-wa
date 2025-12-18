@@ -10,100 +10,22 @@
  * - Random variation untuk response yang lebih natural
  * - Context-aware fallback (berdasarkan collected data)
  * - Graceful degradation
+ * 
+ * REFACTORED: Now uses centralized templates from constants/response-templates.ts
  */
 
 import logger from '../utils/logger';
 import { getContext, ConversationState } from './conversation-fsm.service';
-
-// ==================== FALLBACK TEMPLATES ====================
-
-/**
- * Fallback templates per intent
- * Multiple variations untuk menghindari response yang monoton
- */
-const FALLBACK_TEMPLATES: Record<string, string[]> = {
-  // === GREETING ===
-  'GREETING': [
-    'Halo Kak! 👋 Saya Gana dari Kelurahan. Ada yang bisa dibantu hari ini?',
-    'Hai Kak! 👋 Selamat datang di GovConnect. Saya siap membantu untuk laporan atau reservasi surat.',
-    'Halo! 👋 Saya asisten virtual kelurahan. Mau lapor masalah atau urus surat hari ini?',
-  ],
-
-  // === CREATE COMPLAINT ===
-  'CREATE_COMPLAINT': [
-    'Baik Kak, saya bantu catat laporan. Boleh sebutkan lokasinya di mana?',
-    'Saya catat ya Kak. Masalahnya di lokasi mana tepatnya?',
-    'Oke Kak, saya bantu proses laporan. Bisa sebutkan alamat lengkapnya?',
-  ],
-
-  // === CREATE RESERVATION ===
-  'CREATE_RESERVATION': [
-    'Baik Kak, untuk reservasi saya perlu beberapa data. Siapa nama lengkap Kakak sesuai KTP?',
-    'Oke Kak, saya bantu buatkan reservasi. Boleh sebutkan nama lengkap Kakak?',
-    'Baik, untuk pengajuan surat saya perlu data Kakak. Nama lengkap sesuai KTP siapa ya?',
-  ],
-
-  // === CHECK STATUS ===
-  'CHECK_STATUS': [
-    'Untuk cek status, boleh sebutkan nomor laporan atau reservasinya Kak? (contoh: LAP-20251201-001)',
-    'Baik Kak, mau cek status yang mana? Sebutkan nomornya ya (LAP-xxx atau RSV-xxx)',
-    'Oke, saya bantu cek. Nomor laporan atau reservasinya berapa Kak?',
-  ],
-
-  // === CANCEL ===
-  'CANCEL_COMPLAINT': [
-    'Untuk membatalkan laporan, boleh sebutkan nomornya Kak? (contoh: LAP-20251201-001)',
-    'Baik Kak, mau batalkan laporan yang mana? Sebutkan nomornya ya.',
-  ],
-  'CANCEL_RESERVATION': [
-    'Untuk membatalkan reservasi, boleh sebutkan nomornya Kak? (contoh: RSV-20251201-001)',
-    'Baik Kak, mau batalkan reservasi yang mana? Sebutkan nomornya ya.',
-  ],
-
-  // === HISTORY ===
-  'HISTORY': [
-    'Mohon tunggu sebentar ya Kak, saya cek riwayat laporan dan reservasi Kakak...',
-    'Baik Kak, saya lihat dulu riwayatnya ya...',
-  ],
-
-  // === KNOWLEDGE QUERY ===
-  'KNOWLEDGE_QUERY': [
-    'Untuk informasi tersebut, Kakak bisa:\n\n📞 Hubungi: (022) 123-4567\n🕐 Jam kerja: Senin-Jumat 08:00-15:00\n📍 Datang langsung ke kantor kelurahan',
-    'Maaf Kak, saya belum punya info lengkap tentang itu. Silakan hubungi kantor kelurahan langsung ya di jam kerja.',
-  ],
-
-  // === THANKS ===
-  'THANKS': [
-    'Sama-sama Kak! 😊 Senang bisa membantu. Kalau ada yang perlu lagi, langsung chat aja ya!',
-    'Terima kasih kembali Kak! 🙏 Jangan ragu hubungi lagi kalau butuh bantuan.',
-  ],
-
-  // === CONFIRMATION ===
-  'CONFIRMATION': [
-    'Baik Kak, saya proses ya. Mohon tunggu sebentar...',
-    'Oke Kak, sedang saya proses...',
-  ],
-
-  // === REJECTION ===
-  'REJECTION': [
-    'Baik Kak, tidak masalah. Ada yang lain yang bisa saya bantu?',
-    'Oke Kak, dibatalkan ya. Mau dibantu yang lain?',
-  ],
-
-  // === UNKNOWN / DEFAULT ===
-  'UNKNOWN': [
-    'Maaf Kak, bisa dijelaskan lebih detail? Saya siap bantu untuk:\n\n📋 Lapor masalah (jalan rusak, lampu mati, dll)\n🎫 Reservasi surat (SKD, SKTM, dll)\n📍 Info kelurahan',
-    'Hmm, saya kurang paham Kak. Kakak mau:\n\n1️⃣ Lapor masalah?\n2️⃣ Urus surat?\n3️⃣ Cek status?\n\nSilakan pilih atau jelaskan lebih detail ya.',
-    'Maaf Kak, coba jelaskan lagi ya. Saya bisa bantu:\n\n• Laporan keluhan/aduan\n• Reservasi layanan surat\n• Informasi kelurahan',
-  ],
-
-  // === ERROR ===
-  'ERROR': [
-    'Mohon maaf Kak, ada kendala teknis 🙏 Coba ulangi pesan Kakak ya.',
-    'Maaf Kak, sistem sedang sibuk. Silakan coba lagi dalam beberapa saat.',
-    'Waduh, ada gangguan teknis nih Kak. Coba kirim ulang pesannya ya 🙏',
-  ],
-};
+import { detectIntentFromPatterns } from '../constants/intent-patterns';
+import {
+  FALLBACK_TEMPLATES,
+  MISSING_FIELD_PROMPTS,
+  ERROR_TEMPLATES,
+  getRandomItem,
+  getFallbackByIntent,
+  getMissingFieldPrompt,
+  getErrorFallback,
+} from '../constants/response-templates';
 
 // ==================== STATE-BASED FALLBACKS ====================
 
@@ -155,72 +77,10 @@ const STATE_FALLBACKS: Record<ConversationState, string[]> = {
   ],
 };
 
-// ==================== MISSING FIELD PROMPTS ====================
-
-/**
- * Prompt untuk field yang belum diisi
- */
-const MISSING_FIELD_PROMPTS: Record<string, string[]> = {
-  // Complaint fields
-  'kategori': [
-    'Jenis masalah apa yang ingin dilaporkan Kak? (jalan rusak, lampu mati, sampah, dll)',
-    'Masalahnya tentang apa Kak? Jalan rusak, lampu mati, atau yang lain?',
-  ],
-  'alamat': [
-    'Di mana lokasi masalahnya Kak? Sebutkan alamat atau patokan terdekat.',
-    'Lokasinya di mana Kak? Bisa sebutkan alamat lengkapnya?',
-  ],
-  'deskripsi': [
-    'Bisa jelaskan lebih detail masalahnya Kak?',
-    'Kondisinya seperti apa Kak? Ceritakan lebih detail.',
-  ],
-  
-  // Reservation fields
-  'service_code': [
-    'Surat apa yang ingin Kakak urus? (SKD, SKTM, SKU, dll)',
-    'Mau buat surat apa Kak? Domisili, tidak mampu, atau yang lain?',
-  ],
-  'nama_lengkap': [
-    'Siapa nama lengkap Kakak sesuai KTP?',
-    'Boleh sebutkan nama lengkap Kakak?',
-  ],
-  'nik': [
-    'Berapa NIK (16 digit) Kakak?',
-    'Boleh sebutkan NIK Kakak? (16 digit angka)',
-  ],
-  'no_hp': [
-    'Nomor HP yang bisa dihubungi berapa Kak?',
-    'Boleh sebutkan nomor HP Kakak?',
-  ],
-  'reservation_date': [
-    'Kakak mau datang tanggal berapa?',
-    'Mau reservasi untuk tanggal berapa Kak?',
-  ],
-  'reservation_time': [
-    'Jam berapa Kakak mau datang? (08:00-15:00)',
-    'Mau datang jam berapa Kak?',
-  ],
-};
-
 // ==================== MAIN FUNCTIONS ====================
 
-/**
- * Get random item from array
- */
-function getRandomItem<T>(items: T[]): T {
-  return items[Math.floor(Math.random() * items.length)];
-}
-
-/**
- * Get fallback response based on intent
- * 
- * @param intent - Detected or expected intent
- * @returns Random fallback response for the intent
- */
-export function getFallbackByIntent(intent: string): string {
-  const templates = FALLBACK_TEMPLATES[intent] || FALLBACK_TEMPLATES['UNKNOWN'];
-  return getRandomItem(templates);
-}
+// Re-export from centralized templates for backward compatibility
+export { getFallbackByIntent, getMissingFieldPrompt, getErrorFallback };
 
 /**
  * Get fallback response based on conversation state
@@ -233,20 +93,6 @@ export function getFallbackByState(userId: string): string {
   const ctx = getContext(userId);
   const templates = STATE_FALLBACKS[ctx.state] || FALLBACK_TEMPLATES['UNKNOWN'];
   return getRandomItem(templates);
-}
-
-/**
- * Get prompt for missing field
- * 
- * @param field - Field name that is missing
- * @returns Prompt asking for the field
- */
-export function getMissingFieldPrompt(field: string): string {
-  const prompts = MISSING_FIELD_PROMPTS[field];
-  if (prompts) {
-    return getRandomItem(prompts);
-  }
-  return `Boleh sebutkan ${field.replace(/_/g, ' ')} Kakak?`;
 }
 
 /**
@@ -299,9 +145,9 @@ export function getSmartFallback(
     return getFallbackByIntent(intent);
   }
   
-  // 4. Try to detect intent from message
+  // 4. Try to detect intent from message using centralized patterns
   if (message) {
-    const detectedIntent = detectIntentFromMessage(message);
+    const detectedIntent = detectIntentFromPatterns(message);
     if (detectedIntent) {
       logger.info('[Fallback] Using detected intent fallback', {
         userId,
@@ -317,78 +163,7 @@ export function getSmartFallback(
   return getFallbackByIntent('UNKNOWN');
 }
 
-/**
- * Simple intent detection from message for fallback purposes
- */
-function detectIntentFromMessage(message: string): string | null {
-  const lowerMessage = message.toLowerCase();
-  
-  // Greeting
-  if (/^(halo|hai|hi|hello|selamat|assalam|permisi)/i.test(lowerMessage)) {
-    return 'GREETING';
-  }
-  
-  // Complaint
-  if (/lapor|keluhan|aduan|rusak|mati|sampah|banjir|tumbang/i.test(lowerMessage)) {
-    return 'CREATE_COMPLAINT';
-  }
-  
-  // Reservation
-  if (/reservasi|booking|daftar|surat|dokumen|skd|sktm|sku/i.test(lowerMessage)) {
-    return 'CREATE_RESERVATION';
-  }
-  
-  // Status check
-  if (/status|cek|LAP-|RSV-/i.test(lowerMessage)) {
-    return 'CHECK_STATUS';
-  }
-  
-  // Cancel
-  if (/batal|cancel|hapus/i.test(lowerMessage)) {
-    return 'CANCEL_COMPLAINT';
-  }
-  
-  // History
-  if (/riwayat|history|daftar.*saya/i.test(lowerMessage)) {
-    return 'HISTORY';
-  }
-  
-  // Thanks
-  if (/terima\s*kasih|makasih|thanks/i.test(lowerMessage)) {
-    return 'THANKS';
-  }
-  
-  // Knowledge query
-  if (/jam|buka|tutup|syarat|biaya|alamat|lokasi|cara|bagaimana/i.test(lowerMessage)) {
-    return 'KNOWLEDGE_QUERY';
-  }
-  
-  return null;
-}
 
-/**
- * Get error fallback with retry suggestion
- */
-export function getErrorFallback(errorType?: string): string {
-  const errorTemplates: Record<string, string[]> = {
-    'TIMEOUT': [
-      'Maaf Kak, prosesnya agak lama nih. Coba kirim ulang pesannya ya 🙏',
-      'Waduh, timeout Kak. Silakan coba lagi dalam beberapa saat.',
-    ],
-    'RATE_LIMIT': [
-      'Maaf Kak, sistem sedang sibuk. Coba lagi dalam 1-2 menit ya.',
-      'Banyak yang chat nih Kak, tunggu sebentar ya lalu coba lagi.',
-    ],
-    'SERVICE_DOWN': [
-      'Mohon maaf Kak, layanan sedang maintenance. Silakan coba lagi nanti 🙏',
-      'Sistem sedang dalam perbaikan Kak. Coba lagi dalam beberapa saat ya.',
-    ],
-    'DEFAULT': FALLBACK_TEMPLATES['ERROR'],
-  };
-  
-  const templates = errorTemplates[errorType || 'DEFAULT'] || errorTemplates['DEFAULT'];
-  return getRandomItem(templates);
-}
 
 // ==================== EXPORTS ====================
 
@@ -398,7 +173,7 @@ export default {
   getMissingFieldPrompt,
   getSmartFallback,
   getErrorFallback,
+  // Re-export from centralized templates
   FALLBACK_TEMPLATES,
   STATE_FALLBACKS,
-  MISSING_FIELD_PROMPTS,
 };

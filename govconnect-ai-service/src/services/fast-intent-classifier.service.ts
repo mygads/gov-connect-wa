@@ -8,9 +8,28 @@
  * 1. Fast classify dengan regex patterns
  * 2. Jika confidence tinggi (>0.8) → skip LLM untuk intent detection
  * 3. Jika confidence rendah → fallback ke LLM
+ * 
+ * REFACTORED: Now uses centralized patterns from constants/intent-patterns.ts
  */
 
 import logger from '../utils/logger';
+import {
+  GREETING_PATTERNS,
+  CONFIRMATION_PATTERNS,
+  REJECTION_PATTERNS,
+  THANKS_PATTERNS,
+  CREATE_COMPLAINT_PATTERNS,
+  CREATE_RESERVATION_PATTERNS,
+  UPDATE_RESERVATION_PATTERNS,
+  CHECK_STATUS_PATTERNS,
+  CANCEL_PATTERNS,
+  HISTORY_PATTERNS,
+  KNOWLEDGE_QUERY_PATTERNS,
+  COMPLAINT_CATEGORY_PATTERNS,
+  SERVICE_CODE_PATTERNS,
+  matchesAnyPattern,
+  findMatchingCategory,
+} from '../constants/intent-patterns';
 
 export interface FastClassifyResult {
   intent: string;
@@ -20,185 +39,22 @@ export interface FastClassifyResult {
   reason: string;
 }
 
-// ==================== INTENT PATTERNS ====================
-
-const GREETING_PATTERNS = [
-  /^(halo|hai|hi|hello|hey)[\s!.,]*$/i,
-  /^selamat\s+(pagi|siang|sore|malam)[\s!.,]*$/i,
-  /^assalamualaikum[\s!.,]*$/i,
-  /^permisi[\s!.,]*$/i,
-  /^(p|pagi|siang|sore|malam)[\s!.,]*$/i,
-];
-
-const CONFIRMATION_PATTERNS = [
-  /^(ya|iya|yap|yup|yoi|oke|ok|okay|okey|baik|siap|betul|benar|bener)[\s!.,]*$/i,
-  /^(lanjut|lanjutkan|proses|setuju|boleh|bisa|gas|gaskan)[\s!.,]*$/i,
-  /^(sudah|udah|cukup|itu\s+saja|itu\s+aja|segitu\s+aja)[\s!.,]*$/i,
-];
-
-const REJECTION_PATTERNS = [
-  /^(tidak|nggak|gak|ga|enggak|engga|no|nope|jangan|batal|cancel)[\s!.,]*$/i,
-  /^(belum|nanti\s+dulu|nanti\s+aja|skip)[\s!.,]*$/i,
-];
-
-const THANKS_PATTERNS = [
-  /^(terima\s*kasih|makasih|thanks|thank\s*you|thx|tq)[\s!.,]*$/i,
-  /^(ok\s+)?makasih[\s!.,]*$/i,
-];
-
-const CREATE_COMPLAINT_PATTERNS = [
-  // Direct complaint keywords - must have explicit intent to report
-  /\b(mau\s+)?lapor(kan)?\s+/i,
-  /\b(ada\s+)?(masalah|keluhan|aduan|komplain)\s+(di|dengan|tentang)/i,
-  
-  // Specific complaint types - must have action/state words
-  /\b(jalan|aspal)\s+(rusak|berlubang|retak|hancur|jelek)\b/i,
-  /\b(lampu|penerangan)\s+(jalan\s+)?(mati|padam|rusak|tidak\s+menyala)\b/i,
-  /\b(sampah)\s+(menumpuk|berserakan|banyak|tidak\s+diangkut)\b/i,
-  /\b(saluran|got|selokan|drainase)\s+(tersumbat|mampet|macet|buntu)\b/i,
-  /\b(pohon)\s+(tumbang|roboh|patah|miring)\b/i,
-  // Banjir - only match if it's clearly a report (with location or "ada")
-  /\b(ada\s+)?banjir\s+(di|besar|parah)/i,
-  /\b(mau\s+lapor\s+)?banjir\b/i,
-  /\b(fasilitas|taman|pagar)\s+(rusak|jelek)\b/i,
-];
-
-const CREATE_RESERVATION_PATTERNS = [
-  // Direct reservation keywords
-  /\b(mau\s+)?(reservasi|booking|daftar|antri)\b/i,
-  /\b(mau\s+)?(buat|bikin|urus|minta)\s+(surat|dokumen)\b/i,
-  /\b(perlu|butuh)\s+(surat|dokumen)\b/i,
-  
-  // Specific document types
-  /\b(surat\s+)?(keterangan\s+)?(domisili|skd)\b/i,
-  /\b(surat\s+)?(keterangan\s+)?(tidak\s+mampu|sktm)\b/i,
-  /\b(surat\s+)?(keterangan\s+)?(usaha|sku)\b/i,
-  /\b(surat\s+)?(pengantar\s+)?(ktp|spktp)\b/i,
-  /\b(surat\s+)?(pengantar\s+)?(kk|kartu\s+keluarga|spkk)\b/i,
-  /\b(surat\s+)?(pengantar\s+)?(skck|spskck)\b/i,
-  /\b(surat\s+)?(pengantar\s+)?(akta|spakta)\b/i,
-];
-
-const CHECK_STATUS_PATTERNS = [
-  /\b(cek|check|lihat|gimana|bagaimana)\s+(status|perkembangan|progress)\b/i,
-  /\b(status)\s+(laporan|reservasi|tiket|pengaduan)\b/i,
-  /\bLAP-\d{8}-\d{3}\b/i,
-  /\bRSV-\d{8}-\d{3}\b/i,
-  /\b(sudah|udah)\s+(sampai\s+mana|diproses|ditangani)\b/i,
-];
-
-const UPDATE_RESERVATION_PATTERNS = [
-  /\b(ubah|ganti|pindah)\s+(jadwal|tanggal|jam|waktu)\s+(reservasi)\b/i,
-  /\b(reschedule|re-schedule)\s+(reservasi)?\b/i,
-  /\b(mau|ingin)\s+(ubah|ganti|pindah)\s+(jadwal|tanggal|jam)\b/i,
-  /\b(reservasi)\s+.*(ubah|ganti|pindah)\s+(jadwal|tanggal|jam)\b/i,
-];
-
-const CANCEL_PATTERNS = [
-  /\b(batalkan|cancel|batal)\s+(laporan|reservasi|tiket)\b/i,
-  /\b(mau|ingin)\s+(batalkan|cancel|batal)\b/i,
-  /\b(hapus)\s+(laporan|reservasi)\b/i,
-];
-
-const HISTORY_PATTERNS = [
-  /\b(riwayat|history|daftar)\s+(laporan|reservasi|tiket|saya)\b/i,
-  /\b(laporan|reservasi)\s+(saya|ku|gue|gw)\b/i,
-  /\b(lihat|cek)\s+(semua\s+)?(laporan|reservasi)\b/i,
-];
-
-const KNOWLEDGE_QUERY_PATTERNS = [
-  // Time/schedule questions
-  /\b(jam|waktu)\s+(buka|tutup|operasional|kerja|pelayanan)\b/i,
-  /\b(buka|tutup)\s+(jam\s+)?berapa\b/i,
-  /\b(hari\s+)?(libur|kerja)\b/i,
-  
-  // Location questions
-  /\b(dimana|di\s+mana|lokasi|alamat)\s+(kantor|kelurahan)\b/i,
-  /\b(kantor|kelurahan)\s+(dimana|di\s+mana)\b/i,
-  
-  // Requirement questions
-  /\b(apa\s+)?(syarat|persyaratan|dokumen|berkas)\b/i,
-  /\b(biaya|tarif|harga|bayar)\s+(berapa|nya)\b/i,
-  /\b(gratis|free|tidak\s+bayar)\b/i,
-  
-  // Process questions
-  /\b(bagaimana|gimana)\s+(cara|proses|prosedur)\b/i,
-  /\b(cara|proses|prosedur|langkah)\s+(buat|bikin|urus|daftar)\b/i,
-  /\b(berapa\s+lama|durasi|waktu\s+proses)\b/i,
-];
-
 // ==================== ENTITY EXTRACTION ====================
 
 /**
  * Extract complaint category from message
+ * Uses centralized patterns from constants
  */
 function extractComplaintCategory(message: string): string | null {
-  const categoryPatterns: Record<string, RegExp[]> = {
-    'jalan_rusak': [
-      /\b(jalan|aspal)\s+(rusak|berlubang|retak|hancur|jelek)\b/i,
-      /\b(lubang|kerusakan)\s+(jalan|aspal)\b/i,
-    ],
-    'lampu_mati': [
-      /\b(lampu|penerangan)\s+(jalan\s+)?(mati|padam|rusak|tidak\s+menyala)\b/i,
-      /\b(pju|lampu\s+jalan)\s+(mati|padam)\b/i,
-    ],
-    'sampah': [
-      /\b(sampah)\s+(menumpuk|berserakan|banyak|tidak\s+diangkut)\b/i,
-      /\b(tumpukan|timbunan)\s+(sampah)\b/i,
-    ],
-    'drainase': [
-      /\b(saluran|got|selokan|drainase)\s+(tersumbat|mampet|macet|buntu)\b/i,
-      /\b(air|genangan)\s+(tidak\s+mengalir|meluap)\b/i,
-    ],
-    'pohon_tumbang': [
-      /\b(pohon)\s+(tumbang|roboh|patah|miring|bahaya)\b/i,
-    ],
-    'banjir': [
-      /\b(banjir|genangan\s+air|air\s+naik)\b/i,
-    ],
-    'fasilitas_rusak': [
-      /\b(fasilitas|taman|pagar|bangku|trotoar)\s+(rusak|jelek|hancur)\b/i,
-    ],
-  };
-  
-  for (const [category, patterns] of Object.entries(categoryPatterns)) {
-    for (const pattern of patterns) {
-      if (pattern.test(message)) {
-        return category;
-      }
-    }
-  }
-  
-  return null;
+  return findMatchingCategory(message, COMPLAINT_CATEGORY_PATTERNS);
 }
 
 /**
  * Extract service code from message
+ * Uses centralized patterns from constants
  */
 function extractServiceCode(message: string): string | null {
-  const servicePatterns: Record<string, RegExp[]> = {
-    'SKD': [/\b(skd|domisili|keterangan\s+domisili)\b/i],
-    'SKTM': [/\b(sktm|tidak\s+mampu|keterangan\s+tidak\s+mampu)\b/i],
-    'SKU': [/\b(sku|usaha|keterangan\s+usaha)\b/i],
-    'SKBM': [/\b(skbm|belum\s+menikah|belum\s+nikah)\b/i],
-    'SPKTP': [/\b(spktp|pengantar\s+ktp|ktp\s+baru|perpanjang\s+ktp)\b/i],
-    'SPKK': [/\b(spkk|pengantar\s+kk|kartu\s+keluarga)\b/i],
-    'SPSKCK': [/\b(spskck|pengantar\s+skck|skck)\b/i],
-    'SPAKTA': [/\b(spakta|pengantar\s+akta|akta\s+kelahiran|akta\s+kematian)\b/i],
-    'IKR': [/\b(ikr|izin\s+keramaian|acara)\b/i],
-    'SKK': [/\b(skk|keterangan\s+kematian)\b/i],
-    'SPP': [/\b(spp|pengantar\s+pindah|pindah\s+domisili)\b/i],
-  };
-  
-  for (const [code, patterns] of Object.entries(servicePatterns)) {
-    for (const pattern of patterns) {
-      if (pattern.test(message)) {
-        return code;
-      }
-    }
-  }
-  
-  return null;
+  return findMatchingCategory(message, SERVICE_CODE_PATTERNS);
 }
 
 /**

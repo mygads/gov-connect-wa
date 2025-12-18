@@ -41,7 +41,7 @@ import {
   OptimizationResult,
 } from './ai-optimizer.service';
 import { fastClassifyIntent } from './fast-intent-classifier.service';
-import { extractAllEntities } from './entity-extractor.service';
+import { extractAllEntities, extractCitizenDataFromHistory } from './entity-extractor.service';
 
 // User Profile & Context imports
 import { 
@@ -141,57 +141,8 @@ setInterval(() => {
 }, 60 * 1000);
 
 // ==================== TYPO CORRECTIONS ====================
-
-/**
- * Common Indonesian typo corrections
- * Centralized so all channels use the same corrections
- */
-const TYPO_CORRECTIONS: Record<string, string> = {
-  // Document typos
-  'srat': 'surat',
-  'sktm': 'SKTM',
-  'skd': 'SKD',
-  
-  // Informal language
-  'gw': 'saya',
-  'gue': 'saya', 
-  'gua': 'saya',
-  'aku': 'saya',
-  
-  // Time expressions
-  'bsk': 'besok',
-  
-  // Location/address
-  'jln': 'jalan',
-  'jl': 'jalan',
-  'gg': 'gang',
-  'rt': 'RT',
-  'rw': 'RW',
-  
-  // Greetings
-  'hlo': 'halo',
-  'hai': 'halo',
-  'hi': 'halo',
-  'hello': 'halo',
-  
-  // Common words
-  'pengen': 'ingin',
-  'butuh': 'perlu',
-  'bikin': 'buat',
-  'gimana': 'bagaimana',
-  'gmn': 'bagaimana',
-  
-  // Negation
-  'ga': 'tidak',
-  'gak': 'tidak',
-  'nggak': 'tidak',
-  'engga': 'tidak',
-  'enggak': 'tidak',
-  
-  // Common typos
-  'ok': 'oke',
-  'okay': 'oke',
-};
+// Now centralized in text-normalizer.service.ts
+import { normalizeText } from './text-normalizer.service';
 
 // ==================== RESPONSE VALIDATION ====================
 
@@ -1158,169 +1109,6 @@ function extractTimeFromText(text: string): string | null {
 }
 
 /**
- * Extract citizen data from conversation history
- * IMPROVED: More robust extraction with multiple patterns
- */
-async function extractCitizenDataFromHistory(userId: string): Promise<{
-  nama_lengkap?: string;
-  nik?: string;
-  alamat?: string;
-  no_hp?: string;
-  keperluan?: string;
-} | null> {
-  try {
-    const axios = (await import('axios')).default;
-    const { config } = await import('../config/env');
-    
-    const url = `${config.channelServiceUrl}/internal/messages`;
-    const response = await axios.get(url, {
-      params: { wa_user_id: userId, limit: 50 }, // Increased limit for better extraction
-      headers: { 'x-internal-api-key': config.internalApiKey },
-      timeout: 5000,
-    });
-    
-    const messages = response.data?.data?.messages || response.data?.messages || [];
-    const result: { nama_lengkap?: string; nik?: string; alamat?: string; no_hp?: string; keperluan?: string } = {};
-    
-    // Get individual user messages for better extraction
-    const userMessagesList = messages
-      .filter((m: any) => m.direction === 'IN')
-      .map((m: any) => m.message_text?.trim())
-      .filter((m: string) => m && m.length > 0);
-    
-    const userMessages = userMessagesList.join(' ');
-    
-    logger.debug('[ExtractHistory] User messages', { userId, messageCount: userMessagesList.length, userMessages: userMessages.substring(0, 200) });
-    
-    // Extract NIK (16 digit number) - multiple patterns
-    const nikPatterns = [
-      /(?:nik|NIK)[\s:]+(\d{16})/,
-      /(?:nomor\s+(?:induk|ktp))[\s:]+(\d{16})/i,
-      /\b(\d{16})\b/, // Standalone 16 digits
-    ];
-    for (const pattern of nikPatterns) {
-      const match = userMessages.match(pattern);
-      if (match && match[1]) {
-        result.nik = match[1];
-        break;
-      }
-    }
-    
-    // Also check individual messages for standalone NIK
-    if (!result.nik) {
-      for (const msg of userMessagesList) {
-        if (/^\d{16}$/.test(msg.trim())) {
-          result.nik = msg.trim();
-          break;
-        }
-      }
-    }
-    
-    // Extract phone (Indonesian format) - multiple patterns
-    const phonePatterns = [
-      /\b(08\d{8,12})\b/,
-      /\b(628\d{8,12})\b/,
-      /(?:hp|telepon|telp|nomor)[\s:]+(\d{10,13})/i,
-    ];
-    for (const pattern of phonePatterns) {
-      const match = userMessages.match(pattern);
-      if (match && match[1]) {
-        result.no_hp = match[1];
-        break;
-      }
-    }
-    
-    // Also check individual messages for standalone phone
-    if (!result.no_hp) {
-      for (const msg of userMessagesList) {
-        if (/^08\d{8,12}$/.test(msg.trim())) {
-          result.no_hp = msg.trim();
-          break;
-        }
-      }
-    }
-    
-    // Extract name - more flexible patterns
-    const namePatterns = [
-      /nama\s+(?:saya|aku|gw|gue|gua)\s+(?:adalah\s+)?([A-Za-z]+(?:\s+[A-Za-z]+){0,3})/i,
-      /(?:saya|aku|gw|gue|gua)\s+([A-Za-z]+(?:\s+[A-Za-z]+){0,3})(?:\s+(?:mau|ingin|nik|alamat|tinggal)|\s*[,.]|\s*$)/i,
-      /(?:panggil\s+(?:saya|aku)\s+)([A-Za-z]+(?:\s+[A-Za-z]+)?)/i,
-      /nama[\s:]+([A-Za-z]+(?:\s+[A-Za-z]+){0,3})/i, // "nama: Budi Santoso"
-    ];
-    
-    for (const pattern of namePatterns) {
-      const match = userMessages.match(pattern);
-      if (match && match[1]) {
-        const name = match[1].trim();
-        if (name.length >= 2 && name.length <= 50 && !/\d/.test(name)) {
-          result.nama_lengkap = name;
-          break;
-        }
-      }
-    }
-    
-    // If no name found with patterns, check for standalone name after AI asks for name
-    // Look for short messages that could be just a name (after AI asked "siapa nama lengkap")
-    if (!result.nama_lengkap) {
-      const excludeWords = ['ya', 'iya', 'ok', 'oke', 'tidak', 'bukan', 'mau', 'ingin', 'sudah', 'belum', 'sip', 'siap', 'baik', 'terima', 'kasih', 'halo', 'hai', 'hi', 'hello', 'selamat', 'pagi', 'siang', 'sore', 'malam', 'assalamualaikum', 'permisi', 'maaf', 'tolong', 'bantu', 'bisa', 'gimana', 'bagaimana', 'apa', 'kapan', 'dimana', 'siapa', 'kenapa', 'mengapa'];
-      
-      for (let i = 0; i < userMessagesList.length; i++) {
-        const msg = userMessagesList[i];
-        // Check if message is a potential name (1-4 words, all letters, 2-50 chars)
-        if (msg && /^[A-Za-z]+(?:\s+[A-Za-z]+){0,3}$/.test(msg) && msg.length >= 2 && msg.length <= 50) {
-          const lowerMsg = msg.toLowerCase();
-          if (!excludeWords.includes(lowerMsg) && !excludeWords.some(w => lowerMsg.startsWith(w + ' '))) {
-            result.nama_lengkap = msg;
-            break;
-          }
-        }
-      }
-    }
-    
-    // Extract address - more flexible patterns
-    const addressPatterns = [
-      /(?:alamat|tinggal|domisili)\s+(?:di\s+)?(.+?)(?:\s*,?\s*(?:untuk|mau|nik|hp|nomor)|\s*$)/i,
-      /(?:di|daerah)\s+([A-Za-z]+(?:\s+[A-Za-z]+){1,5})(?:\s+(?:mau|untuk|nik)|\s*$)/i,
-      /alamat[\s:]+(.+?)(?:\s*,?\s*(?:untuk|mau|nik|hp)|\s*$)/i, // "alamat: Jl. Melati No. 5"
-    ];
-    
-    for (const pattern of addressPatterns) {
-      const match = userMessages.match(pattern);
-      if (match && match[1] && match[1].length >= 5) {
-        // Clean up the address - remove complaint keywords if accidentally captured
-        let alamat = match[1].trim().replace(/,\s*$/, '');
-        const complaintKeywords = /menumpuk|tumpukan|rusak|berlubang|mati|padam|tersumbat|banjir|tumbang|roboh|sampah|limbah|genangan|menghalangi/gi;
-        if (!complaintKeywords.test(alamat)) {
-          result.alamat = alamat;
-          break;
-        }
-      }
-    }
-    
-    // Extract keperluan/tujuan
-    const keperluanPatterns = [
-      /(?:keperluan|tujuan|untuk)[\s:]+(.+?)(?:\s*,?\s*(?:nama|nik|alamat|hp)|\s*$)/i,
-      /(?:mau|ingin)\s+(?:buat|bikin)\s+(?:surat\s+)?(?:untuk\s+)?(.+?)(?:\s*,?\s*(?:nama|nik|alamat)|\s*$)/i,
-    ];
-    
-    for (const pattern of keperluanPatterns) {
-      const match = userMessages.match(pattern);
-      if (match && match[1] && match[1].length >= 3) {
-        result.keperluan = match[1].trim();
-        break;
-      }
-    }
-    
-    logger.debug('[ExtractHistory] Extracted data', { userId, result });
-    
-    return Object.keys(result).length > 0 ? result : null;
-  } catch (error: any) {
-    logger.warn('Failed to extract citizen data from history', { userId, error: error.message });
-    return null;
-  }
-}
-
-/**
  * Build natural response for complaint status
  */
 function buildNaturalStatusResponse(complaint: any): string {
@@ -1567,10 +1355,7 @@ export async function processUnifiedMessage(input: ProcessMessageInput): Promise
     
     // Step 3: Sanitize and correct typos
     let sanitizedMessage = sanitizeUserInput(message);
-    for (const [typo, correct] of Object.entries(TYPO_CORRECTIONS)) {
-      const regex = new RegExp(`\\b${typo}\\b`, 'gi');
-      sanitizedMessage = sanitizedMessage.replace(regex, correct);
-    }
+    sanitizedMessage = normalizeText(sanitizedMessage);
     
     // Step 4: Language detection
     const languageDetection = detectLanguage(sanitizedMessage);

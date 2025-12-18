@@ -277,82 +277,9 @@ function repairLayer1JSON(responseText: string): Layer1Output | null {
 
 /**
  * Apply typo corrections to message
+ * Re-exported from text-normalizer.service.ts for backward compatibility
  */
-export function applyTypoCorrections(message: string): string {
-  const typoCorrections: Record<string, string> = {
-    // Document typos
-    'srat': 'surat',
-    'surat': 'surat', // keep correct
-    'domisili': 'domisili', // already correct
-    'keterangan': 'keterangan', // keep correct
-    'sktm': 'SKTM',
-    'skd': 'SKD',
-    
-    // Informal language
-    'gw': 'saya',
-    'gue': 'saya', 
-    'gua': 'saya',
-    'aku': 'saya',
-    'w': 'saya', // single letter
-    
-    // Time expressions
-    'bsk': 'besok',
-    'besok': 'besok', // keep correct
-    'lusa': 'lusa', // keep correct
-    
-    // Location/address
-    'jln': 'jalan',
-    'jl': 'jalan',
-    'gg': 'gang',
-    'rt': 'RT',
-    'rw': 'RW',
-    
-    // Greetings
-    'hlo': 'halo',
-    'hai': 'halo',
-    'hi': 'halo',
-    'hello': 'halo',
-    
-    // Common words
-    'mau': 'mau', // keep correct
-    'pengen': 'ingin',
-    'butuh': 'perlu',
-    'bikin': 'buat',
-    'gimana': 'bagaimana',
-    'gmn': 'bagaimana',
-    'bisa': 'bisa', // keep correct
-    
-    // Negation
-    'ga': 'tidak',
-    'gak': 'tidak',
-    'nggak': 'tidak',
-    'engga': 'tidak',
-    'enggak': 'tidak',
-    
-    // Politeness
-    'kak': 'kak', // keep correct
-    'bang': 'bang', // keep correct
-    'pak': 'pak', // keep correct
-    
-    // Common typos
-    'nih': 'nih', // keep correct
-    'dong': 'dong', // keep correct
-    'ya': 'ya', // keep correct
-    'iya': 'iya', // keep correct
-    'ok': 'oke',
-    'okay': 'oke',
-  };
-
-  let corrected = message;
-  
-  // Apply typo corrections (word boundaries to avoid partial matches)
-  for (const [typo, correct] of Object.entries(typoCorrections)) {
-    const regex = new RegExp(`\\b${typo}\\b`, 'gi');
-    corrected = corrected.replace(regex, correct);
-  }
-  
-  return corrected;
-}
+export { applyTypoCorrections } from './text-normalizer.service';
 
 
 /**
