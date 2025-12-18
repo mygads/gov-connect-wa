@@ -21,6 +21,24 @@ import {
   AlertTriangle,
   Siren,
   Zap,
+  Brain,
+  Database,
+  Globe,
+  Building2,
+  CalendarCheck,
+  FileCheck,
+  Map,
+  Send,
+  Headphones,
+  Instagram,
+  MessageSquare,
+  Workflow,
+  Network,
+  Bot,
+  RefreshCw,
+  Building,
+  Landmark,
+  BadgeCheck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -76,7 +94,6 @@ export default function LandingPage() {
   const [isDark, setIsDark] = useState(false);
   const whatsappLink = generateWhatsAppLink();
 
-  // Set initial theme on mount
   useEffect(() => {
     document.documentElement.classList.remove("dark");
   }, []);
@@ -92,7 +109,6 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/70 backdrop-blur-xl border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5">
               <Image
                 src={isDark ? "/logo-dashboard-dark.png" : "/logo-dashboard.png"}
@@ -104,14 +120,12 @@ export default function LandingPage() {
               />
             </Link>
 
-            {/* Menu - Desktop */}
             <div className="hidden lg:flex items-center gap-1 absolute left-1/2 -translate-x-1/2 bg-muted/50 rounded-full px-2 py-1">
               {[
-                { id: "masalah", label: "Masalah" },
+                { id: "tentang", label: "Tentang" },
                 { id: "fitur", label: "Fitur" },
-                { id: "cara-penggunaan", label: "Cara Kerja" },
-                { id: "manfaat", label: "Manfaat" },
-                { id: "testimoni", label: "Testimoni" },
+                { id: "use-case", label: "Use Case" },
+                { id: "integrasi", label: "Integrasi" },
                 { id: "faq", label: "FAQ" },
               ].map((item) => (
                 <Link
@@ -124,7 +138,6 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Login & Theme Toggle */}
             <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -148,7 +161,6 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 overflow-hidden">
-        {/* Background Gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-primary/5 pointer-events-none" />
         <div className="absolute top-20 left-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
@@ -162,7 +174,6 @@ export default function LandingPage() {
               transition={{ duration: 0.6 }}
               className="text-center md:text-left"
             >
-              {/* Badge */}
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -173,33 +184,32 @@ export default function LandingPage() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
                 </span>
-                <span className="text-sm font-medium text-secondary">Layanan 24/7 via WhatsApp</span>
+                <span className="text-sm font-medium text-secondary">AI-Powered Government Services</span>
               </motion.div>
 
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-                Layanan Kelurahan{" "}
+                Menghubungkan{" "}
                 <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
-                  Dalam Satu Aplikasi
-                </span>
+                  Masyarakat & Pemerintah
+                </span>{" "}
+                dengan AI
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto md:mx-0">
-                GovConnect membantu Kamu mengurus laporan, surat, dan informasi
-                kelurahan dengan cepat dan mudah. Tidak perlu lagi antre
-                berjam-jam atau bolak-balik ke kantor kelurahan.
+                Platform automation berbasis AI yang memudahkan masyarakat mengakses layanan pemerintahan. 
+                Dari knowledge base hingga pelaporan, semua dalam satu sistem terpusat.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Button size="lg" className="text-lg px-8 bg-secondary hover:bg-secondary/90 shadow-lg shadow-secondary/25" asChild>
                   <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
-                    <WhatsAppIcon className="mr-2 h-5 w-5" />
-                    Mulai Sekarang
+                    <MessageCircle className="mr-2 h-5 w-5" />
+                    Hubungi Kami
                   </a>
                 </Button>
                 <Button size="lg" variant="outline" className="text-lg px-8 border-2" asChild>
-                  <Link href="#cara-penggunaan">Pelajari Lebih Lanjut</Link>
+                  <Link href="#fitur">Pelajari Lebih Lanjut</Link>
                 </Button>
               </div>
 
-              {/* Stats */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -207,9 +217,9 @@ export default function LandingPage() {
                 className="flex flex-wrap gap-8 mt-10 justify-center md:justify-start"
               >
                 {[
-                  { value: "1000+", label: "Warga Terlayani" },
-                  { value: "24/7", label: "Layanan Aktif" },
-                  { value: "< 5 menit", label: "Respon Cepat" },
+                  { value: "Multi-Level", label: "Kelurahan - Pusat" },
+                  { value: "24/7", label: "AI Response" },
+                  { value: "Real-time", label: "Data Integration" },
                 ].map((stat, index) => (
                   <div key={index} className="text-center md:text-left">
                     <p className="text-2xl md:text-3xl font-bold text-secondary">{stat.value}</p>
@@ -226,7 +236,6 @@ export default function LandingPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="relative"
             >
-              {/* Decorative elements */}
               <div className="absolute -top-4 -left-4 w-20 h-20 bg-secondary/20 rounded-2xl rotate-12 blur-sm" />
               <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-primary/20 rounded-full blur-sm" />
               <ChatAnimation />
@@ -235,8 +244,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Problem Section */}
-      <section id="masalah" className="py-20 bg-gradient-to-b from-muted/50 to-background">
+      {/* About Section */}
+      <section id="tentang" className="py-20 bg-gradient-to-b from-muted/50 to-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             variants={fadeInUp}
@@ -244,44 +253,62 @@ export default function LandingPage() {
             whileInView="visible"
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="text-center max-w-3xl mx-auto mb-16"
+            className="text-center max-w-4xl mx-auto mb-16"
           >
-            <span className="inline-block text-sm font-semibold text-destructive bg-destructive/10 px-4 py-1.5 rounded-full mb-4">
-              Masalah yang Sering Terjadi
+            <span className="inline-block text-sm font-semibold text-secondary bg-secondary/10 px-4 py-1.5 rounded-full mb-4">
+              Tentang GovConnect
             </span>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Masalah Umum Layanan Kelurahan
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              Layanan Pemerintahan yang{" "}
+              <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
+                Mudah & Cepat
+              </span>
             </h2>
-            <p className="text-muted-foreground text-lg">
-              Proses yang rumit dan memakan waktu membuat warga kesulitan mengakses layanan kelurahan
+            <p className="text-muted-foreground text-lg leading-relaxed">
+              GovConnect adalah platform yang menghubungkan masyarakat dengan pemerintah melalui automation berbasis AI. 
+              Tidak perlu lagi ribet ke kantor pemerintahan hanya untuk mendapatkan informasi. 
+              Dengan knowledge base yang terintegrasi, masyarakat dapat mengakses informasi pemerintahan dengan mudah dan mendapatkan response yang cepat.
             </p>
           </motion.div>
-
-          <ProblemAnimation />
 
           <motion.div
             variants={staggerContainer}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid md:grid-cols-3 gap-6 mt-12"
+            className="grid md:grid-cols-3 gap-6"
           >
             {[
-              { icon: Clock, title: "Proses Lama", desc: "Harus datang ke kantor kelurahan dan menunggu berjam-jam dalam antrian", color: "from-red-500 to-orange-500" },
-              { icon: FileText, title: "Prosedur Rumit", desc: "Banyak formulir dan persyaratan yang membingungkan warga", color: "from-orange-500 to-amber-500" },
-              { icon: Bell, title: "Tidak Ada Notifikasi", desc: "Tidak tahu status pengajuan dan harus cek manual berulang kali", color: "from-amber-500 to-yellow-500" },
-            ].map((problem, index) => (
+              { 
+                icon: Brain, 
+                title: "AI-Powered Knowledge Base", 
+                desc: "Informasi pemerintahan yang mudah diakses masyarakat tanpa perlu datang ke kantor. Knowledge base dapat diupdate dan disesuaikan sesuai kebutuhan.", 
+                color: "from-blue-500 to-cyan-500" 
+              },
+              { 
+                icon: Database, 
+                title: "Data Real-time", 
+                desc: "Tidak hanya data statis, sistem dapat terhubung dengan database pemerintahan untuk mendapatkan data dinamis secara otomatis.", 
+                color: "from-green-500 to-emerald-500" 
+              },
+              { 
+                icon: Zap, 
+                title: "Response Cepat 24/7", 
+                desc: "AI assistant yang siap melayani masyarakat kapan saja dengan response yang cepat dan akurat.", 
+                color: "from-orange-500 to-amber-500" 
+              },
+            ].map((item, index) => (
               <motion.div key={index} variants={fadeInUp}>
-                <Card className="group hover:shadow-xl transition-all duration-300 border-destructive/10 hover:border-destructive/30 overflow-hidden">
+                <Card className="group hover:shadow-xl transition-all duration-300 border-secondary/10 hover:border-secondary/30 overflow-hidden h-full">
                   <CardHeader className="relative">
-                    <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${problem.color} opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:opacity-10 transition-opacity`} />
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${problem.color} flex items-center justify-center mb-4 shadow-lg`}>
-                      <problem.icon className="h-7 w-7 text-white" />
+                    <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${item.color} opacity-5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:opacity-10 transition-opacity`} />
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-4 shadow-lg`}>
+                      <item.icon className="h-7 w-7 text-white" />
                     </div>
-                    <CardTitle className="text-xl">{problem.title}</CardTitle>
+                    <CardTitle className="text-xl">{item.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground">{problem.desc}</p>
+                    <p className="text-muted-foreground">{item.desc}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -292,7 +319,6 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section id="fitur" className="py-20 md:py-28 relative overflow-hidden">
-        {/* Background decoration */}
         <div className="absolute top-1/2 left-0 w-96 h-96 bg-secondary/5 rounded-full blur-3xl -translate-y-1/2 -translate-x-1/2" />
         <div className="absolute top-1/2 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         
@@ -308,13 +334,13 @@ export default function LandingPage() {
               Fitur Unggulan
             </span>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Solusi Lengkap dalam{" "}
+              Solusi Lengkap{" "}
               <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
-                Satu Aplikasi
+                Layanan Pemerintahan
               </span>
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              GovConnect mengintegrasikan semua layanan kelurahan dalam satu platform yang mudah diakses
+              Platform terintegrasi untuk semua kebutuhan layanan pemerintahan dari tingkat kelurahan hingga pusat
             </p>
           </motion.div>
 
@@ -327,12 +353,15 @@ export default function LandingPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid md:grid-cols-3 gap-8"
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {[
-              { icon: MessageCircle, title: "Laporan Keluhan", desc: "Laporkan masalah infrastruktur dan dapatkan tindak lanjut cepat dari petugas", gradient: "from-blue-500 to-cyan-500", bg: "from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30" },
-              { icon: FileText, title: "Pengajuan Surat", desc: "Ajukan surat keterangan tanpa harus datang ke kantor kelurahan", gradient: "from-green-500 to-emerald-500", bg: "from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30" },
-              { icon: Bell, title: "Informasi Real-time", desc: "Dapatkan notifikasi dan update status pengajuan Anda secara langsung", gradient: "from-orange-500 to-amber-500", bg: "from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30" },
+              { icon: AlertTriangle, title: "Pelaporan Masalah", desc: "Laporkan bencana, jalan rusak, lampu mati, dan masalah lainnya dengan mudah. Dilengkapi mapping lokasi dan alert prioritas untuk bencana.", gradient: "from-red-500 to-orange-500", bg: "from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30" },
+              { icon: Map, title: "Mapping & Tracking", desc: "Visualisasi lokasi laporan pada peta. Memudahkan pemerintah untuk melihat sebaran masalah dan mengkoordinasikan penanganan.", gradient: "from-blue-500 to-cyan-500", bg: "from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30" },
+              { icon: CalendarCheck, title: "Reservasi Layanan", desc: "Buat reservasi untuk datang ke layanan pemerintahan. Tidak perlu antre lama, cukup booking waktu yang tersedia.", gradient: "from-green-500 to-emerald-500", bg: "from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30" },
+              { icon: FileCheck, title: "Pengajuan Surat & Layanan", desc: "Ajukan surat menyurat dan berbagai layanan pemerintahan dengan cepat. Proses yang biasanya berhari-hari menjadi lebih singkat.", gradient: "from-purple-500 to-violet-500", bg: "from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30" },
+              { icon: Workflow, title: "Distribusi Tugas", desc: "Sistem distribusi tugas otomatis untuk petugas pemerintahan. Memastikan setiap laporan dan pengajuan ditangani dengan tepat.", gradient: "from-pink-500 to-rose-500", bg: "from-pink-50 to-rose-50 dark:from-pink-950/30 dark:to-rose-950/30" },
+              { icon: LayoutDashboard, title: "Dashboard Terpusat", desc: "Kontrol semua layanan dari satu dashboard. Monitoring, analitik, dan manajemen dalam satu tempat.", gradient: "from-amber-500 to-yellow-500", bg: "from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30" },
             ].map((feature, index) => (
               <motion.div key={index} variants={fadeInUp}>
                 <Card className={`h-full hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br ${feature.bg} group`}>
@@ -352,9 +381,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="cara-penggunaan" className="py-20 md:py-28 bg-gradient-to-b from-muted/50 to-background relative overflow-hidden">
-        {/* Background Pattern */}
+      {/* Use Cases Section */}
+      <section id="use-case" className="py-20 md:py-28 bg-gradient-to-b from-muted/50 to-background relative overflow-hidden">
         <div className="absolute inset-0 opacity-30">
           <div className="absolute top-20 left-20 w-4 h-4 bg-secondary rounded-full" />
           <div className="absolute top-40 right-40 w-3 h-3 bg-primary rounded-full" />
@@ -371,63 +399,32 @@ export default function LandingPage() {
             className="text-center mb-16"
           >
             <span className="inline-block text-sm font-semibold text-primary bg-primary/10 px-4 py-1.5 rounded-full mb-4">
-              Mudah & Cepat
-            </span>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Cara Penggunaan</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              Hanya 4 langkah mudah untuk mengakses layanan kelurahan
-            </p>
-          </motion.div>
-
-          <div className="flex justify-center">
-            <HowItWorksAnimation />
-          </div>
-        </div>
-      </section>
-
-      {/* Dashboard Admin Section */}
-      <section id="dashboard-admin" className="py-20 md:py-28 relative overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header - Centered */}
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary bg-primary/10 px-4 py-1.5 rounded-full mb-4">
-              <LayoutDashboard className="w-4 h-4" />
-              Untuk Petugas Pemerintah
+              Use Cases
             </span>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Dashboard Admin untuk{" "}
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Pengelolaan Terpusat
+              Untuk Semua Tingkat{" "}
+              <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
+                Layanan Pemerintahan
               </span>
             </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              Petugas pemerintah dapat memantau semua data laporan, pengajuan surat, 
-              dan komunikasi warga melalui satu dashboard yang terintegrasi.
+            <p className="text-muted-foreground max-w-3xl mx-auto text-lg">
+              GovConnect dapat disesuaikan untuk berbagai tingkat pemerintahan dan layanan publik. 
+              Kami akan menyesuaikan sesuai kebutuhan spesifik setiap instansi.
             </p>
           </motion.div>
 
-          {/* Features Grid */}
           <motion.div
             variants={staggerContainer}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+            className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
           >
             {[
-              { icon: BarChart3, title: "Statistik Real-time", desc: "Pantau data dan tren laporan secara langsung", gradient: "from-blue-500 to-cyan-500" },
-              { icon: Users, title: "Manajemen Warga", desc: "Kelola data dan riwayat interaksi warga", gradient: "from-green-500 to-emerald-500" },
-              { icon: Shield, title: "Keamanan Data", desc: "Enkripsi end-to-end dan akses terkontrol", gradient: "from-purple-500 to-violet-500" },
-              { icon: Zap, title: "Respon Cepat", desc: "Notifikasi dan eskalasi otomatis", gradient: "from-orange-500 to-amber-500" },
+              { icon: Building, title: "Kelurahan", desc: "Layanan administrasi tingkat kelurahan, surat pengantar, dan informasi warga", gradient: "from-blue-500 to-cyan-500" },
+              { icon: Building2, title: "Kecamatan", desc: "Koordinasi antar kelurahan, layanan kependudukan, dan perizinan tingkat kecamatan", gradient: "from-green-500 to-emerald-500" },
+              { icon: Landmark, title: "Kabupaten/Kota", desc: "Layanan skala kabupaten/kota, perizinan usaha, dan koordinasi lintas kecamatan", gradient: "from-purple-500 to-violet-500" },
+              { icon: BadgeCheck, title: "Instansi Khusus", desc: "Kepolisian, Dinas Kesehatan, Dinas Pendidikan, dan instansi pemerintah lainnya", gradient: "from-orange-500 to-amber-500" },
             ].map((item, index) => (
               <motion.div key={index} variants={fadeInUp}>
                 <Card className="h-full hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30">
@@ -443,53 +440,154 @@ export default function LandingPage() {
             ))}
           </motion.div>
 
-          {/* Dashboard Preview */}
+          {/* Example Use Cases */}
           <motion.div
             variants={fadeInUp}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
+            className="mt-16"
           >
-            <div className="relative w-full max-w-5xl mx-auto">
-              {/* Glow effect */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 rounded-3xl blur-xl opacity-50" />
-              
-              <div className="relative bg-gradient-to-b from-muted to-background p-2 rounded-2xl">
-                <Image
-                  src="/dashboard.png"
-                  alt="Dashboard Admin Preview"
-                  width={1200}
-                  height={800}
-                  className="rounded-xl shadow-2xl border border-border/50"
-                />
-              </div>
+            <h3 className="text-2xl font-bold text-center mb-8">Contoh Layanan yang Dapat Diintegrasikan</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                "Pelaporan bencana alam dengan alert prioritas",
+                "Laporan jalan rusak & infrastruktur",
+                "Laporan lampu jalan mati",
+                "Pengajuan surat keterangan domisili",
+                "Pengajuan surat pengantar",
+                "Reservasi layanan kependudukan",
+                "Informasi jadwal pelayanan",
+                "Tracking status pengajuan",
+                "Informasi program pemerintah",
+                "Pengaduan pelayanan publik",
+                "Perizinan usaha mikro",
+                "Dan layanan lainnya sesuai kebutuhan",
+              ].map((item, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                  <div className="w-2 h-2 rounded-full bg-secondary shrink-0" />
+                  <span className="text-sm">{item}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
-              {/* Floating Stats Card */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.5 }}
-                className="absolute -bottom-4 -right-4 md:bottom-8 md:right-8 bg-card border border-border shadow-xl rounded-2xl px-4 py-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <BarChart3 className="w-5 h-5 text-green-500" />
-                  </div>
+      {/* Integration Section */}
+      <section id="integrasi" className="py-20 md:py-28 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary bg-primary/10 px-4 py-1.5 rounded-full mb-4">
+              <Network className="w-4 h-4" />
+              Multi-Channel Integration
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Terhubung ke{" "}
+              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Semua Platform
+              </span>
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+              Satu dashboard untuk mengontrol semua channel komunikasi. 
+              Masyarakat dapat mengakses layanan dari platform yang mereka gunakan sehari-hari.
+            </p>
+          </motion.div>
+
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+          >
+            {[
+              { icon: WhatsAppIcon, title: "WhatsApp", desc: "Layanan via WhatsApp Business API", gradient: "from-green-500 to-green-600", isCustomIcon: true },
+              { icon: Instagram, title: "Instagram", desc: "Integrasi dengan Instagram DM", gradient: "from-pink-500 to-purple-500", isCustomIcon: false },
+              { icon: Send, title: "Telegram", desc: "Bot Telegram untuk layanan", gradient: "from-blue-400 to-blue-600", isCustomIcon: false },
+              { icon: Globe, title: "Website", desc: "Webchat popup di website pemerintah", gradient: "from-slate-500 to-slate-700", isCustomIcon: false },
+            ].map((item, index) => (
+              <motion.div key={index} variants={fadeInUp}>
+                <Card className="h-full hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30">
+                  <CardContent className="pt-6 text-center">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mx-auto mb-4 shadow-lg`}>
+                      {item.isCustomIcon ? (
+                        <item.icon className="w-7 h-7 text-white" />
+                      ) : (
+                        <item.icon className="w-7 h-7 text-white" />
+                      )}
+                    </div>
+                    <h3 className="font-semibold mb-2">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground">{item.desc}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Centralized Control */}
+          <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="mt-16"
+          >
+            <Card className="border-secondary/20 bg-gradient-to-br from-secondary/5 to-primary/5">
+              <CardContent className="p-8">
+                <div className="grid md:grid-cols-2 gap-8 items-center">
                   <div>
-                    <p className="text-xl font-bold">100%</p>
-                    <p className="text-xs text-muted-foreground">Laporan Tertangani</p>
+                    <h3 className="text-2xl font-bold mb-4">Kontrol Terpusat</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Semua pesan dari berbagai channel masuk ke satu dashboard. 
+                      Petugas dapat merespon, mendistribusikan tugas, dan memantau semua interaksi dari satu tempat.
+                    </p>
+                    <ul className="space-y-3">
+                      {[
+                        "Unified inbox untuk semua channel",
+                        "Distribusi tugas otomatis ke petugas",
+                        "Analitik dan reporting terpusat",
+                        "Knowledge base yang dapat diupdate",
+                        "Integrasi dengan sistem pemerintahan existing",
+                      ].map((item, index) => (
+                        <li key={index} className="flex items-center gap-3">
+                          <div className="w-5 h-5 rounded-full bg-secondary/20 flex items-center justify-center">
+                            <BadgeCheck className="w-3 h-3 text-secondary" />
+                          </div>
+                          <span className="text-sm">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute -inset-4 bg-gradient-to-r from-secondary/20 to-primary/20 rounded-2xl blur-xl opacity-50" />
+                    <div className="relative bg-gradient-to-b from-muted to-background p-2 rounded-xl">
+                      <Image
+                        src="/dashboard.png"
+                        alt="Dashboard Preview"
+                        width={600}
+                        height={400}
+                        className="rounded-lg shadow-xl border border-border/50"
+                      />
+                    </div>
                   </div>
                 </div>
-              </motion.div>
-            </div>
+              </CardContent>
+            </Card>
           </motion.div>
         </div>
       </section>
 
       {/* Emergency Alert Section */}
       <section className="py-20 md:py-28 bg-gradient-to-b from-destructive/5 via-orange-500/5 to-background relative overflow-hidden">
-        {/* Animated background */}
         <div className="absolute inset-0 opacity-30">
           <motion.div
             className="absolute top-20 left-20 w-20 h-20 bg-destructive/20 rounded-full"
@@ -504,7 +602,6 @@ export default function LandingPage() {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header - Centered */}
           <motion.div
             variants={fadeInUp}
             initial="hidden"
@@ -522,17 +619,16 @@ export default function LandingPage() {
               <span className="font-semibold text-sm">Fitur Darurat</span>
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Notifikasi{" "}
+              Alert{" "}
               <span className="text-destructive">Laporan Darurat</span>{" "}
               & Bencana
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              Sistem notifikasi prioritas tinggi untuk laporan bencana dan keadaan darurat 
-              agar penanganan dapat dilakukan dengan cepat dan tepat.
+              Sistem notifikasi prioritas tinggi untuk laporan bencana dan keadaan darurat. 
+              Laporan langsung diteruskan ke pusat untuk penanganan cepat.
             </p>
           </motion.div>
 
-          {/* Emergency Features Grid */}
           <motion.div
             variants={staggerContainer}
             initial="hidden"
@@ -542,8 +638,8 @@ export default function LandingPage() {
           >
             {[
               { icon: AlertTriangle, title: "Deteksi Otomatis", desc: "AI mendeteksi kata kunci darurat dalam laporan warga secara real-time", gradient: "from-orange-500 to-amber-500" },
-              { icon: Siren, title: "Alert Prioritas", desc: "Notifikasi khusus dengan suara dan visual berbeda untuk petugas", gradient: "from-red-500 to-rose-500" },
-              { icon: Zap, title: "Eskalasi Cepat", desc: "Laporan darurat langsung diteruskan ke pimpinan dan tim tanggap", gradient: "from-yellow-500 to-orange-500" },
+              { icon: Siren, title: "Alert Prioritas", desc: "Notifikasi khusus dengan suara dan visual berbeda untuk petugas pusat", gradient: "from-red-500 to-rose-500" },
+              { icon: Map, title: "Mapping Lokasi", desc: "Visualisasi lokasi bencana pada peta untuk koordinasi penanganan", gradient: "from-yellow-500 to-orange-500" },
             ].map((item, index) => (
               <motion.div key={index} variants={fadeInUp}>
                 <Card className="h-full hover:shadow-lg transition-all duration-300 border-destructive/20 hover:border-destructive/40">
@@ -559,7 +655,7 @@ export default function LandingPage() {
             ))}
           </motion.div>
 
-          {/* Emergency Alert Preview Card */}
+          {/* Emergency Alert Preview */}
           <motion.div
             variants={fadeInUp}
             initial="hidden"
@@ -574,7 +670,6 @@ export default function LandingPage() {
               />
               
               <Card className="relative border-destructive/30 bg-card/95 backdrop-blur-sm overflow-hidden">
-                {/* Alert Header */}
                 <div className="bg-gradient-to-r from-destructive to-orange-500 px-6 py-4">
                   <div className="flex items-center justify-center gap-3">
                     <motion.div
@@ -585,7 +680,7 @@ export default function LandingPage() {
                     </motion.div>
                     <div className="text-center">
                       <p className="text-white font-bold text-lg">LAPORAN DARURAT</p>
-                      <p className="text-white/80 text-sm">Prioritas Tinggi • Baru saja</p>
+                      <p className="text-white/80 text-sm">Prioritas Tinggi • Langsung ke Pusat</p>
                     </div>
                   </div>
                 </div>
@@ -623,7 +718,6 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
 
-              {/* Notification badge */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -639,8 +733,104 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Dashboard Admin Section */}
+      <section id="dashboard-admin" className="py-20 md:py-28 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
+        
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary bg-primary/10 px-4 py-1.5 rounded-full mb-4">
+              <LayoutDashboard className="w-4 h-4" />
+              Untuk Petugas Pemerintah
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Dashboard Admin untuk{" "}
+              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Pengelolaan Terpusat
+              </span>
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+              Petugas pemerintah dapat memantau semua data laporan, pengajuan, 
+              dan komunikasi masyarakat melalui satu dashboard yang terintegrasi.
+            </p>
+          </motion.div>
+
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+          >
+            {[
+              { icon: BarChart3, title: "Statistik Real-time", desc: "Pantau data dan tren laporan secara langsung", gradient: "from-blue-500 to-cyan-500" },
+              { icon: Users, title: "Manajemen Petugas", desc: "Distribusi tugas dan monitoring kinerja", gradient: "from-green-500 to-emerald-500" },
+              { icon: Shield, title: "Keamanan Data", desc: "Enkripsi end-to-end dan akses terkontrol", gradient: "from-purple-500 to-violet-500" },
+              { icon: RefreshCw, title: "Update Knowledge Base", desc: "Update informasi dan data secara real-time", gradient: "from-orange-500 to-amber-500" },
+            ].map((item, index) => (
+              <motion.div key={index} variants={fadeInUp}>
+                <Card className="h-full hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30">
+                  <CardContent className="pt-6 text-center">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mx-auto mb-4 shadow-lg`}>
+                      <item.icon className="w-7 h-7 text-white" />
+                    </div>
+                    <h3 className="font-semibold mb-2">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground">{item.desc}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <div className="relative w-full max-w-5xl mx-auto">
+              <div className="absolute -inset-4 bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/20 rounded-3xl blur-xl opacity-50" />
+              
+              <div className="relative bg-gradient-to-b from-muted to-background p-2 rounded-2xl">
+                <Image
+                  src="/dashboard.png"
+                  alt="Dashboard Admin Preview"
+                  width={1200}
+                  height={800}
+                  className="rounded-xl shadow-2xl border border-border/50"
+                />
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.5 }}
+                className="absolute -bottom-4 -right-4 md:bottom-8 md:right-8 bg-card border border-border shadow-xl rounded-2xl px-4 py-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-green-500" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold">100%</p>
+                    <p className="text-xs text-muted-foreground">Laporan Tertangani</p>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Benefits Section */}
-      <section id="manfaat" className="py-16 md:py-24">
+      <section id="manfaat" className="py-16 md:py-24 bg-gradient-to-b from-muted/50 to-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             variants={fadeInUp}
@@ -652,9 +842,9 @@ export default function LandingPage() {
             <span className="inline-block text-sm font-semibold text-secondary bg-secondary/10 px-4 py-1.5 rounded-full mb-4">
               Keuntungan
             </span>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Manfaat Utama untuk Warga</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Manfaat untuk Semua Pihak</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Nikmati kemudahan layanan kelurahan dengan berbagai keuntungan
+              GovConnect memberikan manfaat baik untuk masyarakat maupun pemerintah
             </p>
           </motion.div>
 
@@ -663,171 +853,69 @@ export default function LandingPage() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
+            className="grid md:grid-cols-2 gap-8"
           >
-            {/* Benefit 1: Hemat Waktu */}
+            {/* For Citizens */}
             <motion.div variants={fadeInUp}>
-              <Card className="h-full hover:shadow-lg transition-shadow duration-300 bg-gradient-to-b from-blue-50 to-white dark:from-blue-950/30 dark:to-card border-blue-100 dark:border-blue-900/30">
-                <CardContent className="pt-8 pb-6 text-center">
-                  <div className="flex justify-center mb-4">
-                    <ClockToCheckAnimation />
+              <Card className="h-full bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 border-blue-100 dark:border-blue-900/30">
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4">
+                    <Users className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2 text-blue-700 dark:text-blue-400">Hemat Waktu</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Proses yang biasanya 2-3 jam, kini hanya 10 menit dari rumah
-                  </p>
+                  <CardTitle className="text-xl text-blue-700 dark:text-blue-400">Untuk Masyarakat</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {[
+                      "Akses informasi pemerintahan 24/7 tanpa perlu ke kantor",
+                      "Response cepat dari AI assistant",
+                      "Pelaporan masalah dengan mudah dari smartphone",
+                      "Tracking status pengajuan secara real-time",
+                      "Reservasi layanan tanpa antre",
+                      "Akses dari berbagai platform (WhatsApp, Telegram, dll)",
+                    ].map((item, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <BadgeCheck className="w-3 h-3 text-blue-500" />
+                        </div>
+                        <span className="text-sm text-muted-foreground">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Benefit 2: Transparan */}
+            {/* For Government */}
             <motion.div variants={fadeInUp}>
-              <Card className="h-full hover:shadow-lg transition-shadow duration-300 bg-gradient-to-b from-green-50 to-white dark:from-green-950/30 dark:to-card border-green-100 dark:border-green-900/30">
-                <CardContent className="pt-8 pb-6 text-center">
-                  <div className="flex justify-center mb-4 h-16 items-center">
-                    <StepsLightingAnimation />
+              <Card className="h-full bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-100 dark:border-green-900/30">
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center mb-4">
+                    <Landmark className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold mb-2 text-green-700 dark:text-green-400">Transparan</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Pantau status pengajuan secara real-time tanpa perlu menelepon
-                  </p>
+                  <CardTitle className="text-xl text-green-700 dark:text-green-400">Untuk Pemerintah</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {[
+                      "Efisiensi pelayanan dengan automation AI",
+                      "Dashboard terpusat untuk semua channel",
+                      "Distribusi tugas otomatis ke petugas",
+                      "Analitik dan reporting untuk pengambilan keputusan",
+                      "Alert prioritas untuk laporan darurat",
+                      "Integrasi dengan sistem existing",
+                    ].map((item, index) => (
+                      <li key={index} className="flex items-start gap-3">
+                        <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <BadgeCheck className="w-3 h-3 text-green-500" />
+                        </div>
+                        <span className="text-sm text-muted-foreground">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </CardContent>
               </Card>
             </motion.div>
-
-            {/* Benefit 3: Mudah Diakses */}
-            <motion.div variants={fadeInUp}>
-              <Card className="h-full hover:shadow-lg transition-shadow duration-300 bg-gradient-to-b from-purple-50 to-white dark:from-purple-950/30 dark:to-card border-purple-100 dark:border-purple-900/30">
-                <CardContent className="pt-8 pb-6 text-center">
-                  <div className="flex justify-center mb-4">
-                    <PhoneServicesAnimation />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2 text-purple-700 dark:text-purple-400">Mudah Diakses</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Bisa digunakan kapan saja, di mana saja melalui smartphone
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Benefit 4: Gratis */}
-            <motion.div variants={fadeInUp}>
-              <Card className="h-full hover:shadow-lg transition-shadow duration-300 bg-gradient-to-b from-rose-50 to-white dark:from-rose-950/30 dark:to-card border-rose-100 dark:border-rose-900/30">
-                <CardContent className="pt-8 pb-6 text-center">
-                  <div className="flex justify-center mb-4">
-                    <motion.div
-                      className="relative w-16 h-16 flex items-center justify-center"
-                      animate={{ scale: [1, 1.05, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <div className="w-14 h-14 rounded-full bg-rose-500/20 flex items-center justify-center">
-                        <Heart className="h-7 w-7 text-rose-500" />
-                      </div>
-                      {/* Pulse rings */}
-                      <motion.div
-                        className="absolute inset-0 rounded-full border-2 border-rose-400"
-                        animate={{ scale: [1, 1.4], opacity: [0.5, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                      />
-                      <motion.div
-                        className="absolute inset-0 rounded-full border-2 border-rose-400"
-                        animate={{ scale: [1, 1.4], opacity: [0.5, 0] }}
-                        transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
-                      />
-                    </motion.div>
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2 text-rose-700 dark:text-rose-400">Gratis</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Layanan GovConnect sepenuhnya gratis untuk semua warga
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimoni" className="py-20 md:py-28 bg-gradient-to-b from-muted/50 to-background relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="text-center max-w-3xl mx-auto mb-16"
-          >
-            <span className="inline-block text-sm font-semibold text-secondary bg-secondary/10 px-4 py-1.5 rounded-full mb-4">
-              Testimoni Warga
-            </span>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Apa Kata Mereka?</h2>
-            <p className="text-muted-foreground text-lg">
-              Testimoni dari warga yang sudah menggunakan GovConnect
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid md:grid-cols-3 gap-8"
-          >
-            {[
-              {
-                name: "Budi Santoso",
-                role: "Warga RT 05",
-                text: "Dulu ngurus surat pengantar bisa setengah hari. Sekarang dengan GovConnect, saya ajukan dari rumah dan tinggal ambil di kelurahan. Praktis banget!",
-                image: "https://randomuser.me/api/portraits/men/32.jpg",
-                rating: 5,
-              },
-              {
-                name: "Siti Rahayu",
-                role: "Ibu Rumah Tangga",
-                text: "Saya lapor jalan rusak depan rumah lewat aplikasi. Dalam 3 hari sudah diperbaiki. Responsnya cepat dan ada notifikasi terus.",
-                image: "https://randomuser.me/api/portraits/women/44.jpg",
-                rating: 5,
-              },
-              {
-                name: "Ahmad Hidayat",
-                role: "Pedagang",
-                text: "Sebagai pedagang, waktu sangat berharga. GovConnect membantu saya mengurus izin tanpa harus tutup warung. Terima kasih!",
-                image: "https://randomuser.me/api/portraits/men/85.jpg",
-                rating: 5,
-              },
-            ].map((testimonial, index) => (
-              <motion.div key={index} variants={fadeInUp}>
-                <Card className="h-full hover:shadow-xl transition-all duration-300 border-border/50 group relative overflow-hidden">
-                  {/* Quote decoration */}
-                  <div className="absolute top-4 right-4 text-6xl text-secondary/10 font-serif leading-none">&ldquo;</div>
-                  <CardContent className="pt-8 pb-6 relative">
-                    {/* Rating stars */}
-                    <div className="flex gap-1 mb-4">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                          <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                        </svg>
-                      ))}
-                    </div>
-                    <p className="text-muted-foreground mb-6 leading-relaxed">&ldquo;{testimonial.text}&rdquo;</p>
-                    <div className="flex items-center gap-4 pt-4 border-t border-border/50">
-                      <div className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-secondary/20 group-hover:ring-secondary/40 transition-all">
-                        <Image
-                          src={testimonial.image}
-                          alt={testimonial.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">{testimonial.name}</h4>
-                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
           </motion.div>
         </div>
       </section>
@@ -869,39 +957,99 @@ export default function LandingPage() {
               <Accordion type="single" collapsible className="w-full">
                 <AccordionItem value="item-1">
                   <AccordionTrigger className="text-left">
-                    Apakah GovConnect gratis untuk digunakan?
+                    Apa itu GovConnect?
                   </AccordionTrigger>
                   <AccordionContent>
-                    Ya, GovConnect sepenuhnya gratis untuk semua warga. Tidak ada biaya pendaftaran maupun biaya penggunaan.
+                    GovConnect adalah platform yang menghubungkan masyarakat dengan pemerintah melalui automation berbasis AI. 
+                    Platform ini menyediakan knowledge base, sistem pelaporan, pengajuan layanan, dan berbagai fitur lainnya 
+                    yang dapat diakses dari berbagai channel seperti WhatsApp, Telegram, Instagram, dan website.
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-2">
                   <AccordionTrigger className="text-left">
-                    Bagaimana cara mendaftar di GovConnect?
+                    Untuk tingkat pemerintahan apa saja GovConnect bisa digunakan?
                   </AccordionTrigger>
                   <AccordionContent>
-                    Pendaftaran sangat mudah. Anda hanya perlu menyiapkan NIK dan nomor HP aktif. Proses ini hanya membutuhkan waktu sekitar 2 menit.
+                    GovConnect dapat disesuaikan untuk semua tingkat pemerintahan mulai dari kelurahan, kecamatan, 
+                    kabupaten/kota, hingga pusat. Juga dapat digunakan untuk instansi khusus seperti kepolisian, 
+                    dinas kesehatan, dinas pendidikan, dan lainnya. Kami akan menyesuaikan sesuai kebutuhan spesifik setiap instansi.
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-3">
                   <AccordionTrigger className="text-left">
-                    Apakah data saya aman di GovConnect?
+                    Bagaimana dengan keamanan data?
                   </AccordionTrigger>
                   <AccordionContent>
-                    Keamanan data adalah prioritas kami. Semua informasi dienkripsi dan hanya digunakan untuk keperluan layanan kelurahan.
+                    Keamanan data adalah prioritas kami. Semua data dienkripsi end-to-end dan disimpan dengan standar keamanan tinggi. 
+                    Akses ke dashboard dikontrol dengan sistem autentikasi yang ketat dan dapat disesuaikan sesuai struktur organisasi pemerintahan.
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-4">
                   <AccordionTrigger className="text-left">
-                    Berapa lama proses pengajuan surat?
+                    Apakah bisa diintegrasikan dengan sistem yang sudah ada?
                   </AccordionTrigger>
                   <AccordionContent>
-                    Waktu proses bervariasi tergantung jenis surat, namun umumnya 2-3 hari kerja. Anda akan mendapat notifikasi real-time.
+                    Ya, GovConnect dirancang untuk dapat diintegrasikan dengan sistem pemerintahan yang sudah ada. 
+                    Knowledge base dapat terhubung dengan database existing untuk mendapatkan data real-time, 
+                    sehingga informasi yang diberikan ke masyarakat selalu up-to-date.
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-5">
+                  <AccordionTrigger className="text-left">
+                    Bagaimana cara memulai menggunakan GovConnect?
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    Hubungi tim kami untuk konsultasi kebutuhan. Kami akan melakukan assessment, 
+                    menyesuaikan platform sesuai kebutuhan instansi Anda, melakukan setup dan training, 
+                    hingga platform siap digunakan. Proses implementasi disesuaikan dengan kompleksitas kebutuhan.
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 md:py-28 bg-gradient-to-b from-secondary/10 to-primary/10 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-10 left-10 w-32 h-32 bg-secondary/20 rounded-full blur-2xl" />
+          <div className="absolute bottom-10 right-10 w-40 h-40 bg-primary/20 rounded-full blur-2xl" />
+        </div>
+        
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              Siap Meningkatkan{" "}
+              <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">
+                Layanan Pemerintahan
+              </span>
+              ?
+            </h2>
+            <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
+              Hubungi kami untuk konsultasi dan demo platform GovConnect. 
+              Kami akan membantu menyesuaikan solusi sesuai kebutuhan instansi Anda.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" className="text-lg px-8 bg-secondary hover:bg-secondary/90 shadow-lg shadow-secondary/25" asChild>
+                <a href={whatsappLink} target="_blank" rel="noopener noreferrer">
+                  <WhatsAppIcon className="mr-2 h-5 w-5" />
+                  Hubungi via WhatsApp
+                </a>
+              </Button>
+              <Button size="lg" variant="outline" className="text-lg px-8 border-2" asChild>
+                <a href="mailto:info@govconnect.id">
+                  <Mail className="mr-2 h-5 w-5" />
+                  Email Kami
+                </a>
+              </Button>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -920,8 +1068,8 @@ export default function LandingPage() {
                 />
               </Link>
               <p className="text-muted-foreground mb-6 max-w-sm leading-relaxed">
-                GovConnect adalah platform digital yang menghubungkan warga
-                dengan layanan kelurahan secara cepat, mudah, dan transparan.
+                GovConnect adalah platform AI yang menghubungkan masyarakat dengan layanan pemerintahan 
+                secara cepat, mudah, dan terintegrasi dari berbagai channel.
               </p>
               <div className="flex gap-3">
                 <a
@@ -942,30 +1090,30 @@ export default function LandingPage() {
             </div>
 
             <div className="md:col-span-3">
-              <h4 className="font-semibold mb-4 text-foreground">Layanan</h4>
+              <h4 className="font-semibold mb-4 text-foreground">Fitur</h4>
               <ul className="space-y-3 text-muted-foreground">
                 <li>
-                  <Link href="#" className="hover:text-secondary transition-colors inline-flex items-center gap-2">
+                  <Link href="#fitur" className="hover:text-secondary transition-colors inline-flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-secondary/50" />
-                    Lapor Masalah
+                    Knowledge Base AI
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-secondary transition-colors inline-flex items-center gap-2">
+                  <Link href="#fitur" className="hover:text-secondary transition-colors inline-flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-secondary/50" />
-                    Layanan Surat
+                    Pelaporan & Tracking
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-secondary transition-colors inline-flex items-center gap-2">
+                  <Link href="#fitur" className="hover:text-secondary transition-colors inline-flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-secondary/50" />
-                    Informasi
+                    Reservasi Layanan
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="hover:text-secondary transition-colors inline-flex items-center gap-2">
+                  <Link href="#integrasi" className="hover:text-secondary transition-colors inline-flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-secondary/50" />
-                    Cek Status
+                    Multi-Channel
                   </Link>
                 </li>
               </ul>
@@ -1013,7 +1161,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Live Chat Widget - Right Side */}
+      {/* Live Chat Widget */}
       <LiveChatWidget isDark={isDark} />
     </div>
   );
