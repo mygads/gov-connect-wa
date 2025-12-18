@@ -295,14 +295,23 @@ export default function AIAnalyticsPage() {
 
   const formatIntent = (intent: string) => {
     const map: Record<string, string> = {
+      // Action Intents
       'CREATE_COMPLAINT': 'Buat Laporan',
       'CREATE_RESERVATION': 'Buat Reservasi',
+      'UPDATE_RESERVATION': 'Ubah Reservasi',
       'CHECK_STATUS': 'Cek Status',
       'CANCEL_COMPLAINT': 'Batalkan Laporan',
       'CANCEL_RESERVATION': 'Batalkan Reservasi',
       'HISTORY': 'Riwayat',
+      // Conversational Intents
+      'GREETING': 'Sapaan',
+      'THANKS': 'Terima Kasih',
+      'CONFIRMATION': 'Konfirmasi',
+      'REJECTION': 'Penolakan',
+      // Query Intents
       'KNOWLEDGE_QUERY': 'Tanya Informasi',
-      'QUESTION': 'Pertanyaan',
+      'QUESTION': 'Pertanyaan Umum',
+      // Other
       'UNKNOWN': 'Tidak Dikenal',
     }
     return map[intent] || intent
@@ -1221,71 +1230,6 @@ export default function AIAnalyticsPage() {
                 </TableRow>
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Model Pricing Reference */}
-      {tokens?.modelPricing && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5" />
-              Referensi Harga Model AI (Gemini)
-            </CardTitle>
-            <CardDescription>
-              Harga per 1 juta token berdasarkan dokumentasi Google AI (Desember 2025) - 1 USD = Rp {formatNumber(USD_TO_IDR)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Deskripsi</TableHead>
-                  <TableHead className="text-right">Input/1M (USD)</TableHead>
-                  <TableHead className="text-right">Output/1M (USD)</TableHead>
-                  <TableHead className="text-right">Est. Biaya/1K Pesan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(tokens.modelPricing).map(([model, pricing]) => {
-                  const modelDescriptions: Record<string, string> = {
-                    'gemini-2.5-flash': 'Hybrid reasoning, 1M context',
-                    'gemini-2.5-flash-lite': 'Smallest, cost-efficient',
-                    'gemini-2.0-flash': 'Balanced multimodal, 1M context',
-                    'gemini-2.0-flash-lite': 'Legacy cost-efficient',
-                  }
-                  // Estimate ~500 input + ~200 output tokens per request
-                  const estCostPer1K = ((500 * pricing.input + 200 * pricing.output) / 1_000_000) * 1000
-                  return (
-                    <TableRow key={model}>
-                      <TableCell className="font-medium">
-                        <code className="text-xs bg-muted px-1 py-0.5 rounded">{model}</code>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {modelDescriptions[model] || '-'}
-                      </TableCell>
-                      <TableCell className="text-right text-blue-600 font-medium">
-                        ${pricing.input.toFixed(3)}
-                      </TableCell>
-                      <TableCell className="text-right text-green-600 font-medium">
-                        ${pricing.output.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        <div className="flex flex-col items-end">
-                          <span className="text-purple-600">{formatIDR(usdToIdr(estCostPer1K))}</span>
-                          <span className="text-xs text-muted-foreground">${estCostPer1K.toFixed(4)}</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-            <p className="text-xs text-muted-foreground mt-4">
-              * Estimasi biaya berdasarkan ~500 input tokens dan ~200 output tokens per request (tipikal untuk chatbot).
-            </p>
           </CardContent>
         </Card>
       )}
