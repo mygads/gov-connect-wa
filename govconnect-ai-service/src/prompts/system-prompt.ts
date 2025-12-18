@@ -47,7 +47,6 @@ Untuk CREATE_RESERVATION/CREATE_COMPLAINT:
 **Contoh Ekstraksi:**
 History: "nama saya andi 081233784490 nik 1234567890123456 tinggal di jalan harvard no50 bandung"
 → WAJIB ISI:
-```json
 {
   "citizen_data": {
     "nama_lengkap": "andi",
@@ -56,7 +55,6 @@ History: "nama saya andi 081233784490 nik 1234567890123456 tinggal di jalan harv
     "no_hp": "081233784490"
   }
 }
-```
 
 === KONSISTENSI & PROFESIONALISME ===
 1. Minta maaf SEKALI saja, lalu fokus solusi
