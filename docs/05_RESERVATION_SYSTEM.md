@@ -40,12 +40,20 @@ Setiap layanan memiliki pertanyaan spesifik tambahan, contoh:
 - **SKU**: nama_usaha, jenis_usaha, alamat_usaha
 - **IKR**: nama_acara, jenis_acara, tanggal_acara, lokasi_acara, jumlah_tamu
 
-## 🔄 Flow Reservasi via WhatsApp
+## 🔄 Flow Reservasi
+
+### Via WhatsApp (Async)
 
 ```
 User: "mau buat surat domisili"
     ↓
-AI: Deteksi intent CREATE_RESERVATION, service_code: SKD
+Channel Service: Receive webhook → Publish to RabbitMQ
+    ↓
+AI Service: Consume message → 2-Layer Processing
+    ↓
+Layer 1: Deteksi intent CREATE_RESERVATION, service_code: SKD
+    ↓
+Layer 2: Generate response, tanyakan data
     ↓
 AI: Tanyakan data umum satu per satu
     - nama_lengkap
@@ -61,8 +69,39 @@ AI: Konfirmasi semua data
     ↓
 System: Buat reservasi dengan nomor RSV-YYYYMMDD-XXX
     ↓
-AI: Kirim konfirmasi + persyaratan dokumen
+AI: Kirim konfirmasi + persyaratan dokumen via RabbitMQ
 ```
+
+### Via Webchat (Sync)
+
+```
+User: "mau buat surat domisili"
+    ↓
+Webchat Widget: POST /api/webchat
+    ↓
+AI Service: Synchronous 2-Layer Processing
+    ↓
+Layer 1: Deteksi intent CREATE_RESERVATION, service_code: SKD
+    ↓
+Layer 2: Generate response, tanyakan data
+    ↓
+HTTP Response: Return response langsung ke widget
+    ↓
+(Conversation continues via HTTP request/response)
+    ↓
+System: Buat reservasi dengan nomor RSV-YYYYMMDD-XXX
+    ↓
+HTTP Response: Konfirmasi + persyaratan dokumen
+```
+
+### Perbedaan Channel
+
+| Aspect | WhatsApp | Webchat |
+|--------|----------|---------|
+| Processing | Async (RabbitMQ) | Sync (HTTP) |
+| User ID | Phone (628xxx) | Session (web_xxx) |
+| Response Delivery | WhatsApp API | HTTP Response |
+| Session Persistence | Database | In-memory + DB sync |
 
 ## 📊 Status Reservasi
 

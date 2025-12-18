@@ -293,6 +293,149 @@ curl -X POST http://localhost:3001/internal/takeover/628123456789/end \
 
 ---
 
+### Skenario E: Warga Menggunakan Webchat (Synchronous)
+
+**Mapping ke Requirement EAI**: Synchronous Communication + 2-Layer Architecture
+
+**Flow Lengkap**:
+
+```
+1. Warga membuka landing page dan klik widget chat
+   
+2. Webchat widget generate session_id: "web_abc123..."
+   
+3. Warga mengetik pesan:
+   "Saya mau tanya jam buka kantor kelurahan"
+   
+4. Webchat Widget → AI Service (HTTP POST):
+   POST /api/webchat
+   Body: {
+     "session_id": "web_abc123...",
+     "message": "Saya mau tanya jam buka kantor kelurahan"
+   }
+   
+5. AI Service (Synchronous Processing):
+   a. Check takeover status (not in takeover)
+   b. Add message to batch (wait 3s for more messages)
+   c. Process with 2-Layer Architecture:
+      - Layer 1: Intent = KNOWLEDGE_QUERY, confidence = 0.95
+      - Layer 2: Generate response from knowledge base
+   d. Check cache (HIT/MISS)
+   e. Save message to Channel Service (async, for Live Chat)
+   
+6. AI Service → Webchat Widget (HTTP Response):
+   {
+     "success": true,
+     "response": "🏢 Kantor Kelurahan\nJam Operasional:\nSenin-Jumat: 08:00-15:00 WIB\nSabtu: 08:00-12:00 WIB",
+     "intent": "KNOWLEDGE_QUERY",
+     "metadata": {
+       "processingTimeMs": 1200,
+       "cached": false,
+       "isBatched": false
+     }
+   }
+   
+7. Webchat Widget menampilkan response ke warga
+```
+
+**Sequence Diagram**:
+
+```
+Warga    Webchat    AI Service    Channel    Cache    LLM
+  │       Widget        │          Service     │        │
+  │         │           │             │        │        │
+  ├─Ketik──►│           │             │        │        │
+  │         ├─POST─────►│             │        │        │
+  │         │           ├─Check takeover       │        │
+  │         │           ├─Batch wait (3s)      │        │
+  │         │           ├─Check cache─────────►│        │
+  │         │           │             │        │ MISS   │
+  │         │           ├─Layer 1 LLM─────────────────►│
+  │         │           │◄────────────────────────────┤
+  │         │           ├─Layer 2 LLM─────────────────►│
+  │         │           │◄────────────────────────────┤
+  │         │           ├─Save to cache───────►│        │
+  │         │           ├─Sync message────────►│        │
+  │         │◄─Response─┤             │        │        │
+  │◄─Display┤           │             │        │        │
+```
+
+**Perbedaan dengan WhatsApp Flow**:
+
+| Aspect | WhatsApp | Webchat |
+|--------|----------|---------|
+| Processing | Async (RabbitMQ) | Sync (HTTP) |
+| Session ID | Phone number (628xxx) | web_xxx |
+| Message Delivery | WhatsApp API | HTTP Response |
+| Batch Delay | 2 seconds | 3 seconds |
+| Media Support | Yes | No (text only) |
+| Takeover | Via Channel Service | Via AI Service |
+
+**Demo - Webchat API**:
+```bash
+# 1. Send webchat message
+curl -X POST http://localhost:3002/api/webchat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": "web_demo_001",
+    "message": "Jam buka kantor kelurahan?"
+  }'
+
+# 2. Get session history
+curl http://localhost:3002/api/webchat/web_demo_001
+
+# 3. Poll for admin messages (when takeover active)
+curl "http://localhost:3002/api/webchat/web_demo_001/poll?since=2025-01-01T00:00:00Z"
+```
+
+---
+
+### Skenario F: Admin Takeover Webchat
+
+**Flow Lengkap**:
+
+```
+1. Admin di Dashboard melihat webchat conversation
+   
+2. Admin klik "Ambil Alih Percakapan"
+   
+3. Dashboard → Channel Service:
+   POST /internal/takeover/web_abc123/start
+   
+4. Channel Service:
+   - Set takeover status = true
+   - Save to gc_channel.takeover_sessions
+   
+5. Warga mengirim pesan baru via Webchat
+   
+6. AI Service:
+   - Check takeover status (true)
+   - Return empty response dengan is_takeover flag
+   - Save message to Channel Service
+   
+7. Webchat Widget:
+   - Start polling for admin messages
+   - GET /api/webchat/web_abc123/poll
+   
+8. Admin mengetik reply di Dashboard
+   
+9. Dashboard → Channel Service:
+   POST /internal/messages/send
+   Body: { "wa_user_id": "web_abc123", "message": "..." }
+   
+10. Channel Service saves message
+   
+11. Webchat Widget (polling):
+    - Receive admin message
+    - Display to warga
+    
+12. Admin selesai, klik "Akhiri Percakapan"
+    
+13. Pesan selanjutnya kembali ke AI
+```
+
+---
+
 ## 📊 Data Flow Diagram
 
 ### Complete System Flow

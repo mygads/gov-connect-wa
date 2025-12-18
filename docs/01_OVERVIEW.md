@@ -2,21 +2,32 @@
 
 ## 📋 Deskripsi Proyek
 
-**GovConnect** adalah platform digital berbasis **Microservices Architecture** yang mengintegrasikan layanan pemerintahan kelurahan dengan masyarakat melalui WhatsApp. Sistem ini menerapkan **Enterprise Application Integration (EAI)** dengan komunikasi synchronous (REST API) dan asynchronous (Message Broker).
+**GovConnect** adalah platform digital berbasis **Microservices Architecture** yang mengintegrasikan layanan pemerintahan kelurahan dengan masyarakat melalui **WhatsApp** dan **Webchat**. Sistem ini menerapkan **Enterprise Application Integration (EAI)** dengan komunikasi synchronous (REST API) dan asynchronous (Message Broker), serta dilengkapi dengan **2-Layer LLM Architecture** untuk pemrosesan AI yang lebih akurat.
 
 ## 🎯 Tujuan Sistem
 
 1. **Digitalisasi Layanan Kelurahan**: Warga dapat mengakses layanan tanpa datang ke kantor
 2. **Otomasi Proses**: AI mengidentifikasi intent dan membuat laporan otomatis
-3. **Real-time Communication**: Integrasi dengan WhatsApp untuk komunikasi instant
-4. **Monitoring & Analytics**: Dashboard admin untuk monitoring dan statistik
+3. **Multi-Channel Communication**: Integrasi dengan WhatsApp dan Webchat untuk komunikasi instant
+4. **Monitoring & Analytics**: Dashboard admin untuk monitoring, statistik, dan AI analytics
 5. **Scalability**: Arsitektur microservices yang mudah di-scale
+6. **AI Optimization**: 2-Layer LLM Architecture dengan response caching untuk efisiensi
 
 ## 🏗️ Arsitektur Sistem
 
 ### High-Level Architecture
 
 ```
+┌─────────────────────────────────────────────────────────────────┐
+│                        EXTERNAL LAYER                           │
+│  ┌────────────┐    ┌────────────┐    ┌──────────────┐          │
+│  │  WhatsApp  │    │  Webchat   │    │    Admin     │          │
+│  │   Users    │    │   Widget   │    │   Browser    │          │
+│  └─────┬──────┘    └─────┬──────┘    └──────┬───────┘          │
+└────────┼─────────────────┼──────────────────┼──────────────────┘
+         │                 │                  │
+         │ Webhook         │ HTTP             │ HTTPS
+         ▼                 ▼                  ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                        API GATEWAY (Traefik)                    │
 │                         Port: 80, 443, 8080                     │
@@ -49,11 +60,11 @@
 
 | Service | Port | Database | Fungsi Utama |
 |---------|------|----------|--------------|
-| **Channel Service** | 3001 | gc_channel | Gateway WhatsApp, Message handling, Takeover |
-| **AI Service** | 3002 | gc_ai | AI Orchestration, Intent detection, RAG |
-| **Case Service** | 3003 | gc_case | Complaint management, Ticketing |
+| **Channel Service** | 3001 | gc_channel | Gateway WhatsApp & Webchat, Message handling, Takeover |
+| **AI Service** | 3002 | gc_ai | AI Orchestration, 2-Layer LLM, Intent detection, RAG, Webchat API |
+| **Case Service** | 3003 | gc_case | Complaint & Reservation management, Ticketing |
 | **Notification Service** | 3004 | gc_notification | Notification delivery |
-| **Dashboard** | 3000 | gc_dashboard | Admin panel, Monitoring, Knowledge base |
+| **Dashboard** | 3000 | gc_dashboard | Admin panel, Live Chat, AI Analytics, Knowledge base |
 
 ### 2. Infrastructure Components
 
@@ -72,7 +83,16 @@
 | Service | Fungsi |
 |---------|--------|
 | **WhatsApp API** | WhatsApp Business API (api-wa.genfity.com) |
-| **Google Gemini AI** | LLM untuk intent detection & RAG |
+| **Google Gemini AI** | LLM untuk 2-Layer Architecture, intent detection & RAG |
+
+### 4. Communication Channels
+
+| Channel | Endpoint | Processing | Fitur |
+|---------|----------|------------|-------|
+| **WhatsApp** | Webhook `/webhook/whatsapp` | Async (RabbitMQ) | Message batching, Media support |
+| **Webchat** | HTTP `/api/webchat` | Sync (Direct) | Real-time response, Session-based |
+
+Kedua channel menggunakan arsitektur yang sama (dikontrol via `USE_2_LAYER_ARCHITECTURE` env var).
 
 ## 🔄 Pola Komunikasi
 
@@ -143,8 +163,10 @@ PostgreSQL Server (postgres:5432)
 - **Radix UI** - Component library
 
 ### AI/ML
-- **Google Gemini 2.5 Flash** - LLM untuk intent detection
+- **Google Gemini 2.5 Flash** - LLM untuk 2-Layer Architecture
 - **pgvector** - Vector database untuk RAG
+- **2-Layer LLM Architecture** - Layer 1 (Intent + Entity), Layer 2 (Response Generation)
+- **Response Caching** - Cache untuk query umum, mengurangi LLM calls
 
 ### Infrastructure
 - **Docker** - Containerization
@@ -210,11 +232,36 @@ containers/
 
 ## 📈 Fitur Unggulan
 
-1. **AI-Powered Intent Detection** - Otomatis mendeteksi intent user
-2. **Event-Driven Architecture** - Message batching, async processing
-3. **Real-time Communication** - WhatsApp integration, live chat
-4. **Monitoring & Observability** - Centralized logging, metrics
-5. **Security** - JWT authentication, API key validation
+1. **2-Layer LLM Architecture** - Layer 1 untuk intent & entity extraction, Layer 2 untuk response generation
+2. **Multi-Channel Support** - WhatsApp (async) dan Webchat (sync) dengan arsitektur unified
+3. **Response Caching** - Cache untuk query umum, mengurangi biaya LLM hingga 30%
+4. **AI-Powered Intent Detection** - 14 intent types dengan confidence scoring
+5. **Event-Driven Architecture** - Message batching, async processing via RabbitMQ
+6. **Live Chat Dashboard** - Admin takeover untuk WhatsApp dan Webchat
+7. **AI Analytics** - Monitoring biaya, usage, dan performance AI (dalam Rupiah)
+8. **Monitoring & Observability** - Centralized logging, metrics, Grafana dashboards
+9. **Security** - JWT authentication, API key validation
+
+## 🤖 Intent Types
+
+Sistem mendukung 14 jenis intent:
+
+| Intent | Deskripsi |
+|--------|-----------|
+| `GREETING` | Sapaan awal |
+| `THANKS` | Ucapan terima kasih |
+| `CONFIRMATION` | Konfirmasi (ya/setuju) |
+| `REJECTION` | Penolakan (tidak/batal) |
+| `CREATE_COMPLAINT` | Membuat laporan/pengaduan |
+| `CREATE_RESERVATION` | Membuat reservasi layanan |
+| `UPDATE_RESERVATION` | Mengubah reservasi |
+| `CHECK_STATUS` | Cek status laporan/reservasi |
+| `CANCEL_COMPLAINT` | Membatalkan laporan |
+| `CANCEL_RESERVATION` | Membatalkan reservasi |
+| `HISTORY` | Melihat riwayat |
+| `KNOWLEDGE_QUERY` | Pertanyaan informasi umum |
+| `QUESTION` | Pertanyaan lainnya |
+| `UNKNOWN` | Tidak terdeteksi |
 
 ## 🔗 Dokumentasi Lengkap
 

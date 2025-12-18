@@ -169,24 +169,27 @@ await rabbitMQ.subscribe(
 **Responsibilities**:
 - Menerima webhook dari WhatsApp API
 - Validasi dan parsing message
-- Menyimpan incoming/outgoing messages
+- Menyimpan incoming/outgoing messages (WhatsApp & Webchat)
 - Mengirim message ke WhatsApp API
 - Message batching untuk efisiensi
-- Takeover mode (admin live chat)
+- Takeover mode (admin live chat) untuk WhatsApp & Webchat
 - Media handling (images, documents)
+- Webchat message sync (dari AI Service)
 
 **Database**: `gc_channel`
 - messages, conversations, user_profiles, takeover_sessions
 
 **Endpoints**:
 ```
-POST   /webhook/whatsapp          # Receive webhook
+POST   /webhook/whatsapp          # Receive WhatsApp webhook
 GET    /webhook/whatsapp          # Webhook verification
-POST   /internal/messages/send    # Send message
+POST   /internal/messages/send    # Send message (WhatsApp)
 GET    /internal/messages         # Get messages
-POST   /internal/takeover/:id/start
-POST   /internal/takeover/:id/end
-GET    /internal/takeover/:id/status
+POST   /internal/takeover/:id/start  # Start takeover (WhatsApp/Webchat)
+POST   /internal/takeover/:id/end    # End takeover
+GET    /internal/takeover/:id/status # Check takeover status
+POST   /internal/webchat/messages    # Sync webchat messages
+GET    /internal/webchat/:id/messages # Get webchat messages
 GET    /health
 ```
 
@@ -195,23 +198,35 @@ GET    /health
 **Domain**: AI Orchestration & Intelligence
 
 **Responsibilities**:
-- Intent detection (KNOWLEDGE_QUERY, CREATE_COMPLAINT, CHECK_STATUS)
+- 2-Layer LLM Architecture (Layer 1: Intent + Entity, Layer 2: Response)
+- Intent detection (14 intent types)
 - Data extraction dari natural language
 - RAG (Retrieval Augmented Generation)
 - Vector search untuk knowledge base
 - LLM integration (Gemini AI)
+- Response caching untuk query umum
+- Webchat API endpoint (synchronous processing)
+- AI Analytics & Statistics
 
 **Database**: `gc_ai`
 - knowledge_vectors (pgvector extension)
 
 **Endpoints**:
 ```
-POST   /internal/process-message  # Process message
+POST   /internal/process-message  # Process message (WhatsApp)
+POST   /api/webchat               # Process webchat message (sync)
+GET    /api/webchat/:session_id   # Get webchat session history
+GET    /api/webchat/:session_id/poll # Poll for admin messages
 GET    /internal/analytics        # Get analytics
+GET    /stats/optimization        # AI optimization stats
 POST   /internal/knowledge/search # Search knowledge
 POST   /internal/documents/process # Process documents
 GET    /health
 ```
+
+**Architecture Modes** (controlled by `USE_2_LAYER_ARCHITECTURE` env var):
+- **Single-Layer**: Direct LLM call for intent + response
+- **2-Layer**: Layer 1 (Fast Intent + Entity) → Layer 2 (Response Generation)
 
 ### Case Service (Port 3003)
 
@@ -266,10 +281,11 @@ GET    /health
 
 **Responsibilities**:
 - Admin authentication (JWT)
-- Complaint management UI
+- Complaint & Reservation management UI
 - Knowledge base management
 - Document upload & processing
-- Live chat (takeover)
+- Live chat (takeover) untuk WhatsApp & Webchat
+- AI Analytics (biaya dalam Rupiah, usage stats)
 - Statistics & analytics
 - Activity logs
 
@@ -282,10 +298,12 @@ GET    /health
 /dashboard          # Main dashboard
 /complaints         # Complaint list
 /complaints/:id     # Complaint detail
+/reservations       # Reservation list
 /knowledge          # Knowledge base
 /documents          # Document management
-/live-chat          # Live chat with users
-/analytics          # Analytics
+/live-chat          # Live chat with users (WhatsApp & Webchat)
+/ai-analytics       # AI Analytics (biaya, usage, optimization)
+/analytics          # General analytics
 ```
 
 ## 🐳 Docker Architecture
@@ -361,6 +379,145 @@ healthcheck:
   retries: 3
   start_period: 30s
 ```
+
+## 🤖 2-Layer LLM Architecture
+
+### Overview
+
+GovConnect menggunakan arsitektur 2-Layer LLM untuk pemrosesan AI yang lebih akurat dan efisien:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     USER MESSAGE                                │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    PREPROCESSING                                │
+│  - Spam Detection                                               │
+│  - Input Sanitization                                           │
+│  - Typo Correction                                              │
+│  - Response Cache Check                                         │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              │ Cache HIT?                    │
+              │ Yes → Return cached response  │
+              │ No  → Continue to Layer 1     │
+              └───────────────┬───────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    LAYER 1: UNDERSTANDING                       │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Fast Intent Classification                              │   │
+│  │  - Pattern matching untuk intent umum                    │   │
+│  │  - Confidence scoring                                    │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Entity Extraction                                       │   │
+│  │  - Nama, NIK, Alamat, Telepon                           │   │
+│  │  - Kategori, Tanggal, Waktu                             │   │
+│  │  - Complaint ID, Reservation ID                          │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  LLM Call (Gemini) - Intent Confirmation                 │   │
+│  │  - Validate intent dengan context                        │   │
+│  │  - Extract missing entities                              │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  Output: { intent, confidence, extracted_data, missing_fields } │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    LAYER 2: RESPONSE GENERATION                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Context Building                                        │   │
+│  │  - Conversation history                                  │   │
+│  │  - User profile data                                     │   │
+│  │  - Knowledge base (RAG)                                  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  LLM Call (Gemini) - Response Generation                 │   │
+│  │  - Generate natural response                             │   │
+│  │  - Include guidance text if needed                       │   │
+│  │  - Determine next action                                 │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  Action Handler                                          │   │
+│  │  - CREATE_COMPLAINT → Case Service                       │   │
+│  │  - CREATE_RESERVATION → Case Service                     │   │
+│  │  - CHECK_STATUS → Case Service                           │   │
+│  │  - KNOWLEDGE_QUERY → RAG Search                          │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  Output: { reply_text, guidance_text, next_action }            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    POST-PROCESSING                              │
+│  - Cache response (if cacheable)                               │
+│  - Record analytics                                             │
+│  - Send response to user                                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Benefits
+
+| Aspect | Single-Layer | 2-Layer |
+|--------|--------------|---------|
+| Intent Accuracy | ~85% | ~95% |
+| Entity Extraction | Basic | Comprehensive |
+| Response Quality | Good | Excellent |
+| LLM Calls | 1 | 2 (but cached) |
+| Processing Time | ~1.5s | ~2.5s |
+
+### Configuration
+
+```env
+# Enable 2-Layer Architecture (applies to BOTH WhatsApp and Webchat)
+USE_2_LAYER_ARCHITECTURE=true
+```
+
+## 📦 Response Caching
+
+### Overview
+
+Response caching mengurangi LLM calls untuk query yang sering ditanyakan:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CACHE FLOW                                   │
+│                                                                 │
+│  User Message → Normalize → Hash → Check Cache                  │
+│                                      │                          │
+│                          ┌───────────┴───────────┐              │
+│                          │                       │              │
+│                       HIT ↓                   MISS ↓            │
+│                   Return cached            Process with LLM     │
+│                   response                       │              │
+│                                                  ▼              │
+│                                           Store in cache        │
+│                                           (TTL: 1 hour)         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Cacheable Queries
+
+- Jam operasional kantor
+- Persyaratan dokumen
+- Alamat kantor
+- Informasi layanan umum
+- FAQ
+
+### Cache Statistics
+
+Dashboard AI Analytics menampilkan:
+- Cache hit rate
+- Cost savings dari cache
+- Most cached queries
 
 ## 🔐 Security Architecture
 
