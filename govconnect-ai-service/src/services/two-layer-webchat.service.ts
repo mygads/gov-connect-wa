@@ -54,9 +54,10 @@ export async function processTwoLayerWebchat(params: TwoLayerWebchatParams): Pro
     if (isSpamMessage(message)) {
       logger.warn('🚫 Spam detected in webchat', { userId });
       return {
+        success: true,
         response: 'Maaf, pesan tidak dapat diproses.',
         intent: 'SPAM',
-        metadata: { processingTimeMs: Date.now() - startTime },
+        metadata: { processingTimeMs: Date.now() - startTime, hasKnowledge: false },
       };
     }
 
@@ -69,12 +70,13 @@ export async function processTwoLayerWebchat(params: TwoLayerWebchatParams): Pro
     if (cached) {
       logger.info('📦 Cache HIT for webchat', { userId, intent: cached.intent });
       return {
+        success: true,
         response: cached.response,
         guidanceText: cached.guidanceText,
         intent: cached.intent,
         metadata: {
           processingTimeMs: Date.now() - startTime,
-          cached: true,
+          hasKnowledge: false,
         },
       };
     }
@@ -88,7 +90,7 @@ export async function processTwoLayerWebchat(params: TwoLayerWebchatParams): Pro
 
     // Step 6: Layer 1 - Intent & Understanding
     logger.info('🔍 Layer 1 - Intent & Understanding', { userId });
-    
+
     const layer1Output = await callLayer1LLM({
       message: sanitizedMessage,
       wa_user_id: userId,
@@ -99,9 +101,10 @@ export async function processTwoLayerWebchat(params: TwoLayerWebchatParams): Pro
     if (!layer1Output) {
       logger.error('❌ Layer 1 failed', { userId });
       return {
+        success: false,
         response: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
         intent: 'ERROR',
-        metadata: { processingTimeMs: Date.now() - startTime, error: 'Layer 1 failed' },
+        metadata: { processingTimeMs: Date.now() - startTime, hasKnowledge: false },
       };
     }
 
@@ -164,29 +167,29 @@ export async function processTwoLayerWebchat(params: TwoLayerWebchatParams): Pro
     });
 
     return {
+      success: true,
       response: finalResponse,
       guidanceText: guidanceText || undefined,
       intent: enhancedLayer1.intent,
       metadata: {
         processingTimeMs,
         model: 'two-layer',
-        hasKnowledge: layer2Output.needs_knowledge,
-        knowledgeConfidence: enhancedLayer1.confidence,
+        hasKnowledge: layer2Output.needs_knowledge || false,
+        knowledgeConfidence: String(enhancedLayer1.confidence),
         sentiment: sentiment.level,
-        layer1Confidence: enhancedLayer1.confidence,
-        layer2Confidence: layer2Output.confidence,
       },
     };
 
   } catch (error: any) {
     logger.error('❌ 2-Layer webchat error', { userId, error: error.message });
-    
+
     return {
+      success: false,
       response: 'Maaf, terjadi kesalahan saat memproses pesan. Silakan coba lagi.',
       intent: 'ERROR',
       metadata: {
         processingTimeMs: Date.now() - startTime,
-        error: error.message,
+        hasKnowledge: false,
       },
     };
   }
@@ -199,14 +202,14 @@ export async function processTwoLayerWebchat(params: TwoLayerWebchatParams): Pro
 async function enhanceWithHistory(layer1Output: any, userId: string): Promise<any> {
   try {
     const historyData = await extractCitizenDataFromHistory(userId, { limit: 10 });
-    
+
     if (!historyData) return layer1Output;
 
     const enhanced = { ...layer1Output };
-    
+
     for (const [key, value] of Object.entries(historyData)) {
       const currentValue = enhanced.extracted_data[key];
-      
+
       if ((!currentValue || currentValue === '') && value) {
         enhanced.extracted_data[key] = value;
       }
@@ -248,28 +251,28 @@ async function handleWebchatAction(
     switch (action) {
       case 'CREATE_COMPLAINT':
         return await handleComplaintCreation(userId, mockLlmResponse, message);
-      
+
       case 'CREATE_RESERVATION':
         return await handleReservationCreation(userId, mockLlmResponse);
-      
+
       case 'CHECK_STATUS':
         return await handleStatusCheck(userId, mockLlmResponse);
-      
+
       case 'CANCEL_COMPLAINT':
         return await handleCancellation(userId, mockLlmResponse);
-      
+
       case 'CANCEL_RESERVATION':
         return await handleReservationCancellation(userId, mockLlmResponse);
-      
+
       case 'UPDATE_RESERVATION':
         return await handleReservationUpdate(userId, mockLlmResponse);
-      
+
       case 'HISTORY':
         return await handleHistory(userId);
-      
+
       case 'KNOWLEDGE_QUERY':
         return await handleKnowledgeQuery(userId, message, mockLlmResponse);
-      
+
       default:
         return layer2Output.reply_text;
     }

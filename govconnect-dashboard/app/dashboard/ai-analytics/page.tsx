@@ -1232,7 +1232,7 @@ export default function AIAnalyticsPage() {
             </Table>
           </CardContent>
         </Card>
-      )}
+      )
 
       {/* Intent Success Rate Table */}
       {intents?.intents && Object.keys(intents.intents).length > 0 && (

@@ -14,7 +14,7 @@
 
 import logger from '../utils/logger';
 import { extractAllEntities } from './entity-extractor.service';
-import { INTENT_PATTERNS } from '../constants/intent-patterns';
+import INTENT_PATTERNS from '../constants/intent-patterns';
 
 // ==================== TYPES ====================
 
@@ -41,7 +41,7 @@ const COMPLEXITY_CONFIG = {
   // Thresholds
   simpleThreshold: 30,      // Below this = simple
   complexThreshold: 60,     // Above this = complex
-  
+
   // Weights for scoring
   weights: {
     messageLength: 0.15,
@@ -51,7 +51,7 @@ const COMPLEXITY_CONFIG = {
     requiresContext: 0.10,
     isTransactional: 0.15,
   },
-  
+
   // Message length scoring
   lengthScoring: {
     short: { max: 20, score: 10 },
@@ -99,12 +99,12 @@ export function analyzeComplexity(
 
   // Calculate weighted score
   const score = calculateComplexityScore(factors);
-  
+
   // Determine level and architecture
-  const level = score < COMPLEXITY_CONFIG.simpleThreshold ? 'simple' 
-    : score > COMPLEXITY_CONFIG.complexThreshold ? 'complex' 
-    : 'moderate';
-  
+  const level = score < COMPLEXITY_CONFIG.simpleThreshold ? 'simple'
+    : score > COMPLEXITY_CONFIG.complexThreshold ? 'complex'
+      : 'moderate';
+
   const recommendedArchitecture = determineArchitecture(score, factors);
   const reasoning = generateReasoning(factors, score, recommendedArchitecture);
 
@@ -135,12 +135,12 @@ export function isSimpleMessage(message: string): boolean {
       return true;
     }
   }
-  
+
   // Very short messages are usually simple
   if (message.trim().length < 15) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -156,7 +156,7 @@ export function routeMessage(
   if (forceArchitecture) {
     return forceArchitecture;
   }
-  
+
   // Quick check for simple messages
   if (isSimpleMessage(message)) {
     logger.debug('Quick route: simple message detected', {
@@ -164,7 +164,7 @@ export function routeMessage(
     });
     return 'single-layer';
   }
-  
+
   // Full complexity analysis
   const analysis = analyzeComplexity(message, conversationHistory);
   return analysis.recommendedArchitecture;
@@ -175,7 +175,7 @@ export function routeMessage(
 function scoreMessageLength(message: string): number {
   const length = message.trim().length;
   const { lengthScoring } = COMPLEXITY_CONFIG;
-  
+
   if (length <= lengthScoring.short.max) return lengthScoring.short.score;
   if (length <= lengthScoring.medium.max) return lengthScoring.medium.score;
   if (length <= lengthScoring.long.max) return lengthScoring.long.score;
@@ -185,7 +185,7 @@ function scoreMessageLength(message: string): number {
 function scoreEntityCount(message: string, history?: string): number {
   const entities = extractAllEntities(message, history || '');
   const count = entities.extractedCount;
-  
+
   // More entities = more complex
   if (count === 0) return 10;
   if (count <= 2) return 30;
@@ -196,7 +196,7 @@ function scoreEntityCount(message: string, history?: string): number {
 function scoreIntentAmbiguity(message: string): number {
   let matchCount = 0;
   const lowerMessage = message.toLowerCase();
-  
+
   // Count how many intent patterns match
   for (const [intent, patterns] of Object.entries(INTENT_PATTERNS)) {
     if (Array.isArray(patterns)) {
@@ -208,7 +208,7 @@ function scoreIntentAmbiguity(message: string): number {
       }
     }
   }
-  
+
   // More matches = more ambiguous
   if (matchCount === 0) return 50; // Unknown = moderate complexity
   if (matchCount === 1) return 10; // Clear intent
@@ -222,7 +222,7 @@ function hasMultipleIntents(message: string): boolean {
     /\b(dan|juga|serta|terus|lalu|kemudian)\b.*\b(mau|ingin|tolong|bisa)\b/i,
     /\b(pertama|kedua|selain|selanjutnya)\b/i,
   ];
-  
+
   return multiIntentPatterns.some(p => p.test(message));
 }
 
@@ -233,29 +233,29 @@ function requiresConversationContext(message: string, history?: string): boolean
     /\b(lanjut|lanjutkan|teruskan)\b/i,
     /\b(sama|seperti)\s+(yang|tadi)\b/i,
   ];
-  
+
   const needsContext = contextPatterns.some(p => p.test(message));
-  
+
   // Also check if there's history to reference
   return needsContext && !!history && history.length > 0;
 }
 
 function isTransactionalMessage(message: string): boolean {
   const lowerMessage = message.toLowerCase();
-  
+
   // Check for transactional keywords
   const transactionalPatterns = [
     /\b(buat|bikin|daftar|reservasi|booking)\b/i,
     /\b(lapor|aduan|keluhan|komplain)\b/i,
     /\b(batalkan|cancel|ubah|ganti)\b/i,
   ];
-  
+
   return transactionalPatterns.some(p => p.test(lowerMessage));
 }
 
 function calculateComplexityScore(factors: ComplexityAnalysis['factors']): number {
   const { weights } = COMPLEXITY_CONFIG;
-  
+
   let score = 0;
   score += factors.messageLength * weights.messageLength;
   score += factors.entityCount * weights.entityCount;
@@ -263,7 +263,7 @@ function calculateComplexityScore(factors: ComplexityAnalysis['factors']): numbe
   score += (factors.hasMultipleIntents ? 70 : 10) * weights.multipleIntents;
   score += (factors.requiresContext ? 60 : 10) * weights.requiresContext;
   score += (factors.isTransactional ? 70 : 10) * weights.isTransactional;
-  
+
   return Math.round(score);
 }
 
@@ -275,12 +275,12 @@ function determineArchitecture(
   if (factors.isTransactional) {
     return 'two-layer';
   }
-  
+
   // Force single-layer for very simple messages
   if (score < 20) {
     return 'single-layer';
   }
-  
+
   // Use threshold for others
   return score > COMPLEXITY_CONFIG.simpleThreshold ? 'two-layer' : 'single-layer';
 }
@@ -291,7 +291,7 @@ function generateReasoning(
   architecture: ArchitectureChoice
 ): string {
   const reasons: string[] = [];
-  
+
   if (factors.isTransactional) {
     reasons.push('transactional message requires accuracy');
   }
@@ -307,11 +307,11 @@ function generateReasoning(
   if (factors.requiresContext) {
     reasons.push('requires conversation context');
   }
-  
+
   if (reasons.length === 0) {
     reasons.push(score < 30 ? 'simple message' : 'moderate complexity');
   }
-  
+
   return `${architecture}: ${reasons.join(', ')} (score: ${score})`;
 }
 
@@ -335,10 +335,10 @@ export function recordRouting(architecture: ArchitectureChoice): void {
 export function getRoutingStats() {
   return {
     ...routingStats,
-    singleLayerPercent: routingStats.totalRouted > 0 
+    singleLayerPercent: routingStats.totalRouted > 0
       ? ((routingStats.singleLayer / routingStats.totalRouted) * 100).toFixed(1) + '%'
       : '0%',
-    twoLayerPercent: routingStats.totalRouted > 0 
+    twoLayerPercent: routingStats.totalRouted > 0
       ? ((routingStats.twoLayer / routingStats.totalRouted) * 100).toFixed(1) + '%'
       : '0%',
   };

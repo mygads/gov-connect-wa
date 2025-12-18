@@ -1,9 +1,9 @@
 import express, { Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import logger from './utils/logger';
-import { 
-  isConnected as isRabbitMQConnected, 
-  getRetryQueueStatus, 
+import {
+  isConnected as isRabbitMQConnected,
+  getRetryQueueStatus,
   getAIRetryQueueStatus,
   getFailedMessages,
   getFailedMessage,
@@ -64,7 +64,7 @@ app.get('/health/rabbitmq', (req: Request, res: Response) => {
   const connected = isRabbitMQConnected();
   const publishRetryQueue = getRetryQueueStatus();
   const aiRetryQueue = getAIRetryQueueStatus();
-  
+
   res.json({
     status: connected ? 'connected' : 'disconnected',
     service: 'ai-orchestrator',
@@ -87,7 +87,7 @@ app.get('/stats/retry-queue', (req: Request, res: Response) => {
   try {
     const aiRetryQueue = getAIRetryQueueStatus();
     const publishRetryQueue = getRetryQueueStatus();
-    
+
     res.json({
       aiMessageRetry: {
         queueSize: aiRetryQueue.queueSize,
@@ -124,7 +124,7 @@ app.get('/stats/retry-queue', (req: Request, res: Response) => {
 app.get('/admin/failed-messages', (req: Request, res: Response) => {
   try {
     const messages = getFailedMessages();
-    
+
     res.json({
       count: messages.length,
       messages: messages.map(msg => ({
@@ -136,7 +136,7 @@ app.get('/admin/failed-messages', (req: Request, res: Response) => {
         firstAttempt: new Date(msg.firstAttempt).toISOString(),
         lastAttempt: new Date(msg.lastAttempt).toISOString(),
         failedAt: new Date(msg.failedAt).toISOString(),
-        originalMessage: msg.event.is_batched 
+        originalMessage: msg.event.is_batched
           ? `[Batched: ${msg.event.batched_message_ids?.length || 0} messages]`
           : msg.event.message?.substring(0, 100),
       })),
@@ -155,11 +155,11 @@ app.get('/admin/failed-messages', (req: Request, res: Response) => {
 app.post('/admin/failed-messages/:messageId/retry', async (req: Request, res: Response) => {
   try {
     const { messageId } = req.params;
-    
+
     logger.info('Admin retry requested', { messageId });
-    
+
     const result = await retryFailedMessage(messageId);
-    
+
     if (result.success) {
       res.json({
         status: 'success',
@@ -187,9 +187,9 @@ app.post('/admin/failed-messages/:messageId/retry', async (req: Request, res: Re
 app.post('/admin/failed-messages/retry-all', async (req: Request, res: Response) => {
   try {
     logger.info('Admin retry all requested');
-    
+
     const results = await retryAllFailedMessages();
-    
+
     res.json({
       status: 'completed',
       results,
@@ -209,11 +209,11 @@ app.post('/admin/failed-messages/retry-all', async (req: Request, res: Response)
 app.delete('/admin/failed-messages', (req: Request, res: Response) => {
   try {
     const clearAll = req.query.all === 'true';
-    
+
     logger.info('Admin clear failed messages', { clearAll });
-    
+
     const count = clearFailedMessages(clearAll);
-    
+
     res.json({
       status: 'success',
       cleared: count,
@@ -233,10 +233,10 @@ app.get('/health/services', async (req: Request, res: Response) => {
     const channelHealthy = await checkServiceHealth(
       `${config.channelServiceUrl}/health`
     );
-    
+
     // Check Case Service
     const caseHealthy = await checkCaseServiceHealth();
-    
+
     res.json({
       status: channelHealthy && caseHealthy ? 'ok' : 'degraded',
       services: {
@@ -255,7 +255,7 @@ app.get('/health/services', async (req: Request, res: Response) => {
 app.get('/stats/models', (req: Request, res: Response) => {
   try {
     const stats = modelStatsService.getAllStats();
-    
+
     // Format for better readability
     const formattedStats = {
       summary: {
@@ -279,7 +279,7 @@ app.get('/stats/models', (req: Request, res: Response) => {
         return rateB - rateA;
       }),
     };
-    
+
     res.json(formattedStats);
   } catch (error: any) {
     res.status(500).json({
@@ -293,7 +293,7 @@ app.get('/stats/models/:modelName', (req: Request, res: Response) => {
   try {
     const { modelName } = req.params;
     const stats = modelStatsService.getModelStats(modelName);
-    
+
     if (!stats) {
       res.status(404).json({
         error: 'Model not found',
@@ -302,7 +302,7 @@ app.get('/stats/models/:modelName', (req: Request, res: Response) => {
       });
       return;
     }
-    
+
     res.json(stats);
   } catch (error: any) {
     res.status(500).json({
@@ -425,7 +425,7 @@ app.get('/rate-limit/check/:wa_user_id', (req: Request, res: Response) => {
     const { wa_user_id } = req.params;
     const result = rateLimiterService.checkRateLimit(wa_user_id);
     const userInfo = rateLimiterService.getUserInfo(wa_user_id);
-    
+
     res.json({
       ...result,
       user: userInfo,
@@ -456,16 +456,16 @@ app.get('/rate-limit/blacklist', (req: Request, res: Response) => {
 app.post('/rate-limit/blacklist', (req: Request, res: Response) => {
   try {
     const { wa_user_id, reason, expiresInDays } = req.body;
-    
+
     if (!wa_user_id || !reason) {
       res.status(400).json({
         error: 'wa_user_id and reason are required',
       });
       return;
     }
-    
+
     rateLimiterService.addToBlacklist(wa_user_id, reason, 'admin', expiresInDays);
-    
+
     res.json({
       success: true,
       message: `User ${wa_user_id} added to blacklist`,
@@ -482,7 +482,7 @@ app.delete('/rate-limit/blacklist/:wa_user_id', (req: Request, res: Response) =>
   try {
     const { wa_user_id } = req.params;
     const removed = rateLimiterService.removeFromBlacklist(wa_user_id);
-    
+
     if (removed) {
       res.json({
         success: true,
@@ -506,7 +506,7 @@ app.post('/rate-limit/reset/:wa_user_id', (req: Request, res: Response) => {
   try {
     const { wa_user_id } = req.params;
     const reset = rateLimiterService.resetUserViolations(wa_user_id);
-    
+
     if (reset) {
       res.json({
         success: true,
@@ -566,7 +566,7 @@ app.get('/stats/embeddings', async (req: Request, res: Response) => {
     const embeddingStats = getEmbeddingStats();
     const embeddingCacheStats = getEmbeddingCacheStats();
     const vectorDbStats = await getVectorDbStats();
-    
+
     res.json({
       embedding: embeddingStats,
       embeddingCache: embeddingCacheStats,
@@ -588,7 +588,7 @@ app.get('/stats/optimization', (req: Request, res: Response) => {
     const cacheStats = getCacheStats();
     const topQueries = getTopCachedQueries(10);
     const fsmStats = getFSMStats();
-    
+
     res.json({
       cache: {
         ...cacheStats,
@@ -612,7 +612,7 @@ app.get('/stats/conversation-fsm', (req: Request, res: Response) => {
   try {
     const stats = getFSMStats();
     const activeContexts = getAllActiveContexts();
-    
+
     res.json({
       stats,
       activeContexts: activeContexts.map(ctx => ({
@@ -643,9 +643,9 @@ app.get('/stats/dashboard', async (req: Request, res: Response) => {
     const fsmStats = getFSMStats();
     const modelStats = modelStatsService.getAllStats();
     const analyticsData = aiAnalyticsService.getSummary();
-    
+
     const architecture = process.env.USE_2_LAYER_ARCHITECTURE === 'true' ? '2-Layer LLM' : 'Single Layer';
-    
+
     res.json({
       architecture: {
         current: architecture,
@@ -653,9 +653,11 @@ app.get('/stats/dashboard', async (req: Request, res: Response) => {
         appliesTo: ['WhatsApp', 'Webchat'],
       },
       performance: {
-        avgResponseTimeMs: analyticsData.avgResponseTime || 0,
+        avgResponseTimeMs: analyticsData.avgProcessingTimeMs || 0,
         totalRequests: analyticsData.totalRequests || 0,
-        successRate: modelStats.summary?.successRate || 'N/A',
+        successRate: Object.values(modelStats.models).length > 0
+          ? `${Math.round(Object.values(modelStats.models).reduce((acc, m) => acc + m.successRate, 0) / Object.values(modelStats.models).length)}%`
+          : 'N/A',
       },
       cache: {
         hitRate: `${(cacheStats.hitRate * 100).toFixed(1)}%`,
@@ -665,8 +667,8 @@ app.get('/stats/dashboard', async (req: Request, res: Response) => {
       },
       routing: routingStats,
       conversationFSM: {
-        activeConversations: fsmStats.activeConversations || 0,
-        totalTransitions: fsmStats.totalTransitions || 0,
+        activeContexts: fsmStats.activeContexts || 0,
+        avgMessageCount: fsmStats.avgMessageCount || 0,
       },
       intents: analyticsData.topIntents || [],
       timestamp: new Date().toISOString(),
@@ -683,14 +685,14 @@ app.get('/stats/dashboard', async (req: Request, res: Response) => {
 app.post('/stats/analyze-complexity', (req: Request, res: Response) => {
   try {
     const { message, conversationHistory } = req.body;
-    
+
     if (!message) {
       res.status(400).json({ error: 'message is required' });
       return;
     }
-    
+
     const analysis = analyzeComplexity(message, conversationHistory);
-    
+
     res.json({
       message: message.substring(0, 100),
       analysis,
@@ -707,7 +709,7 @@ app.post('/stats/analyze-complexity', (req: Request, res: Response) => {
 app.get('/stats/routing', (req: Request, res: Response) => {
   try {
     const stats = getRoutingStats();
-    
+
     res.json({
       description: 'Smart routing statistics - how messages are routed between architectures',
       stats,
@@ -731,7 +733,7 @@ app.get('/stats/circuit-breaker', (req: Request, res: Response) => {
     const stats = resilientHttp.getStats();
     const caseMetrics = getCaseServiceMetrics();
     const channelMetrics = getChannelServiceMetrics();
-    
+
     res.json({
       status: stats.state,
       description: getCircuitBreakerDescription(stats.state),
@@ -769,17 +771,17 @@ app.get('/stats/circuit-breaker', (req: Request, res: Response) => {
 app.post('/stats/circuit-breaker/reset', (req: Request, res: Response) => {
   try {
     const { service } = req.body;
-    
+
     // Reset main resilientHttp circuit breaker (used by case-client.service.ts)
     resilientHttp.reset();
-    
+
     if (service === 'case-service' || service === 'all' || !service) {
       resetCaseServiceCircuitBreaker();
     }
     if (service === 'channel-service' || service === 'all' || !service) {
       resetChannelServiceCircuitBreaker();
     }
-    
+
     res.json({
       success: true,
       message: `Circuit breaker(s) reset successfully`,
