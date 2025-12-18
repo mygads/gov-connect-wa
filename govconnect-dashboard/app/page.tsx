@@ -55,9 +55,13 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300 overflow-x-hidden">
-      {/* Progress Bar */}
-      <motion.div className="fixed top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-secondary via-primary to-secondary z-[60] origin-left" style={{ scaleX: scrollYProgress }} />
+    <>
+      {/* SEO Structured Data (JSON-LD) */}
+      <HomePageJsonLd />
+      
+      <div className="min-h-screen bg-background text-foreground transition-colors duration-300 overflow-x-hidden">
+        {/* Progress Bar */}
+        <motion.div className="fixed top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-secondary via-primary to-secondary z-[60] origin-left" style={{ scaleX: scrollYProgress }} />
 
       {/* Navbar */}
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-background/95 backdrop-blur-xl shadow-sm border-b border-border/50" : "bg-background/70 backdrop-blur-xl border-b border-border/40"}`}>
@@ -1063,7 +1067,8 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      <LiveChatWidget isDark={isDark} />
-    </div>
+        <LiveChatWidget isDark={isDark} />
+      </div>
+    </>
   );
 }
