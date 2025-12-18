@@ -49,6 +49,7 @@ export default function LandingPage() {
     { id: "fitur", label: "Fitur" },
     { id: "demo", label: "Demo" },
     { id: "manfaat", label: "Manfaat" },
+    { id: "use-case", label: "Use Case" },
     { id: "faq", label: "FAQ" },
   ];
 
@@ -264,6 +265,235 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* What is GovConnect - Detailed */}
+      <section className="py-12 md:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
+            <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full mb-3">
+              <MessageCircle className="w-3 h-3" />Apa itu GovConnect?
+            </motion.span>
+            <motion.h2 variants={staggerItem} className="text-xl sm:text-2xl md:text-3xl font-bold mb-3">
+              Platform <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">AI Assistant</span> untuk Layanan Pemerintahan
+            </motion.h2>
+            <motion.p variants={staggerItem} className="text-sm text-muted-foreground max-w-2xl mx-auto">
+              GovConnect adalah solusi digital yang menggunakan kecerdasan buatan untuk membantu pemerintah melayani masyarakat dengan lebih efisien, cepat, dan mudah diakses dari mana saja.
+            </motion.p>
+          </motion.div>
+
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid md:grid-cols-2 gap-6">
+            {/* Problem */}
+            <motion.div variants={staggerItem}>
+              <Card className="h-full border-red-200/50 dark:border-red-800/30 bg-gradient-to-br from-red-50/50 to-orange-50/50 dark:from-red-950/20 dark:to-orange-950/20">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+                      <AlertTriangle className="w-4 h-4 text-red-500" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold text-red-700 dark:text-red-400">Masalah Saat Ini</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <ul className="space-y-2">
+                    {[
+                      "Masyarakat harus datang ke kantor hanya untuk bertanya informasi",
+                      "Antre berjam-jam untuk layanan sederhana",
+                      "Jam operasional terbatas (hanya hari & jam kerja)",
+                      "Petugas kewalahan menjawab pertanyaan yang sama berulang",
+                      "Tidak ada tracking status pengajuan",
+                      "Laporan masyarakat lambat ditangani",
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <X className="w-3 h-3 text-red-500 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Solution */}
+            <motion.div variants={staggerItem}>
+              <Card className="h-full border-green-200/50 dark:border-green-800/30 bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    </div>
+                    <CardTitle className="text-sm font-semibold text-green-700 dark:text-green-400">Solusi GovConnect</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-4">
+                  <ul className="space-y-2">
+                    {[
+                      "AI menjawab pertanyaan masyarakat 24/7 otomatis",
+                      "Akses layanan dari HP via WhatsApp, Telegram, dll",
+                      "Tersedia setiap saat tanpa batasan waktu",
+                      "Petugas fokus pada tugas yang lebih penting",
+                      "Tracking status real-time untuk setiap pengajuan",
+                      "Alert prioritas untuk laporan darurat",
+                    ].map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="w-3 h-3 text-green-500 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-12 md:py-16 bg-muted/20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
+            <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary bg-secondary/10 px-3 py-1 rounded-full mb-3">
+              <Settings className="w-3 h-3" />Cara Kerja
+            </motion.span>
+            <motion.h2 variants={staggerItem} className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+              Bagaimana <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">GovConnect</span> Bekerja?
+            </motion.h2>
+          </motion.div>
+
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { step: "1", icon: MessageCircle, title: "Masyarakat Menghubungi", desc: "Via WhatsApp, Telegram, Instagram, atau webchat di website pemerintah" },
+              { step: "2", icon: Brain, title: "AI Memproses", desc: "AI memahami pertanyaan/permintaan dan mencari jawaban dari knowledge base" },
+              { step: "3", icon: Database, title: "Akses Data", desc: "Jika perlu, AI mengambil data real-time dari database pemerintahan" },
+              { step: "4", icon: Zap, title: "Response Instan", desc: "Masyarakat mendapat jawaban dalam hitungan detik, 24/7" },
+            ].map((item, i) => (
+              <motion.div key={i} variants={staggerItem}>
+                <Card className="h-full text-center border-border/50 relative overflow-hidden">
+                  <div className="absolute top-2 left-2 w-6 h-6 rounded-full bg-secondary text-white text-xs font-bold flex items-center justify-center">{item.step}</div>
+                  <CardContent className="pt-8 pb-4 px-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-secondary to-primary flex items-center justify-center mx-auto mb-3 shadow-md">
+                      <item.icon className="w-5 h-5 text-white" />
+                    </div>
+                    <p className="text-xs font-semibold mb-1">{item.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Detailed Use Cases */}
+      <section className="py-12 md:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
+            <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full mb-3">
+              <Target className="w-3 h-3" />Contoh Penggunaan
+            </motion.span>
+            <motion.h2 variants={staggerItem} className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+              Apa Saja yang Bisa Dilakukan <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">Masyarakat?</span>
+            </motion.h2>
+            <motion.p variants={staggerItem} className="text-sm text-muted-foreground max-w-xl mx-auto">
+              Berikut contoh interaksi yang bisa dilakukan masyarakat dengan GovConnect
+            </motion.p>
+          </motion.div>
+
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { icon: Brain, title: "Tanya Informasi", examples: ["Apa syarat buat KTP?", "Jam buka kantor kelurahan?", "Cara daftar BPJS?", "Jadwal vaksinasi?"], color: "blue" },
+              { icon: AlertTriangle, title: "Lapor Masalah", examples: ["Jalan rusak di RT 03", "Lampu jalan mati", "Sampah menumpuk", "Banjir di wilayah X"], color: "red" },
+              { icon: CalendarCheck, title: "Reservasi", examples: ["Booking antrian KTP", "Daftar nikah", "Jadwal imunisasi anak", "Konsultasi hukum"], color: "purple" },
+              { icon: FileCheck, title: "Ajukan Surat", examples: ["Surat keterangan domisili", "Surat pengantar", "SKCK", "Surat keterangan usaha"], color: "green" },
+              { icon: Activity, title: "Cek Status", examples: ["Status pengajuan KTP", "Progress laporan saya", "Jadwal pengambilan", "Hasil verifikasi"], color: "orange" },
+              { icon: Headphones, title: "Pengaduan", examples: ["Pelayanan lambat", "Petugas tidak ramah", "Fasilitas rusak", "Saran perbaikan"], color: "pink" },
+            ].map((item, i) => (
+              <motion.div key={i} variants={staggerItem}>
+                <Card className="h-full border-border/50 hover:border-secondary/50 transition-all">
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-lg bg-${item.color}-500/20 flex items-center justify-center`}>
+                        <item.icon className={`w-4 h-4 text-${item.color}-500`} />
+                      </div>
+                      <CardTitle className="text-sm font-semibold">{item.title}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <p className="text-[10px] text-muted-foreground mb-2">Contoh:</p>
+                    <div className="space-y-1">
+                      {item.examples.map((ex, j) => (
+                        <div key={j} className="text-xs bg-muted/50 rounded px-2 py-1 text-muted-foreground">"{ex}"</div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Service Types */}
+      <section className="py-12 md:py-16 bg-muted/20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
+            <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary bg-secondary/10 px-3 py-1 rounded-full mb-3">
+              <Layers className="w-3 h-3" />Jenis Layanan
+            </motion.span>
+            <motion.h2 variants={staggerItem} className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+              Layanan yang Dapat <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">Diintegrasikan</span>
+            </motion.h2>
+          </motion.div>
+
+          <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {[
+              "Kependudukan (KTP, KK, Akta)", "Perizinan Usaha", "Pelayanan Kesehatan", "Pendidikan",
+              "Sosial & Bantuan", "Pertanahan", "Pajak & Retribusi", "Keamanan & Ketertiban",
+              "Infrastruktur", "Lingkungan Hidup", "Pariwisata", "Ketenagakerjaan",
+              "Perhubungan", "Pertanian", "Perikanan", "Dan lainnya...",
+            ].map((item, i) => (
+              <motion.div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-background border border-border/50 hover:border-secondary/50 transition-all" whileHover={{ scale: 1.02 }}>
+                <div className="w-1.5 h-1.5 rounded-full bg-secondary shrink-0" />
+                <span className="text-xs">{item}</span>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Government Levels Detail */}
+      <section className="py-12 md:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
+            <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full mb-3">
+              <Building2 className="w-3 h-3" />Tingkat Pemerintahan
+            </motion.span>
+            <motion.h2 variants={staggerItem} className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+              Cocok untuk <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">Semua Level</span>
+            </motion.h2>
+          </motion.div>
+
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: Building, title: "Kelurahan/Desa", desc: "Layanan administrasi dasar, surat pengantar, informasi warga, pelaporan lingkungan", color: "from-blue-500 to-cyan-500" },
+              { icon: Building2, title: "Kecamatan", desc: "Koordinasi kelurahan, layanan kependudukan, perizinan skala kecil, legalisasi", color: "from-green-500 to-emerald-500" },
+              { icon: Landmark, title: "Kabupaten/Kota", desc: "Perizinan usaha, layanan terpadu, koordinasi OPD, program pemerintah", color: "from-purple-500 to-violet-500" },
+              { icon: Shield, title: "Instansi Khusus", desc: "Kepolisian, Puskesmas, Dinas Pendidikan, BPJS, Samsat, dan lainnya", color: "from-orange-500 to-amber-500" },
+            ].map((item, i) => (
+              <motion.div key={i} variants={staggerItem} whileHover={{ y: -3 }}>
+                <Card className="h-full border-border/50 hover:shadow-md transition-all">
+                  <CardContent className="pt-4 pb-4 px-4">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center mb-3 shadow-md`}>
+                      <item.icon className="w-5 h-5 text-white" />
+                    </div>
+                    <p className="text-sm font-semibold mb-1">{item.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       {/* Demo Section */}
       <section id="demo" className="py-12 md:py-16 bg-gradient-to-b from-secondary/5 to-background">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -393,8 +623,142 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Technology Stack */}
+      <section className="py-12 md:py-16 bg-muted/20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
+            <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary bg-secondary/10 px-3 py-1 rounded-full mb-3">
+              <Settings className="w-3 h-3" />Teknologi
+            </motion.span>
+            <motion.h2 variants={staggerItem} className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+              Dibangun dengan <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">Teknologi Modern</span>
+            </motion.h2>
+          </motion.div>
+
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { icon: Brain, title: "AI & NLP", desc: "Natural Language Processing untuk memahami bahasa manusia dengan akurat", features: ["Bahasa Indonesia", "Multi-intent", "Context-aware"] },
+              { icon: Database, title: "Knowledge Base", desc: "Database pengetahuan yang dapat diupdate dan diintegrasikan", features: ["Real-time sync", "Version control", "Easy update"] },
+              { icon: Network, title: "Multi-Channel", desc: "Integrasi dengan berbagai platform komunikasi", features: ["WhatsApp API", "Telegram Bot", "Web Widget"] },
+              { icon: Shield, title: "Keamanan", desc: "Standar keamanan tinggi untuk data pemerintahan", features: ["Encryption", "Access control", "Audit log"] },
+              { icon: LineChart, title: "Analytics", desc: "Dashboard analitik untuk monitoring dan reporting", features: ["Real-time stats", "Export report", "Insights"] },
+              { icon: RefreshCw, title: "Scalable", desc: "Arsitektur yang dapat berkembang sesuai kebutuhan", features: ["Cloud-ready", "High availability", "Auto-scaling"] },
+            ].map((item, i) => (
+              <motion.div key={i} variants={staggerItem}>
+                <Card className="h-full border-border/50 hover:border-secondary/50 transition-all">
+                  <CardHeader className="pb-2 pt-4 px-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-secondary/20 flex items-center justify-center">
+                        <item.icon className="w-4 h-4 text-secondary" />
+                      </div>
+                      <CardTitle className="text-sm font-semibold">{item.title}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4">
+                    <p className="text-xs text-muted-foreground mb-2">{item.desc}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {item.features.map((f, j) => (
+                        <span key={j} className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">{f}</span>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Comparison Table */}
+      <section className="py-12 md:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
+            <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full mb-3">
+              <BarChart3 className="w-3 h-3" />Perbandingan
+            </motion.span>
+            <motion.h2 variants={staggerItem} className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+              Sebelum vs Sesudah <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">GovConnect</span>
+            </motion.h2>
+          </motion.div>
+
+          <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+            <Card className="overflow-hidden border-border/50">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border/50 bg-muted/50">
+                      <th className="text-left p-3 font-semibold">Aspek</th>
+                      <th className="text-center p-3 font-semibold text-red-600">Sebelum</th>
+                      <th className="text-center p-3 font-semibold text-green-600">Dengan GovConnect</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { aspect: "Waktu Response", before: "Menit - Jam", after: "< 3 Detik" },
+                      { aspect: "Jam Operasional", before: "Jam Kerja (8 jam)", after: "24/7 (Non-stop)" },
+                      { aspect: "Akses Layanan", before: "Harus ke kantor", after: "Dari mana saja" },
+                      { aspect: "Kapasitas Layanan", before: "Terbatas petugas", after: "Unlimited" },
+                      { aspect: "Konsistensi Jawaban", before: "Bervariasi", after: "Konsisten & Akurat" },
+                      { aspect: "Tracking Status", before: "Manual / Tidak ada", after: "Real-time Otomatis" },
+                      { aspect: "Laporan Darurat", before: "Proses lambat", after: "Alert Prioritas Instan" },
+                      { aspect: "Biaya Operasional", before: "Tinggi", after: "Lebih Efisien" },
+                    ].map((row, i) => (
+                      <tr key={i} className="border-b border-border/30 hover:bg-muted/30">
+                        <td className="p-3 font-medium">{row.aspect}</td>
+                        <td className="p-3 text-center text-red-600">{row.before}</td>
+                        <td className="p-3 text-center text-green-600 font-medium">{row.after}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Implementation Process */}
+      <section className="py-12 md:py-16 bg-muted/20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
+            <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary bg-secondary/10 px-3 py-1 rounded-full mb-3">
+              <Rocket className="w-3 h-3" />Implementasi
+            </motion.span>
+            <motion.h2 variants={staggerItem} className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+              Proses <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">Implementasi</span>
+            </motion.h2>
+            <motion.p variants={staggerItem} className="text-sm text-muted-foreground max-w-xl mx-auto">
+              Langkah-langkah implementasi GovConnect di instansi Anda
+            </motion.p>
+          </motion.div>
+
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {[
+              { step: "1", title: "Konsultasi", desc: "Diskusi kebutuhan & assessment", icon: MessageCircle },
+              { step: "2", title: "Kustomisasi", desc: "Setup knowledge base & flow", icon: Settings },
+              { step: "3", title: "Integrasi", desc: "Koneksi channel & database", icon: Network },
+              { step: "4", title: "Training", desc: "Pelatihan admin & petugas", icon: Users },
+              { step: "5", title: "Go Live", desc: "Launch & monitoring", icon: Rocket },
+            ].map((item, i) => (
+              <motion.div key={i} variants={staggerItem}>
+                <Card className="h-full text-center border-border/50 relative">
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-secondary text-white text-[10px] font-bold flex items-center justify-center">{item.step}</div>
+                  <CardContent className="pt-6 pb-3 px-3">
+                    <div className="w-8 h-8 rounded-lg bg-secondary/20 flex items-center justify-center mx-auto mb-2">
+                      <item.icon className="w-4 h-4 text-secondary" />
+                    </div>
+                    <p className="text-xs font-semibold mb-0.5">{item.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       {/* Use Cases & Integration */}
-      <section id="use-case" className="py-12 md:py-16 bg-muted/20">
+      <section id="use-case" className="py-12 md:py-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
             <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full mb-3">
@@ -522,6 +886,79 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Success Metrics */}
+      <section className="py-12 md:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
+            <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary bg-secondary/10 px-3 py-1 rounded-full mb-3">
+              <LineChart className="w-3 h-3" />Potensi Hasil
+            </motion.span>
+            <motion.h2 variants={staggerItem} className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+              Potensi <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">Peningkatan</span>
+            </motion.h2>
+          </motion.div>
+
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { value: "80%", label: "Pertanyaan dijawab AI", desc: "Mengurangi beban petugas", color: "from-blue-500 to-cyan-500" },
+              { value: "90%", label: "Kepuasan masyarakat", desc: "Response cepat & akurat", color: "from-green-500 to-emerald-500" },
+              { value: "50%", label: "Efisiensi biaya", desc: "Operasional lebih hemat", color: "from-purple-500 to-violet-500" },
+              { value: "24/7", label: "Ketersediaan layanan", desc: "Tanpa batasan waktu", color: "from-orange-500 to-amber-500" },
+            ].map((item, i) => (
+              <motion.div key={i} variants={staggerItem} whileHover={{ y: -3 }}>
+                <Card className="h-full text-center border-border/50 hover:shadow-md transition-all overflow-hidden">
+                  <div className={`h-0.5 bg-gradient-to-r ${item.color}`} />
+                  <CardContent className="pt-4 pb-3 px-3">
+                    <p className={`text-2xl font-bold bg-gradient-to-r ${item.color} bg-clip-text text-transparent mb-1`}>{item.value}</p>
+                    <p className="text-xs font-semibold mb-0.5">{item.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Why Choose Us */}
+      <section className="py-12 md:py-16 bg-muted/20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-8">
+            <motion.span variants={staggerItem} className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary bg-primary/10 px-3 py-1 rounded-full mb-3">
+              <Award className="w-3 h-3" />Mengapa Kami
+            </motion.span>
+            <motion.h2 variants={staggerItem} className="text-xl sm:text-2xl md:text-3xl font-bold mb-2">
+              Mengapa Pilih <span className="bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent">GovConnect?</span>
+            </motion.h2>
+          </motion.div>
+
+          <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" viewport={{ once: true }} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { icon: Target, title: "Fokus Pemerintahan", desc: "Dirancang khusus untuk kebutuhan layanan pemerintahan Indonesia" },
+              { icon: Settings, title: "Kustomisasi Penuh", desc: "Dapat disesuaikan dengan kebutuhan spesifik setiap instansi" },
+              { icon: Headphones, title: "Support Lokal", desc: "Tim support berbahasa Indonesia, siap membantu kapan saja" },
+              { icon: Lock, title: "Keamanan Terjamin", desc: "Standar keamanan tinggi untuk data pemerintahan" },
+              { icon: RefreshCw, title: "Update Berkala", desc: "Fitur terus dikembangkan sesuai kebutuhan" },
+              { icon: Users, title: "Training Lengkap", desc: "Pelatihan untuk admin dan petugas hingga mahir" },
+            ].map((item, i) => (
+              <motion.div key={i} variants={staggerItem}>
+                <Card className="h-full border-border/50 hover:border-secondary/50 transition-all">
+                  <CardContent className="pt-4 pb-4 px-4 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-secondary/20 flex items-center justify-center shrink-0">
+                      <item.icon className="w-4 h-4 text-secondary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold mb-0.5">{item.title}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       {/* FAQ Section */}
       <section id="faq" className="py-12 md:py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
@@ -535,11 +972,16 @@ export default function LandingPage() {
           <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
             <Accordion type="single" collapsible className="space-y-2">
               {[
-                { q: "Apa itu GovConnect?", a: "Platform yang menghubungkan masyarakat dengan pemerintah melalui AI. Menyediakan knowledge base, pelaporan, pengajuan layanan via WhatsApp, Telegram, Instagram, dan website." },
-                { q: "Untuk tingkat pemerintahan apa saja?", a: "Semua tingkat: kelurahan, kecamatan, kabupaten/kota, hingga pusat. Juga instansi khusus seperti kepolisian, dinas kesehatan, dll." },
-                { q: "Bisa terhubung database existing?", a: "Ya, knowledge base dapat diintegrasikan dengan database pemerintahan untuk data dinamis real-time." },
-                { q: "Bagaimana keamanan data?", a: "Data dienkripsi end-to-end dengan standar keamanan tinggi. Akses dikontrol sesuai struktur organisasi." },
-                { q: "Bagaimana cara memulai?", a: "Hubungi tim kami untuk konsultasi. Kami akan assessment, setup, training hingga siap digunakan. Coba demo terlebih dahulu." },
+                { q: "Apa itu GovConnect?", a: "GovConnect adalah platform AI yang menghubungkan masyarakat dengan pemerintah. Masyarakat bisa bertanya informasi, melapor masalah, reservasi layanan, dan mengajukan surat via WhatsApp, Telegram, Instagram, atau webchat - semuanya dijawab AI 24/7." },
+                { q: "Untuk tingkat pemerintahan apa saja?", a: "Semua tingkat: kelurahan/desa, kecamatan, kabupaten/kota, provinsi, hingga pusat. Juga cocok untuk instansi khusus seperti kepolisian, puskesmas, dinas pendidikan, BPJS, samsat, dan lainnya." },
+                { q: "Apa saja yang bisa dilakukan masyarakat?", a: "Banyak! Tanya informasi (syarat KTP, jam buka, dll), lapor masalah (jalan rusak, lampu mati, banjir), reservasi antrian, ajukan surat (domisili, pengantar, SKCK), cek status pengajuan, dan pengaduan pelayanan." },
+                { q: "Bagaimana AI bisa menjawab dengan benar?", a: "AI dilatih dengan knowledge base yang berisi informasi layanan pemerintahan. Knowledge base ini bisa diupdate kapan saja dan bisa terhubung dengan database pemerintahan untuk data real-time yang selalu akurat." },
+                { q: "Bisa terhubung dengan sistem yang sudah ada?", a: "Ya! GovConnect dapat diintegrasikan dengan database dan sistem pemerintahan yang sudah ada. Jadi AI bisa mengambil data real-time seperti status pengajuan, jadwal, kuota, dll." },
+                { q: "Channel apa saja yang didukung?", a: "WhatsApp (via Business API), Telegram Bot, Instagram DM, dan Webchat yang bisa dipasang di website pemerintah. Semua channel dikontrol dari satu dashboard terpusat." },
+                { q: "Bagaimana dengan laporan darurat/bencana?", a: "Ada fitur alert prioritas! AI mendeteksi kata kunci darurat dan langsung mengirim notifikasi khusus ke petugas/pusat. Laporan bencana tidak akan terlewat." },
+                { q: "Bagaimana keamanan datanya?", a: "Data dienkripsi end-to-end dengan standar keamanan tinggi. Akses dashboard dikontrol dengan role-based access sesuai struktur organisasi. Ada audit log untuk tracking semua aktivitas." },
+                { q: "Berapa lama proses implementasi?", a: "Tergantung kompleksitas, biasanya 2-4 minggu. Meliputi: konsultasi kebutuhan, setup knowledge base, integrasi channel, training admin, dan go-live dengan monitoring." },
+                { q: "Bagaimana cara memulai?", a: "Hubungi tim kami untuk konsultasi gratis. Anda juga bisa coba demo yang sudah kami siapkan via WhatsApp di +62 896-6817-6764 atau webchat di pojok kanan bawah halaman ini." },
               ].map((item, i) => (
                 <AccordionItem key={i} value={`item-${i}`} className="border border-border/50 rounded-lg px-3 data-[state=open]:border-secondary/50">
                   <AccordionTrigger className="text-left hover:no-underline py-3 text-sm font-medium">{item.q}</AccordionTrigger>
