@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Proxy GraphQL requests to case-service
-const CASE_SERVICE_URL = process.env.CASE_SERVICE_URL || 'http://localhost:3001';
+// Proxy GraphQL requests to case-service (port 3003 in production)
+const CASE_SERVICE_URL = process.env.CASE_SERVICE_URL || 'http://localhost:3003';
 
 export async function POST(request: NextRequest) {
     try {
