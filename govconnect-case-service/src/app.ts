@@ -7,6 +7,7 @@ import reservationRoutes from './routes/reservation.routes';
 import statisticsRoutes from './routes/statistics.routes';
 import healthRoutes from './routes/health.routes';
 import userRoutes from './routes/user.routes';
+import { createGraphQLRouter } from './routes/graphql.routes';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.middleware';
 import { swaggerSpec } from './config/swagger';
 import logger from './utils/logger';
@@ -57,6 +58,14 @@ initializeServices().catch(err => {
   logger.error('Failed to initialize services', { error: err.message });
 });
 
+// Initialize GraphQL API (async)
+createGraphQLRouter().then(graphqlRouter => {
+  app.use('/graphql', graphqlRouter);
+  logger.info('GraphQL API mounted at /graphql');
+}).catch(err => {
+  logger.error('Failed to initialize GraphQL', { error: err.message });
+});
+
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   explorer: true,
@@ -83,13 +92,15 @@ app.get('/', (req, res) => {
     version: '2.0.0',
     status: 'running',
     docs: '/api-docs',
+    graphql: '/graphql',
     endpoints: {
       health: '/health',
       complaints: '/laporan',
       reservations: '/reservasi',
       services: '/reservasi/services',
       statistics: '/statistics',
-      user: '/user/:wa_user_id/history'
+      user: '/user/:wa_user_id/history',
+      graphql: '/graphql'
     }
   });
 });
