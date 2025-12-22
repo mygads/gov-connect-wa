@@ -1,0 +1,41 @@
+{
+  "name": "Statistics",
+  "item": [
+    {
+      "name": "Get Overview",
+      "request": { "method": "GET", "url": "{{case_service_url}}/statistics/overview" }
+    },
+    {
+      "name": "Get By Category",
+      "request": { "method": "GET", "url": "{{case_service_url}}/statistics/by-category" }
+    },
+    {
+      "name": "Get By Status",
+      "request": { "method": "GET", "url": "{{case_service_url}}/statistics/by-status" }
+    },
+    {
+      "name": "Get Trends (Weekly)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{case_service_url}}/statistics/trends?period=weekly",
+          "host": ["{{case_service_url}}"],
+          "path": ["statistics", "trends"],
+          "query": [{ "key": "period", "value": "weekly" }]
+        }
+      }
+    },
+    {
+      "name": "Get Trends (Monthly)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{case_service_url}}/statistics/trends?period=monthly",
+          "host": ["{{case_service_url}}"],
+          "path": ["statistics", "trends"],
+          "query": [{ "key": "period", "value": "monthly" }]
+        }
+      }
+    }
+  ]
+}

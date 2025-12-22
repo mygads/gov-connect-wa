@@ -9,6 +9,18 @@
           "request": { "method": "GET", "url": "{{case_service_url}}/health" }
         },
         {
+          "name": "Database Health",
+          "request": { "method": "GET", "url": "{{case_service_url}}/health/database" }
+        },
+        {
+          "name": "RabbitMQ Health",
+          "request": { "method": "GET", "url": "{{case_service_url}}/health/rabbitmq" }
+        },
+        {
+          "name": "Circuit Breakers",
+          "request": { "method": "GET", "url": "{{case_service_url}}/health/circuit-breakers" }
+        },
+        {
           "name": "Metrics",
           "request": { "method": "GET", "url": "{{case_service_url}}/metrics" }
         }
@@ -93,3 +105,4 @@
     }
   ]
 }
+

@@ -1,0 +1,13 @@
+{
+  "name": "User",
+  "item": [
+    {
+      "name": "Get User History",
+      "request": {
+        "method": "GET",
+        "url": "{{case_service_url}}/user/{{wa_user_id}}/history",
+        "header": [{ "key": "X-Internal-API-Key", "value": "{{internal_api_key}}" }]
+      }
+    }
+  ]
+}
