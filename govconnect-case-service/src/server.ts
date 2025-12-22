@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import app from './app';
+import app, { initializeApp } from './app';
 import { config } from './config/env';
 import { connectRabbitMQ, disconnectRabbitMQ } from './services/rabbitmq.service';
 import prisma from './config/database';
@@ -18,6 +18,9 @@ async function startServer() {
     
     // Connect to RabbitMQ
     await connectRabbitMQ();
+    
+    // Initialize app (GraphQL, services, etc.)
+    await initializeApp();
     
     // Start Express server
     app.listen(PORT, () => {

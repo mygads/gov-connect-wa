@@ -53,18 +53,22 @@ app.use('/reservasi', reservationRoutes);
 app.use('/statistics', statisticsRoutes);
 app.use('/user', userRoutes);
 
-// Initialize government services on startup
-initializeServices().catch(err => {
-  logger.error('Failed to initialize services', { error: err.message });
-});
-
-// Initialize GraphQL API (async)
-createGraphQLRouter().then(graphqlRouter => {
-  app.use('/graphql', graphqlRouter);
-  logger.info('GraphQL API mounted at /graphql');
-}).catch(err => {
-  logger.error('Failed to initialize GraphQL', { error: err.message });
-});
+// Export async initialization function
+export async function initializeApp() {
+  try {
+    // Initialize government services
+    await initializeServices();
+    logger.info('Government services initialized');
+    
+    // Initialize GraphQL API
+    const graphqlRouter = await createGraphQLRouter();
+    app.use('/graphql', graphqlRouter);
+    logger.info('GraphQL API mounted at /graphql');
+  } catch (err: any) {
+    logger.error('Failed to initialize app', { error: err.message });
+    throw err;
+  }
+}
 
 // Swagger API Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
