@@ -8,27 +8,27 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "http://localhost",
+      "value": "https://api.govconnect.my.id",
       "type": "string"
     },
     {
       "key": "case_service_url",
-      "value": "{{base_url}}:3003",
+      "value": "{{base_url}}/case",
       "type": "string"
     },
     {
       "key": "channel_service_url",
-      "value": "{{base_url}}:3001",
+      "value": "{{base_url}}/channel",
       "type": "string"
     },
     {
       "key": "ai_service_url",
-      "value": "{{base_url}}:3002",
+      "value": "{{base_url}}/ai",
       "type": "string"
     },
     {
       "key": "dashboard_url",
-      "value": "{{base_url}}:3000",
+      "value": "https://govconnect.my.id",
       "type": "string"
     },
     {

@@ -50,22 +50,23 @@ GraphQL endpoints and some public endpoints don't require authentication.
 
 ## Base URLs
 
-| Environment | URL Pattern |
-|-------------|-------------|
-| Production | `https://api.govconnect.my.id/{service}` |
-| Local | `http://localhost:{port}` |
+**Production (via Traefik):**
+| Service | URL |
+|---------|-----|
+| Dashboard | `https://govconnect.my.id` |
+| Case Service | `https://api.govconnect.my.id/case` |
+| Channel Service | `https://api.govconnect.my.id/channel` |
+| AI Service | `https://api.govconnect.my.id/ai` |
+| Notification Service | `https://api.govconnect.my.id/notification` |
 
-**Service Paths (via Traefik):**
-- Channel: `/channel/*`
-- AI: `/ai/*`
-- Case: `/case/*`
-- Notification: `/notification/*`
+> Note: Traefik strips the service prefix before forwarding to the backend.
+> Example: `https://api.govconnect.my.id/case/health` → `http://case-service:3003/health`
 
 ---
 
 ## Case Service API
 
-Base URL: `http://localhost:3003` or `https://api.govconnect.my.id/case`
+Base URL: `https://api.govconnect.my.id/case`
 
 ### Health Endpoints
 
@@ -424,7 +425,7 @@ X-Internal-API-Key: <api-key>
 
 ## Channel Service API
 
-Base URL: `http://localhost:3001` or `https://api.govconnect.my.id/channel`
+Base URL: `https://api.govconnect.my.id/channel`
 
 ### Health Endpoints
 
@@ -643,7 +644,7 @@ Delete conversation.
 
 ## AI Service API
 
-Base URL: `http://localhost:3002` or `https://api.govconnect.my.id/ai`
+Base URL: `https://api.govconnect.my.id/ai`
 
 ### Health Endpoints
 

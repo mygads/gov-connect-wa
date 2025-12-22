@@ -14,11 +14,11 @@ const baseCollection = {
     schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   variable: [
-    { key: "base_url", value: "http://localhost", type: "string" },
-    { key: "case_service_url", value: "{{base_url}}:3003", type: "string" },
-    { key: "channel_service_url", value: "{{base_url}}:3001", type: "string" },
-    { key: "ai_service_url", value: "{{base_url}}:3002", type: "string" },
-    { key: "dashboard_url", value: "{{base_url}}:3000", type: "string" },
+    { key: "base_url", value: "https://api.govconnect.my.id", type: "string" },
+    { key: "case_service_url", value: "{{base_url}}/case", type: "string" },
+    { key: "channel_service_url", value: "{{base_url}}/channel", type: "string" },
+    { key: "ai_service_url", value: "{{base_url}}/ai", type: "string" },
+    { key: "dashboard_url", value: "https://govconnect.my.id", type: "string" },
     { key: "internal_api_key", value: "govconnect-internal-2025-secret", type: "string" },
     { key: "auth_token", value: "", type: "string" },
     { key: "wa_user_id", value: "6281234567890", type: "string" },
