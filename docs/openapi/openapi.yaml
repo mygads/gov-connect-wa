@@ -1,377 +1,64 @@
 openapi: 3.0.3
 info:
   title: GovConnect API
-  version: 1.0.0
   description: |
-    # GovConnect API Documentation
-    
-    GovConnect adalah platform pelayanan pemerintah melalui WhatsApp dengan AI.
+    Complete API documentation for GovConnect microservices platform.
     
     ## Services
-    
-    | Service | Port | Description |
-    |---------|------|-------------|
-    | Channel Service | 3001 | WhatsApp webhook & messaging |
-    | AI Service | 3002 | AI orchestration & processing |
-    | Case Service | 3003 | Laporan & tiket management |
-    | Notification Service | 3004 | WhatsApp notifications |
-    | Dashboard | 3000 | Admin dashboard |
+    - **Case Service** - Complaints & Reservations management
+    - **Channel Service** - WhatsApp Gateway & Live Chat
+    - **AI Service** - AI Orchestrator & Knowledge Base
+    - **Notification Service** - Event-driven notifications
     
     ## Authentication
+    - **Internal API Key**: `X-Internal-API-Key` header for service-to-service communication
+    - **JWT Token**: `Authorization: Bearer <token>` for dashboard authentication
+    - **Public APIs**: GraphQL endpoints don't require authentication
     
-    - **Internal APIs**: Header `X-Internal-API-Key`
-    - **Dashboard**: JWT via cookie/header
-    - **Webhook**: WhatsApp verify token
-    
+    ## Base URLs
+    All services are accessible via Traefik reverse proxy at `api.govconnect.my.id`
+  version: 1.0.0
   contact:
     name: GovConnect Team
-    email: admin@govconnect.my.id
+    url: https://govconnect.my.id
   license:
     name: MIT
-    url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: http://localhost:3001
-    description: Channel Service (Development)
-  - url: http://localhost:3002
-    description: AI Service (Development)
-  - url: http://localhost:3003
-    description: Case Service (Development)
-  - url: http://localhost:3004
-    description: Notification Service (Development)
-  - url: https://api.govconnect.my.id
-    description: Production API Gateway
+  - url: https://api.govconnect.my.id/case
+    description: Case Service (Production)
+  - url: https://api.govconnect.my.id/channel
+    description: Channel Service (Production)
+  - url: https://api.govconnect.my.id/ai
+    description: AI Service (Production)
 
 tags:
-  - name: Webhook
-    description: WhatsApp webhook endpoints
-  - name: Channel
-    description: Channel service internal APIs
-  - name: AI
-    description: AI processing endpoints
-  - name: Laporan
-    description: Complaint/report management
-  - name: Tiket
-    description: Service ticket management
-  - name: Statistics
-    description: Dashboard statistics
-  - name: Notifications
-    description: Notification management
   - name: Health
     description: Health check endpoints
-
-paths:
-  # ==================== WEBHOOK ====================
-  /webhook/whatsapp:
-    get:
-      tags: [Webhook]
-      summary: WhatsApp webhook verification
-      description: Endpoint untuk verifikasi webhook WhatsApp
-      parameters:
-        - name: hub.mode
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [subscribe]
-        - name: hub.verify_token
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: hub.challenge
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Verification successful
-          content:
-            text/plain:
-              schema:
-                type: string
-        '403':
-          description: Invalid verify token
-
-    post:
-      tags: [Webhook]
-      summary: Receive WhatsApp message
-      description: |
-        Endpoint untuk menerima pesan dari WhatsApp.
-        Pesan akan diproses oleh AI dan disimpan ke database.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WhatsAppWebhookPayload'
-      responses:
-        '200':
-          description: Webhook received
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
-
-  # ==================== CHANNEL INTERNAL ====================
-  /internal/send:
-    post:
-      tags: [Channel]
-      summary: Send WhatsApp message
-      security:
-        - InternalApiKey: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SendMessageRequest'
-      responses:
-        '200':
-          description: Message sent
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SendMessageResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /internal/messages:
-    get:
-      tags: [Channel]
-      summary: Get message history
-      description: Mengambil history chat untuk user (FIFO 30 messages)
-      security:
-        - InternalApiKey: []
-      parameters:
-        - name: wa_user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          example: "6281234567890"
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 30
-            maximum: 30
-      responses:
-        '200':
-          description: Message history
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MessagesResponse'
-
-  /internal/conversations:
-    get:
-      tags: [Channel]
-      summary: Get conversation list
-      description: Daftar semua percakapan untuk Live Chat dashboard
-      security:
-        - InternalApiKey: []
-      parameters:
-        - name: is_takeover
-          in: query
-          schema:
-            type: boolean
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 50
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            default: 0
-      responses:
-        '200':
-          description: Conversation list
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ConversationsResponse'
-
-  # ==================== LAPORAN ====================
-  /laporan/create:
-    post:
-      tags: [Laporan]
-      summary: Create new complaint
-      description: Membuat laporan baru dari warga
-      security:
-        - InternalApiKey: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateComplaintRequest'
-      responses:
-        '201':
-          description: Complaint created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateComplaintResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /laporan:
-    get:
-      tags: [Laporan]
-      summary: Get complaints list
-      security:
-        - InternalApiKey: []
-      parameters:
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [baru, proses, selesai, ditolak]
-        - name: kategori
-          in: query
-          schema:
-            type: string
-            enum: [jalan_rusak, lampu_mati, sampah, drainase, pohon_tumbang, fasilitas_rusak]
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            default: 0
-      responses:
-        '200':
-          description: Complaints list
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ComplaintsListResponse'
-
-  /laporan/{id}:
-    get:
-      tags: [Laporan]
-      summary: Get complaint detail
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Complaint detail
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Complaint'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /laporan/{id}/status:
-    patch:
-      tags: [Laporan]
-      summary: Update complaint status
-      security:
-        - InternalApiKey: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateStatusRequest'
-      responses:
-        '200':
-          description: Status updated
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  # ==================== TIKET ====================
-  /tiket/create:
-    post:
-      tags: [Tiket]
-      summary: Create new ticket
-      security:
-        - InternalApiKey: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateTicketRequest'
-      responses:
-        '201':
-          description: Ticket created
-
-  /tiket:
-    get:
-      tags: [Tiket]
-      summary: Get tickets list
-      security:
-        - InternalApiKey: []
-      parameters:
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [pending, proses, selesai, ditolak]
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            default: 0
-      responses:
-        '200':
-          description: Tickets list
-
-  # ==================== STATISTICS ====================
-  /statistics/overview:
-    get:
-      tags: [Statistics]
-      summary: Get dashboard statistics
-      security:
-        - InternalApiKey: []
-      responses:
-        '200':
-          description: Statistics data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StatisticsResponse'
-
-  # ==================== HEALTH ====================
-  /health:
-    get:
-      tags: [Health]
-      summary: Health check
-      responses:
-        '200':
-          description: Service healthy
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
+  - name: Complaints
+    description: Complaint/Laporan management
+  - name: Reservations
+    description: Reservation management
+  - name: Services
+    description: Government services configuration
+  - name: Statistics
+    description: Statistics and analytics
+  - name: User
+    description: User history and data
+  - name: WhatsApp
+    description: WhatsApp session management
+  - name: Messages
+    description: Message handling
+  - name: Live Chat
+    description: Admin takeover and live chat
+  - name: WebChat
+    description: Web chat API
+  - name: Knowledge
+    description: Knowledge base and vector search
+  - name: AI Analytics
+    description: AI processing analytics
+  - name: GraphQL
+    description: GraphQL API for public forms
 
 components:
   securitySchemes:
@@ -379,174 +66,108 @@ components:
       type: apiKey
       in: header
       name: X-Internal-API-Key
-      description: API Key untuk internal service calls
-    
+      description: Internal API key for service-to-service communication
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
-  responses:
-    BadRequest:
-      description: Bad request
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    
-    Unauthorized:
-      description: Unauthorized - missing or invalid API key
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    
-    NotFound:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
+      description: JWT token for dashboard authentication
 
   schemas:
-    Error:
+    # Common Schemas
+    SuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        data:
+          type: object
+
+    ErrorResponse:
       type: object
       properties:
         error:
           type: string
-          example: Bad Request
-        message:
-          type: string
-          example: Invalid request body
         details:
-          type: array
-          items:
-            type: object
+          type: string
+        status:
+          type: string
+          example: error
 
     HealthResponse:
       type: object
       properties:
         status:
           type: string
-          enum: [ok, degraded, error]
           example: ok
+        service:
+          type: string
         timestamp:
           type: string
           format: date-time
-        uptime:
-          type: number
-        version:
-          type: string
 
-    WhatsAppWebhookPayload:
-      type: object
-      properties:
-        object:
-          type: string
-          example: whatsapp_business_account
-        entry:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: string
-              changes:
-                type: array
-                items:
-                  type: object
+    # Complaint Schemas
+    ComplaintCategory:
+      type: string
+      enum:
+        - jalan_rusak
+        - lampu_mati
+        - sampah
+        - drainase
+        - pohon_tumbang
+        - fasilitas_rusak
+        - banjir
+        - tindakan_kriminal
+        - lainnya
 
-    SendMessageRequest:
+    ComplaintStatus:
+      type: string
+      enum:
+        - baru
+        - proses
+        - selesai
+        - ditolak
+
+    CreateComplaintRequest:
       type: object
-      required: [wa_user_id, message]
+      required:
+        - wa_user_id
+        - kategori
+        - deskripsi
       properties:
         wa_user_id:
           type: string
           example: "6281234567890"
-        message:
+        kategori:
+          $ref: '#/components/schemas/ComplaintCategory'
+        deskripsi:
           type: string
-          example: "Laporan Anda sudah diterima"
-
-    SendMessageResponse:
-      type: object
-      properties:
-        status:
+          example: "Jalan berlubang di depan kantor kelurahan"
+        alamat:
           type: string
-          enum: [sent, failed]
-        message_id:
+          example: "Jl. Merdeka No. 10"
+        rt_rw:
           type: string
-        error:
+          example: "001/002"
+        foto_url:
           type: string
-
-    Message:
-      type: object
-      properties:
-        id:
-          type: string
-        wa_user_id:
-          type: string
-        message_text:
-          type: string
-        direction:
-          type: string
-          enum: [IN, OUT]
-        source:
-          type: string
-          enum: [WA_WEBHOOK, AI, SYSTEM, ADMIN]
-        timestamp:
-          type: string
-          format: date-time
-
-    MessagesResponse:
-      type: object
-      properties:
-        messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/Message'
-        total:
-          type: integer
-
-    Conversation:
-      type: object
-      properties:
-        wa_user_id:
-          type: string
-        user_name:
-          type: string
-        last_message:
-          type: string
-        last_message_at:
-          type: string
-          format: date-time
-        unread_count:
-          type: integer
-        is_takeover:
-          type: boolean
-
-    ConversationsResponse:
-      type: object
-      properties:
-        conversations:
-          type: array
-          items:
-            $ref: '#/components/schemas/Conversation'
-        total:
-          type: integer
+          format: uri
+          example: "https://example.com/photo.jpg"
 
     Complaint:
       type: object
       properties:
         id:
           type: string
+          format: uuid
         complaint_id:
           type: string
-          example: LAP-20251203-001
+          example: "LP-20251222-001"
         wa_user_id:
           type: string
         kategori:
-          type: string
-          enum: [jalan_rusak, lampu_mati, sampah, drainase, pohon_tumbang, fasilitas_rusak]
+          $ref: '#/components/schemas/ComplaintCategory'
         deskripsi:
           type: string
         alamat:
@@ -556,8 +177,7 @@ components:
         foto_url:
           type: string
         status:
-          type: string
-          enum: [baru, proses, selesai, ditolak]
+          $ref: '#/components/schemas/ComplaintStatus'
         admin_notes:
           type: string
         created_at:
@@ -567,100 +187,10 @@ components:
           type: string
           format: date-time
 
-    CreateComplaintRequest:
-      type: object
-      required: [wa_user_id, kategori, deskripsi]
-      properties:
-        wa_user_id:
-          type: string
-          example: "6281234567890"
-        kategori:
-          type: string
-          enum: [jalan_rusak, lampu_mati, sampah, drainase, pohon_tumbang, fasilitas_rusak]
-        deskripsi:
-          type: string
-          minLength: 10
-        alamat:
-          type: string
-        rt_rw:
-          type: string
-        foto_url:
-          type: string
-
-    CreateComplaintResponse:
-      type: object
-      properties:
-        status:
-          type: string
-          example: success
-        data:
-          type: object
-          properties:
-            complaint_id:
-              type: string
-            status:
-              type: string
-
-    ComplaintsListResponse:
-      type: object
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Complaint'
-        pagination:
-          $ref: '#/components/schemas/Pagination'
-
-    UpdateStatusRequest:
-      type: object
-      required: [status]
-      properties:
-        status:
-          type: string
-          enum: [baru, proses, selesai, ditolak]
-        admin_notes:
-          type: string
-
-    Ticket:
-      type: object
-      properties:
-        id:
-          type: string
-        ticket_id:
-          type: string
-          example: TKT-20251203-001
-        wa_user_id:
-          type: string
-        jenis:
-          type: string
-          enum: [surat_keterangan, surat_pengantar, izin_keramaian]
-        data_json:
-          type: object
-        status:
-          type: string
-          enum: [pending, proses, selesai, ditolak]
-        created_at:
-          type: string
-          format: date-time
-
-    CreateTicketRequest:
-      type: object
-      required: [wa_user_id, jenis, data_json]
-      properties:
-        wa_user_id:
-          type: string
-        jenis:
-          type: string
-          enum: [surat_keterangan, surat_pengantar, izin_keramaian]
-        data_json:
-          type: object
-
-    StatisticsResponse:
+    ComplaintStatistics:
       type: object
       properties:
         totalLaporan:
-          type: integer
-        totalTiket:
           type: integer
         laporan:
           type: object
@@ -675,26 +205,2473 @@ components:
               type: integer
             hariIni:
               type: integer
-        tiket:
-          type: object
-          properties:
-            pending:
-              type: integer
-            proses:
-              type: integer
-            selesai:
-              type: integer
-            ditolak:
-              type: integer
-            hariIni:
-              type: integer
 
-    Pagination:
+    # Reservation Schemas
+    ReservationStatus:
+      type: string
+      enum:
+        - pending
+        - confirmed
+        - arrived
+        - completed
+        - cancelled
+        - no_show
+
+    CitizenData:
+      type: object
+      required:
+        - nama_lengkap
+        - nik
+        - alamat
+        - no_hp
+      properties:
+        nama_lengkap:
+          type: string
+          example: "John Doe"
+        nik:
+          type: string
+          example: "1234567890123456"
+        alamat:
+          type: string
+          example: "Jl. Merdeka No. 10"
+        no_hp:
+          type: string
+          example: "081234567890"
+
+    CreateReservationRequest:
+      type: object
+      required:
+        - wa_user_id
+        - service_code
+        - citizen_data
+        - reservation_date
+        - reservation_time
+      properties:
+        wa_user_id:
+          type: string
+          example: "6281234567890"
+        service_code:
+          type: string
+          example: "SKD"
+        citizen_data:
+          $ref: '#/components/schemas/CitizenData'
+        reservation_date:
+          type: string
+          format: date
+          example: "2025-12-24"
+        reservation_time:
+          type: string
+          example: "09:00"
+
+    Reservation:
       type: object
       properties:
-        total:
+        id:
+          type: string
+          format: uuid
+        reservation_id:
+          type: string
+          example: "RSV-20251222-001"
+        wa_user_id:
+          type: string
+        service_code:
+          type: string
+        queue_number:
           type: integer
-        limit:
+        reservation_date:
+          type: string
+          format: date
+        reservation_time:
+          type: string
+        status:
+          $ref: '#/components/schemas/ReservationStatus'
+        citizen_data:
+          $ref: '#/components/schemas/CitizenData'
+        created_at:
+          type: string
+          format: date-time
+
+    # Service Schemas
+    OperatingHours:
+      type: object
+      properties:
+        senin:
+          $ref: '#/components/schemas/DayHours'
+        selasa:
+          $ref: '#/components/schemas/DayHours'
+        rabu:
+          $ref: '#/components/schemas/DayHours'
+        kamis:
+          $ref: '#/components/schemas/DayHours'
+        jumat:
+          $ref: '#/components/schemas/DayHours'
+        sabtu:
+          $ref: '#/components/schemas/DayHours'
+        minggu:
+          $ref: '#/components/schemas/DayHours'
+
+    DayHours:
+      type: object
+      properties:
+        open:
+          type: string
+          example: "08:00"
+        close:
+          type: string
+          example: "15:00"
+
+    CitizenQuestion:
+      type: object
+      properties:
+        field:
+          type: string
+        question:
+          type: string
+        type:
+          type: string
+          enum: [text, number, date, select, file]
+        required:
+          type: boolean
+        options:
+          type: array
+          items:
+            type: string
+
+    GovService:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "SKD"
+        name:
+          type: string
+          example: "Surat Keterangan Domisili"
+        description:
+          type: string
+        category:
+          type: string
+          example: "Kependudukan"
+        requirements:
+          type: array
+          items:
+            type: string
+        sop_steps:
+          type: array
+          items:
+            type: string
+        estimated_duration:
           type: integer
-        offset:
+          example: 15
+        daily_quota:
           type: integer
+          example: 20
+        is_active:
+          type: boolean
+        is_online_available:
+          type: boolean
+        operating_hours:
+          $ref: '#/components/schemas/OperatingHours'
+        citizen_questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CitizenQuestion'
+
+    AvailableSlots:
+      type: object
+      properties:
+        available:
+          type: boolean
+        service_code:
+          type: string
+        date:
+          type: string
+          format: date
+        day_name:
+          type: string
+        total_quota:
+          type: integer
+        booked:
+          type: integer
+        remaining:
+          type: integer
+        available_slots:
+          type: array
+          items:
+            type: string
+
+
+    # Channel Service Schemas
+    WhatsAppStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [connected, disconnected, connecting]
+        phone_number:
+          type: string
+        name:
+          type: string
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        wa_user_id:
+          type: string
+        message:
+          type: string
+        direction:
+          type: string
+          enum: [IN, OUT]
+        source:
+          type: string
+          enum: [USER, AI, ADMIN]
+        created_at:
+          type: string
+          format: date-time
+
+    SendMessageRequest:
+      type: object
+      required:
+        - wa_user_id
+        - message
+      properties:
+        wa_user_id:
+          type: string
+          example: "6281234567890"
+        message:
+          type: string
+        media_url:
+          type: string
+          format: uri
+
+    Takeover:
+      type: object
+      properties:
+        wa_user_id:
+          type: string
+        admin_id:
+          type: string
+        admin_name:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+
+    Conversation:
+      type: object
+      properties:
+        wa_user_id:
+          type: string
+        last_message:
+          type: string
+        last_message_at:
+          type: string
+          format: date-time
+        unread_count:
+          type: integer
+        is_takeover:
+          type: boolean
+
+    # AI Service Schemas
+    WebChatRequest:
+      type: object
+      required:
+        - session_id
+        - message
+      properties:
+        session_id:
+          type: string
+          example: "web_form_1234567890"
+        message:
+          type: string
+        channel:
+          type: string
+          default: webchat
+
+    WebChatResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        response:
+          type: string
+        intent:
+          type: string
+        processing_time_ms:
+          type: integer
+
+    KnowledgeEntry:
+      type: object
+      required:
+        - id
+        - title
+        - content
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        qualityScore:
+          type: number
+          format: float
+
+    KnowledgeSearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+        topK:
+          type: integer
+          default: 5
+        minScore:
+          type: number
+          format: float
+          default: 0.7
+        categories:
+          type: array
+          items:
+            type: string
+
+    KnowledgeSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        score:
+          type: number
+          format: float
+        category:
+          type: string
+
+    BlacklistEntry:
+      type: object
+      properties:
+        wa_user_id:
+          type: string
+        reason:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    AddBlacklistRequest:
+      type: object
+      required:
+        - wa_user_id
+        - reason
+      properties:
+        wa_user_id:
+          type: string
+        reason:
+          type: string
+        expiresInDays:
+          type: integer
+          default: 7
+
+    ProcessingStatus:
+      type: object
+      properties:
+        userId:
+          type: string
+        stage:
+          type: string
+        message:
+          type: string
+        progress:
+          type: integer
+        completed:
+          type: boolean
+
+    AIAnalytics:
+      type: object
+      properties:
+        totalRequests:
+          type: integer
+        averageProcessingTime:
+          type: number
+        intentDistribution:
+          type: object
+          additionalProperties:
+            type: integer
+        tokenUsage:
+          type: object
+          properties:
+            total:
+              type: integer
+            input:
+              type: integer
+            output:
+              type: integer
+
+paths:
+  # ============================================
+  # CASE SERVICE - Health
+  # ============================================
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Check service health status
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Prometheus metrics
+      description: Get Prometheus metrics
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  # ============================================
+  # CASE SERVICE - Complaints (Laporan)
+  # ============================================
+  /laporan/create:
+    post:
+      tags:
+        - Complaints
+      summary: Create complaint
+      description: Create a new complaint/laporan
+      operationId: createComplaint
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateComplaintRequest'
+      responses:
+        '201':
+          description: Complaint created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/Complaint'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /laporan:
+    get:
+      tags:
+        - Complaints
+      summary: Get complaints list
+      description: Get list of complaints with optional filters
+      operationId: getComplaints
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ComplaintStatus'
+        - name: kategori
+          in: query
+          schema:
+            $ref: '#/components/schemas/ComplaintCategory'
+        - name: wa_user_id
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of complaints
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Complaint'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+  /laporan/{id}:
+    get:
+      tags:
+        - Complaints
+      summary: Get complaint by ID
+      operationId: getComplaintById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Complaint details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Complaint'
+        '404':
+          description: Complaint not found
+
+  /laporan/statistics:
+    get:
+      tags:
+        - Complaints
+        - Statistics
+      summary: Get complaint statistics
+      operationId: getComplaintStatistics
+      responses:
+        '200':
+          description: Complaint statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplaintStatistics'
+
+  /laporan/{id}/check:
+    post:
+      tags:
+        - Complaints
+      summary: Check complaint status
+      description: Check complaint status with ownership validation
+      operationId: checkComplaint
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - wa_user_id
+              properties:
+                wa_user_id:
+                  type: string
+      responses:
+        '200':
+          description: Complaint status
+        '403':
+          description: Not owner of complaint
+        '404':
+          description: Complaint not found
+
+  /laporan/{id}/status:
+    patch:
+      tags:
+        - Complaints
+      summary: Update complaint status
+      operationId: updateComplaintStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  $ref: '#/components/schemas/ComplaintStatus'
+                admin_notes:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
+        '404':
+          description: Complaint not found
+
+  /laporan/{id}/cancel:
+    post:
+      tags:
+        - Complaints
+      summary: Cancel complaint
+      operationId: cancelComplaint
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - wa_user_id
+              properties:
+                wa_user_id:
+                  type: string
+                cancel_reason:
+                  type: string
+      responses:
+        '200':
+          description: Complaint cancelled
+        '403':
+          description: Not owner
+        '404':
+          description: Not found
+
+
+  # ============================================
+  # CASE SERVICE - Reservations
+  # ============================================
+  /reservasi/services:
+    get:
+      tags:
+        - Services
+      summary: Get all services
+      description: Get all government services
+      operationId: getAllServices
+      responses:
+        '200':
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GovService'
+
+  /reservasi/services/active:
+    get:
+      tags:
+        - Services
+      summary: Get active services
+      description: Get only active services
+      operationId: getActiveServices
+      responses:
+        '200':
+          description: List of active services
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GovService'
+
+  /reservasi/services/{code}:
+    get:
+      tags:
+        - Services
+      summary: Get service by code
+      operationId: getServiceByCode
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          example: SKD
+      responses:
+        '200':
+          description: Service details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/GovService'
+        '404':
+          description: Service not found
+
+  /reservasi/services/{code}/toggle-active:
+    patch:
+      tags:
+        - Services
+      summary: Toggle service active status
+      operationId: toggleServiceActive
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Status toggled
+
+  /reservasi/services/{code}/toggle-online:
+    patch:
+      tags:
+        - Services
+      summary: Toggle online availability
+      operationId: toggleServiceOnline
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_online_available:
+                  type: boolean
+      responses:
+        '200':
+          description: Online status toggled
+
+  /reservasi/services/{code}/settings:
+    patch:
+      tags:
+        - Services
+      summary: Update service settings
+      operationId: updateServiceSettings
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                daily_quota:
+                  type: integer
+                operating_hours:
+                  $ref: '#/components/schemas/OperatingHours'
+      responses:
+        '200':
+          description: Settings updated
+
+  /reservasi/slots/{code}/{date}:
+    get:
+      tags:
+        - Reservations
+      summary: Get available slots
+      description: Get available time slots for a service on a specific date
+      operationId: getAvailableSlots
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+          example: SKD
+        - name: date
+          in: path
+          required: true
+          schema:
+            type: string
+            format: date
+          example: "2025-12-24"
+      responses:
+        '200':
+          description: Available slots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailableSlots'
+        '404':
+          description: Service not found
+
+  /reservasi/create:
+    post:
+      tags:
+        - Reservations
+      summary: Create reservation
+      description: Create a new reservation
+      operationId: createReservation
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReservationRequest'
+      responses:
+        '201':
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      reservation_id:
+                        type: string
+                      queue_number:
+                        type: integer
+                      service_name:
+                        type: string
+                      reservation_date:
+                        type: string
+                      reservation_time:
+                        type: string
+                      status:
+                        type: string
+        '400':
+          description: Validation error or no slots available
+        '409':
+          description: Duplicate reservation
+
+  /reservasi:
+    get:
+      tags:
+        - Reservations
+      summary: Get reservations list
+      operationId: getReservations
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReservationStatus'
+        - name: service_id
+          in: query
+          schema:
+            type: string
+        - name: wa_user_id
+          in: query
+          schema:
+            type: string
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of reservations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reservation'
+                  total:
+                    type: integer
+
+  /reservasi/{id}:
+    get:
+      tags:
+        - Reservations
+      summary: Get reservation by ID
+      operationId: getReservationById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reservation details
+        '404':
+          description: Not found
+
+  /reservasi/{id}/check:
+    post:
+      tags:
+        - Reservations
+      summary: Check reservation status
+      operationId: checkReservation
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - wa_user_id
+              properties:
+                wa_user_id:
+                  type: string
+      responses:
+        '200':
+          description: Reservation status
+        '403':
+          description: Not owner
+        '404':
+          description: Not found
+
+  /reservasi/{id}/status:
+    patch:
+      tags:
+        - Reservations
+      summary: Update reservation status
+      operationId: updateReservationStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  $ref: '#/components/schemas/ReservationStatus'
+                admin_notes:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
+
+  /reservasi/{id}/cancel:
+    post:
+      tags:
+        - Reservations
+      summary: Cancel reservation
+      operationId: cancelReservation
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - wa_user_id
+              properties:
+                wa_user_id:
+                  type: string
+                cancel_reason:
+                  type: string
+      responses:
+        '200':
+          description: Reservation cancelled
+
+  /reservasi/{id}/time:
+    patch:
+      tags:
+        - Reservations
+      summary: Update reservation time
+      operationId: updateReservationTime
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - wa_user_id
+                - reservation_date
+                - reservation_time
+              properties:
+                wa_user_id:
+                  type: string
+                reservation_date:
+                  type: string
+                  format: date
+                reservation_time:
+                  type: string
+      responses:
+        '200':
+          description: Time updated
+
+  /reservasi/statistics:
+    get:
+      tags:
+        - Reservations
+        - Statistics
+      summary: Get reservation statistics
+      operationId: getReservationStatistics
+      responses:
+        '200':
+          description: Reservation statistics
+
+  /reservasi/history/{wa_user_id}:
+    get:
+      tags:
+        - Reservations
+        - User
+      summary: Get user reservation history
+      operationId: getUserReservationHistory
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User reservation history
+
+  # ============================================
+  # CASE SERVICE - Statistics & User
+  # ============================================
+  /statistics/overview:
+    get:
+      tags:
+        - Statistics
+      summary: Get overview statistics
+      operationId: getOverviewStatistics
+      responses:
+        '200':
+          description: Overview statistics
+
+  /user/{wa_user_id}/history:
+    get:
+      tags:
+        - User
+      summary: Get user history
+      description: Get user history including complaints and reservations
+      operationId: getUserHistory
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User history
+
+
+  # ============================================
+  # CHANNEL SERVICE - Webhook
+  # ============================================
+  /webhook/whatsapp:
+    get:
+      tags:
+        - WhatsApp
+      summary: Verify WhatsApp webhook
+      description: Webhook verification endpoint for WhatsApp
+      operationId: verifyWhatsAppWebhook
+      parameters:
+        - name: hub.mode
+          in: query
+          required: true
+          schema:
+            type: string
+          example: subscribe
+        - name: hub.verify_token
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: hub.challenge
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Challenge returned
+          content:
+            text/plain:
+              schema:
+                type: string
+        '403':
+          description: Invalid verify token
+    post:
+      tags:
+        - WhatsApp
+      summary: Handle WhatsApp webhook
+      description: Receive WhatsApp webhook events
+      operationId: handleWhatsAppWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: WhatsApp webhook payload
+      responses:
+        '200':
+          description: Webhook processed
+
+  # ============================================
+  # CHANNEL SERVICE - Internal Messages
+  # ============================================
+  /internal/messages:
+    get:
+      tags:
+        - Messages
+      summary: Get messages
+      description: Get messages for a user
+      operationId: getMessages
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+    post:
+      tags:
+        - Messages
+      summary: Store message
+      description: Store AI reply in database
+      operationId: storeMessage
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - wa_user_id
+                - message
+                - direction
+              properties:
+                wa_user_id:
+                  type: string
+                message:
+                  type: string
+                direction:
+                  type: string
+                  enum: [IN, OUT]
+                source:
+                  type: string
+                  enum: [USER, AI, ADMIN]
+      responses:
+        '201':
+          description: Message stored
+
+  /internal/send:
+    post:
+      tags:
+        - Messages
+      summary: Send WhatsApp message
+      description: Send message to WhatsApp user
+      operationId: sendWhatsAppMessage
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: Message sent
+
+  /internal/typing:
+    post:
+      tags:
+        - Messages
+      summary: Set typing indicator
+      operationId: setTypingIndicator
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - wa_user_id
+              properties:
+                wa_user_id:
+                  type: string
+      responses:
+        '200':
+          description: Typing indicator set
+
+  /internal/messages/read:
+    post:
+      tags:
+        - Messages
+      summary: Mark messages as read
+      operationId: markMessagesRead
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - wa_user_id
+              properties:
+                wa_user_id:
+                  type: string
+                message_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Messages marked as read
+
+  # ============================================
+  # CHANNEL SERVICE - WhatsApp Session
+  # ============================================
+  /internal/whatsapp/status:
+    get:
+      tags:
+        - WhatsApp
+      summary: Get WhatsApp status
+      description: Get WhatsApp connection status
+      operationId: getWhatsAppStatus
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: WhatsApp status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsAppStatus'
+
+  /internal/whatsapp/connect:
+    post:
+      tags:
+        - WhatsApp
+      summary: Connect WhatsApp
+      operationId: connectWhatsApp
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Connection initiated
+
+  /internal/whatsapp/disconnect:
+    post:
+      tags:
+        - WhatsApp
+      summary: Disconnect WhatsApp
+      operationId: disconnectWhatsApp
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Disconnected
+
+  /internal/whatsapp/logout:
+    post:
+      tags:
+        - WhatsApp
+      summary: Logout WhatsApp
+      operationId: logoutWhatsApp
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Logged out
+
+  /internal/whatsapp/qr:
+    get:
+      tags:
+        - WhatsApp
+      summary: Get QR code
+      description: Get QR code for WhatsApp pairing
+      operationId: getWhatsAppQR
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: QR code
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  qr:
+                    type: string
+                    description: Base64 encoded QR image
+
+  /internal/whatsapp/pairphone:
+    post:
+      tags:
+        - WhatsApp
+      summary: Pair phone number
+      operationId: pairPhoneNumber
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone_number
+              properties:
+                phone_number:
+                  type: string
+      responses:
+        '200':
+          description: Pairing code sent
+
+  /internal/whatsapp/settings:
+    get:
+      tags:
+        - WhatsApp
+      summary: Get WhatsApp settings
+      operationId: getWhatsAppSettings
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: WhatsApp settings
+    patch:
+      tags:
+        - WhatsApp
+      summary: Update WhatsApp settings
+      operationId: updateWhatsAppSettings
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Settings updated
+
+  # ============================================
+  # CHANNEL SERVICE - Live Chat & Takeover
+  # ============================================
+  /internal/takeover/{wa_user_id}:
+    post:
+      tags:
+        - Live Chat
+      summary: Start takeover
+      description: Start admin takeover of conversation
+      operationId: startTakeover
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - admin_id
+                - admin_name
+              properties:
+                admin_id:
+                  type: string
+                admin_name:
+                  type: string
+      responses:
+        '200':
+          description: Takeover started
+    delete:
+      tags:
+        - Live Chat
+      summary: End takeover
+      operationId: endTakeover
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Takeover ended
+
+  /internal/takeover:
+    get:
+      tags:
+        - Live Chat
+      summary: Get all takeovers
+      operationId: getAllTakeovers
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: List of active takeovers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Takeover'
+
+  /internal/takeover/{wa_user_id}/status:
+    get:
+      tags:
+        - Live Chat
+      summary: Check takeover status
+      operationId: checkTakeoverStatus
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Takeover status
+
+  /internal/conversations:
+    get:
+      tags:
+        - Live Chat
+      summary: Get all conversations
+      operationId: getAllConversations
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+
+  /internal/conversations/{wa_user_id}:
+    get:
+      tags:
+        - Live Chat
+      summary: Get conversation
+      operationId: getConversation
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Conversation details
+    delete:
+      tags:
+        - Live Chat
+      summary: Delete conversation
+      operationId: deleteConversation
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Conversation deleted
+
+  /internal/conversations/{wa_user_id}/send:
+    post:
+      tags:
+        - Live Chat
+      summary: Admin send message
+      operationId: adminSendMessage
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                media_url:
+                  type: string
+      responses:
+        '200':
+          description: Message sent
+
+  /internal/conversations/{wa_user_id}/read:
+    post:
+      tags:
+        - Live Chat
+      summary: Mark conversation as read
+      operationId: markConversationRead
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Marked as read
+
+  /internal/conversations/{wa_user_id}/retry:
+    post:
+      tags:
+        - Live Chat
+      summary: Retry AI processing
+      operationId: retryAIProcessing
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Retry initiated
+
+
+  # ============================================
+  # AI SERVICE - Health
+  # ============================================
+  /health/rabbitmq:
+    get:
+      tags:
+        - Health
+      summary: RabbitMQ health
+      description: Check RabbitMQ connectivity with retry queue info
+      operationId: getRabbitMQHealth
+      responses:
+        '200':
+          description: RabbitMQ status
+
+  /health/services:
+    get:
+      tags:
+        - Health
+      summary: Downstream services health
+      operationId: getServicesHealth
+      responses:
+        '200':
+          description: Services health status
+
+  # ============================================
+  # AI SERVICE - WebChat
+  # ============================================
+  /api/webchat:
+    post:
+      tags:
+        - WebChat
+      summary: Process webchat message
+      description: Process a message from web chat interface
+      operationId: processWebchatMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebChatRequest'
+      responses:
+        '200':
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebChatResponse'
+
+  /api/webchat/{session_id}:
+    get:
+      tags:
+        - WebChat
+      summary: Get session history
+      operationId: getWebchatSessionHistory
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session history
+    delete:
+      tags:
+        - WebChat
+      summary: Clear session
+      operationId: clearWebchatSession
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session cleared
+
+  /api/webchat/stats:
+    get:
+      tags:
+        - WebChat
+      summary: Get session statistics
+      operationId: getWebchatStats
+      responses:
+        '200':
+          description: Session statistics
+
+  /api/webchat/{session_id}/poll:
+    get:
+      tags:
+        - WebChat
+      summary: Poll for messages
+      description: Long polling for admin messages
+      operationId: pollWebchatMessages
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: New messages if any
+
+  # ============================================
+  # AI SERVICE - Knowledge Vector
+  # ============================================
+  /api/knowledge:
+    post:
+      tags:
+        - Knowledge
+      summary: Add knowledge
+      description: Add knowledge entry with embedding
+      operationId: addKnowledge
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeEntry'
+      responses:
+        '201':
+          description: Knowledge added
+
+  /api/knowledge/{id}:
+    get:
+      tags:
+        - Knowledge
+      summary: Get knowledge
+      operationId: getKnowledge
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Knowledge entry
+    put:
+      tags:
+        - Knowledge
+      summary: Update knowledge
+      description: Update knowledge and re-embed
+      operationId: updateKnowledge
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeEntry'
+      responses:
+        '200':
+          description: Knowledge updated
+    delete:
+      tags:
+        - Knowledge
+      summary: Delete knowledge
+      operationId: deleteKnowledge
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Knowledge deleted
+
+  /api/knowledge/search:
+    post:
+      tags:
+        - Knowledge
+      summary: Vector search
+      description: Search knowledge base using vector similarity
+      operationId: searchKnowledge
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeSearchRequest'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/KnowledgeSearchResult'
+
+  /api/knowledge/stats:
+    get:
+      tags:
+        - Knowledge
+      summary: Get vector DB stats
+      operationId: getKnowledgeStats
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Vector database statistics
+
+  # ============================================
+  # AI SERVICE - Document Upload
+  # ============================================
+  /api/upload/document:
+    post:
+      tags:
+        - Knowledge
+      summary: Upload document
+      description: Upload and process document for knowledge base
+      operationId: uploadDocument
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Document file (PDF, DOCX, TXT, MD, CSV)
+                category:
+                  type: string
+      responses:
+        '200':
+          description: Document processed
+
+  /api/upload/document/{documentId}:
+    delete:
+      tags:
+        - Knowledge
+      summary: Delete document
+      description: Delete document vectors
+      operationId: deleteDocument
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Document deleted
+
+  # ============================================
+  # AI SERVICE - Processing Status
+  # ============================================
+  /api/status/summary:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get processing summary
+      operationId: getProcessingSummary
+      responses:
+        '200':
+          description: Processing summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      activeCount:
+                        type: integer
+                      completedCount:
+                        type: integer
+                      averageProcessingTime:
+                        type: number
+
+  /api/status/active:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get active processing
+      operationId: getActiveProcessing
+      responses:
+        '200':
+          description: Active processing statuses
+
+  /api/status/stream/{userId}:
+    get:
+      tags:
+        - AI Analytics
+      summary: SSE status stream
+      description: Server-Sent Events stream for real-time updates
+      operationId: getStatusStream
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /api/status/{userId}:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get user processing status
+      operationId: getUserProcessingStatus
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Processing status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingStatus'
+
+  # ============================================
+  # AI SERVICE - Analytics & Statistics
+  # ============================================
+  /stats/models:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get model statistics
+      operationId: getModelStats
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Model statistics
+
+  /stats/analytics:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get AI analytics
+      operationId: getAIAnalytics
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: AI analytics summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIAnalytics'
+
+  /stats/analytics/intents:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get intent distribution
+      operationId: getIntentDistribution
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Intent distribution
+
+  /stats/analytics/tokens:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get token usage
+      operationId: getTokenUsage
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Token usage breakdown
+
+  /stats/dashboard:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get dashboard stats
+      description: Comprehensive dashboard statistics
+      operationId: getDashboardStats
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Dashboard statistics
+
+  /stats/analyze-complexity:
+    post:
+      tags:
+        - AI Analytics
+      summary: Analyze message complexity
+      operationId: analyzeComplexity
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Complexity analysis
+
+  # ============================================
+  # AI SERVICE - Rate Limiting
+  # ============================================
+  /rate-limit:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get rate limit stats
+      operationId: getRateLimitStats
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Rate limit statistics
+
+  /rate-limit/check/{wa_user_id}:
+    get:
+      tags:
+        - AI Analytics
+      summary: Check user rate limit
+      operationId: checkUserRateLimit
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rate limit status
+
+  /rate-limit/blacklist:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get blacklist
+      operationId: getBlacklist
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Blacklist entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BlacklistEntry'
+    post:
+      tags:
+        - AI Analytics
+      summary: Add to blacklist
+      operationId: addToBlacklist
+      security:
+        - InternalApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddBlacklistRequest'
+      responses:
+        '201':
+          description: Added to blacklist
+
+  /rate-limit/blacklist/{wa_user_id}:
+    delete:
+      tags:
+        - AI Analytics
+      summary: Remove from blacklist
+      operationId: removeFromBlacklist
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: wa_user_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Removed from blacklist
+
+  # ============================================
+  # AI SERVICE - Failed Messages
+  # ============================================
+  /admin/failed-messages:
+    get:
+      tags:
+        - AI Analytics
+      summary: Get failed messages
+      operationId: getFailedMessages
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Failed messages list
+    delete:
+      tags:
+        - AI Analytics
+      summary: Clear failed messages
+      operationId: clearFailedMessages
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Failed messages cleared
+
+  /admin/failed-messages/{messageId}/retry:
+    post:
+      tags:
+        - AI Analytics
+      summary: Retry failed message
+      operationId: retryFailedMessage
+      security:
+        - InternalApiKey: []
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Retry initiated
+
+  /admin/failed-messages/retry-all:
+    post:
+      tags:
+        - AI Analytics
+      summary: Retry all failed messages
+      operationId: retryAllFailedMessages
+      security:
+        - InternalApiKey: []
+      responses:
+        '200':
+          description: Retry all initiated
+
+  # ============================================
+  # GRAPHQL API
+  # ============================================
+  /graphql:
+    post:
+      tags:
+        - GraphQL
+      summary: GraphQL endpoint
+      description: |
+        GraphQL API for public forms (complaints and reservations).
+        
+        ## Available Queries
+        - `services` - Get all government services
+        - `service(code: String!)` - Get service by code
+        - `availableSlots(serviceCode: String!, date: String!)` - Get available time slots
+        - `complaintCategories` - Get complaint categories
+        
+        ## Available Mutations
+        - `createComplaint(input: CreateComplaintInput!)` - Create a complaint
+        - `createReservation(input: CreateReservationInput!)` - Create a reservation
+      operationId: graphqlEndpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: GraphQL query or mutation
+                variables:
+                  type: object
+                  description: Query variables
+                operationName:
+                  type: string
+            examples:
+              getServices:
+                summary: Get all services
+                value:
+                  query: |
+                    query {
+                      services {
+                        code
+                        name
+                        description
+                        category
+                        requirements
+                        is_active
+                      }
+                    }
+              getAvailableSlots:
+                summary: Get available slots
+                value:
+                  query: |
+                    query GetSlots($code: String!, $date: String!) {
+                      availableSlots(serviceCode: $code, date: $date) {
+                        service_code
+                        date
+                        is_open
+                        slots {
+                          time
+                          available
+                          remaining
+                        }
+                      }
+                    }
+                  variables:
+                    code: "SKD"
+                    date: "2025-12-24"
+              createComplaint:
+                summary: Create complaint
+                value:
+                  query: |
+                    mutation CreateComplaint($input: CreateComplaintInput!) {
+                      createComplaint(input: $input) {
+                        success
+                        complaint_id
+                        message
+                      }
+                    }
+                  variables:
+                    input:
+                      kategori: "jalan_rusak"
+                      deskripsi: "Jalan berlubang"
+                      alamat: "Jl. Merdeka No. 10"
+                      nama_pelapor: "John Doe"
+                      no_hp: "081234567890"
+              createReservation:
+                summary: Create reservation
+                value:
+                  query: |
+                    mutation CreateReservation($input: CreateReservationInput!) {
+                      createReservation(input: $input) {
+                        success
+                        reservation_id
+                        queue_number
+                        message
+                      }
+                    }
+                  variables:
+                    input:
+                      service_code: "SKD"
+                      reservation_date: "2025-12-24"
+                      reservation_time: "09:00"
+                      nama_lengkap: "John Doe"
+                      nik: "1234567890123456"
+                      alamat: "Jl. Merdeka No. 10"
+                      no_hp: "081234567890"
+      responses:
+        '200':
+          description: GraphQL response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        message:
+                          type: string
+                        locations:
+                          type: array
+                          items:
+                            type: object
+                        path:
+                          type: array
+                          items:
+                            type: string

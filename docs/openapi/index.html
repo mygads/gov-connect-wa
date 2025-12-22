@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GovConnect API Documentation</title>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css">
+  <link rel="icon" type="image/png" href="https://govconnect.my.id/favicon.ico">
+  <style>
+    html {
+      box-sizing: border-box;
+      overflow: -moz-scrollbars-vertical;
+      overflow-y: scroll;
+    }
+    *,
+    *:before,
+    *:after {
+      box-sizing: inherit;
+    }
+    body {
+      margin: 0;
+      background: #fafafa;
+    }
+    .swagger-ui .topbar {
+      background-color: #1a365d;
+    }
+    .swagger-ui .topbar .download-url-wrapper .select-label {
+      color: #fff;
+    }
+    .swagger-ui .info .title {
+      color: #1a365d;
+    }
+    .swagger-ui .info .title small.version-stamp {
+      background-color: #38a169;
+    }
+    .swagger-ui .opblock.opblock-get .opblock-summary-method {
+      background: #38a169;
+    }
+    .swagger-ui .opblock.opblock-post .opblock-summary-method {
+      background: #3182ce;
+    }
+    .swagger-ui .opblock.opblock-put .opblock-summary-method {
+      background: #dd6b20;
+    }
+    .swagger-ui .opblock.opblock-patch .opblock-summary-method {
+      background: #805ad5;
+    }
+    .swagger-ui .opblock.opblock-delete .opblock-summary-method {
+      background: #e53e3e;
+    }
+    .swagger-ui .btn.authorize {
+      background-color: #38a169;
+      border-color: #38a169;
+      color: #fff;
+    }
+    .swagger-ui .btn.authorize svg {
+      fill: #fff;
+    }
+    /* Custom header */
+    .custom-header {
+      background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .custom-header h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .custom-header .subtitle {
+      margin: 5px 0 0;
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    .custom-header .links {
+      display: flex;
+      gap: 20px;
+    }
+    .custom-header .links a {
+      color: white;
+      text-decoration: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.1);
+      transition: background 0.2s;
+    }
+    .custom-header .links a:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    /* Service badges */
+    .service-badges {
+      display: flex;
+      gap: 10px;
+      padding: 15px 40px;
+      background: #f7fafc;
+      border-bottom: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+    }
+    .service-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .service-badge.case { background: #c6f6d5; color: #22543d; }
+    .service-badge.channel { background: #bee3f8; color: #2a4365; }
+    .service-badge.ai { background: #e9d8fd; color: #44337a; }
+    .service-badge.notification { background: #feebc8; color: #744210; }
+  </style>
+</head>
+<body>
+  <div class="custom-header">
+    <div>
+      <h1>🏛️ GovConnect API</h1>
+      <p class="subtitle">Government Service Platform API Documentation</p>
+    </div>
+    <div class="links">
+      <a href="https://govconnect.my.id" target="_blank">Dashboard</a>
+      <a href="./openapi.yaml" download>Download OpenAPI</a>
+    </div>
+  </div>
+  
+  <div class="service-badges">
+    <span class="service-badge case">Case Service - api.govconnect.my.id/case</span>
+    <span class="service-badge channel">Channel Service - api.govconnect.my.id/channel</span>
+    <span class="service-badge ai">AI Service - api.govconnect.my.id/ai</span>
+    <span class="service-badge notification">Notification Service - api.govconnect.my.id/notification</span>
+  </div>
+
+  <div id="swagger-ui"></div>
+
+  <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function() {
+      const ui = SwaggerUIBundle({
+        url: "./openapi.yaml",
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout",
+        persistAuthorization: true,
+        filter: true,
+        tagsSorter: "alpha",
+        operationsSorter: "alpha",
+        docExpansion: "list",
+        defaultModelsExpandDepth: 1,
+        defaultModelExpandDepth: 1,
+        displayRequestDuration: true,
+        tryItOutEnabled: true,
+        requestSnippetsEnabled: true,
+        syntaxHighlight: {
+          activate: true,
+          theme: "monokai"
+        }
+      });
+      window.ui = ui;
+    };
+  </script>
+</body>
+</html>
