@@ -53,7 +53,7 @@ export default function LoginPage() {
     );
   }
 
-  // If user is logged in, show loading while redirecting
+  // If user is logged in, show loading while redirecting ya
   if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
